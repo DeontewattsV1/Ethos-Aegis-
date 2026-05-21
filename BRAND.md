@@ -32,7 +32,7 @@ Static preview of all marks together: [`ethos-aegis-preview.png`](./assets/brand
 | Matte Black | `#0A0B0D` | Primary background |
 | Graphite | `#15181C` | Surface / card background |
 | Gunmetal | `#222832` | Elevated surface, divider |
-| Smoke Gray | `#687482` | Secondary text, inactive states |
+| Smoke | `#687482` | Secondary text, inactive states |
 | Steel Blue | `#5E89A8` | Primary accent, active states |
 | Cold Blue | `#9FC3D7` | Hover accent, highlights |
 | Bone White | `#F2F5F7` | Primary text on dark |
@@ -42,7 +42,7 @@ The canonical source for these tokens is [`assets/brand/manifest.json`](./assets
 
 ## Usage rules
 
-1. **Black-on-black hierarchy.** The identity is designed to read against matte black, graphite, obsidian, and smoke gray. Steel blue is the only persistent accent; signal red is reserved for alert and authority states.
+1. **Black-on-black hierarchy.** The identity is designed to read against matte black, graphite, obsidian, and smoke. Steel blue is the only persistent accent; signal red is reserved for alert and authority states.
 2. **Institutional certainty over decoration.** Controlled spacing, disciplined typography, restrained effects.
 3. **Original symbolic language.** Never composite the Ethos Aegis marks with real military seals, eagles, flags, stars, weapons, rank insignia, or department-style crests.
 4. **Operational clarity.** Every mark must remain readable at GitHub-header, app-icon, slide, documentation, and social-avatar sizes.
