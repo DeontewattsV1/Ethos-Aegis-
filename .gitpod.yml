@@ -1,0 +1,13 @@
+image:
+  file: .gitpod.Dockerfile
+
+tasks:
+  - name: install + verify
+    init: npm install
+    command: make verify && echo "Ready. Try 'make demo' or 'npm run repl'."
+
+vscode:
+  extensions:
+    - dbaeumer.vscode-eslint
+    - esbenp.prettier-vscode
+    - vitest.explorer

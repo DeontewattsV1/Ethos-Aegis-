@@ -1,0 +1,3 @@
+> hello world
+> goodbye world (this fires once)
+> after unsubscribe, listeners notified: 0
