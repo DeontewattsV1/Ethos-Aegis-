@@ -77,6 +77,16 @@ def _to_gemini_contents(
                 contents[-1]["parts"][0] = f"{contents[-1]['parts'][0]}\n{parts_text}"
             state["last_model_synthetic"] = False
             return
+        # Gemini requires the first turn to be "user". If the caller passed
+        # an assistant-first message sequence with no system kwarg (so no
+        # prelude was emitted), we'd otherwise produce a leading model turn
+        # and trigger a 400 Invalid Argument. Synthesize a minimal user turn
+        # so the assistant content is interpreted as prior conversational
+        # context the model previously produced.
+        if not contents:
+            contents.append(
+                {"role": "user", "parts": ["Continue from prior context."]}
+            )
         contents.append({"role": "model", "parts": [parts_text]})
         state["last_model_synthetic"] = False
 
@@ -84,6 +94,14 @@ def _to_gemini_contents(
         nonlocal pending_system
         if pending_system is not None:
             append_user(f"System instruction:\n{pending_system}")
+            # NOTE: we append the synthetic "Understood." model turn directly
+            # rather than going through append_model() because (a) append_user
+            # has just guaranteed the last entry is "user", so the fold/replace
+            # logic in append_model is dead code here, and (b) we need to set
+            # state["last_model_synthetic"] = True afterwards so the NEXT
+            # append_model() call (if any) knows it can replace this
+            # placeholder rather than fold into it. Routing through
+            # append_model would clear that flag.
             contents.append({"role": "model", "parts": ["Understood."]})
             state["last_model_synthetic"] = True
             pending_system = None
