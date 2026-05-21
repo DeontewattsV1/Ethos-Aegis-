@@ -223,6 +223,97 @@ def test_to_gemini_contents_interleaved_system_flushes_before_next_turn():
     assert out[-1] == {"role": "user", "parts": ["what's 1+1?"]}
 
 
+# ── _to_gemini_contents role-alternation regression (PR #31 🔴) ───────────────
+
+
+def _roles_strictly_alternate(out: list) -> bool:
+    """Helper: True iff the output never contains two consecutive same-role entries."""
+    return all(
+        out[i]["role"] != out[i + 1]["role"] for i in range(len(out) - 1)
+    )
+
+
+def test_to_gemini_contents_trailing_system_after_user_inserts_alternation():
+    """
+    PR #31 🔴 regression: a system message immediately following a user turn
+    used to produce two consecutive ``user`` entries in the Gemini contents
+    list, which violates Gemini's strict user/model alternation requirement
+    (the API responds 400 Invalid Argument). The fix inserts a synthetic
+    ``model`` ("Understood.") turn between them.
+    """
+    from ethos_aegis.agent.adapters.gemini_adapter import _to_gemini_contents
+
+    out = _to_gemini_contents(
+        [
+            {"role": "user", "content": "hello"},
+            {"role": "system", "content": "be formal"},
+        ],
+        system=None,
+    )
+
+    assert _roles_strictly_alternate(out), (
+        f"consecutive same-role entries in Gemini contents: {out!r}"
+    )
+    # The trailing system instruction must still surface as the final user
+    # entry (per the existing trailing-system contract).
+    assert out[-1]["role"] == "user"
+    assert "be formal" in out[-1]["parts"][0]
+
+
+def test_to_gemini_contents_interleaved_system_after_user_preserves_alternation():
+    """
+    PR #31 🔴 regression: the interleaved-system case
+    (``[user, system, user]``) previously produced
+    ``[user, user (prelude), model, user]`` — two consecutive ``user`` entries
+    at the start. The fix routes the prelude through ``append_user`` which
+    inserts a synthetic ``model`` turn first when needed.
+    """
+    from ethos_aegis.agent.adapters.gemini_adapter import _to_gemini_contents
+
+    out = _to_gemini_contents(
+        [
+            {"role": "user", "content": "hello"},
+            {"role": "system", "content": "now be terse"},
+            {"role": "user", "content": "what's 1+1?"},
+        ],
+        system=None,
+    )
+
+    assert _roles_strictly_alternate(out), (
+        f"consecutive same-role entries in Gemini contents: {out!r}"
+    )
+    # The interleaved system instruction still surfaces as a user prelude.
+    serialized = " || ".join(p for c in out for p in c["parts"])
+    assert "now be terse" in serialized
+
+
+def test_to_gemini_contents_adjacent_assistant_messages_preserve_alternation():
+    """
+    Defensive: two adjacent ``assistant`` messages used to produce two
+    consecutive ``model`` entries. The fix folds the second model turn
+    into the first so alternation is preserved.
+    """
+    from ethos_aegis.agent.adapters.gemini_adapter import _to_gemini_contents
+
+    out = _to_gemini_contents(
+        [
+            {"role": "user", "content": "hi"},
+            {"role": "assistant", "content": "hello!"},
+            {"role": "assistant", "content": "how can I help?"},
+        ],
+        system=None,
+    )
+
+    assert _roles_strictly_alternate(out), (
+        f"consecutive same-role entries in Gemini contents: {out!r}"
+    )
+    # Both assistant messages should be preserved (folded into one model turn).
+    model_turns = [c for c in out if c["role"] == "model"]
+    assert len(model_turns) == 1
+    assert "hello!" in model_turns[0]["parts"][0]
+    assert "how can I help?" in model_turns[0]["parts"][0]
+
+
 class _MockGeminiAdapter:
     """Bypass __init__ so we can exercise _effective_system without the SDK."""
 
