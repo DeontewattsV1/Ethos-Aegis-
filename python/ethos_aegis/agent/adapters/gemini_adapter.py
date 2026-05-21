@@ -43,12 +43,28 @@ def _to_gemini_contents(
     contents: list = []
     pending_system = system
 
+    def append_user(parts_text: str) -> None:
+        # Gemini requires strict user/model alternation. If the last appended
+        # entry is already user, insert a synthetic "Understood." model turn
+        # first so the new user entry doesn't produce consecutive same-role
+        # entries (which the API rejects with 400 Invalid Argument).
+        if contents and contents[-1]["role"] == "user":
+            contents.append({"role": "model", "parts": ["Understood."]})
+        contents.append({"role": "user", "parts": [parts_text]})
+
+    def append_model(parts_text: str) -> None:
+        # Mirror of append_user: skip consecutive model entries. Two adjacent
+        # model turns can only arise if the caller passed adjacent assistant
+        # messages; in that case we fold the second into the first.
+        if contents and contents[-1]["role"] == "model":
+            contents[-1]["parts"][0] = f"{contents[-1]['parts'][0]}\n{parts_text}"
+            return
+        contents.append({"role": "model", "parts": [parts_text]})
+
     def flush_prelude() -> None:
         nonlocal pending_system
         if pending_system is not None:
-            contents.append(
-                {"role": "user", "parts": [f"System instruction:\n{pending_system}"]}
-            )
+            append_user(f"System instruction:\n{pending_system}")
             contents.append({"role": "model", "parts": ["Understood."]})
             pending_system = None
 
@@ -61,8 +77,10 @@ def _to_gemini_contents(
             )
             continue
         flush_prelude()
-        gemini_role = "model" if role == "assistant" else "user"
-        contents.append({"role": gemini_role, "parts": [content]})
+        if role == "assistant":
+            append_model(content)
+        else:
+            append_user(content)
 
     # Always flush any remaining pending_system so trailing system messages
     # are not silently dropped. If no prior contents exist, emit as a
@@ -73,9 +91,7 @@ def _to_gemini_contents(
         if not contents:
             flush_prelude()
         else:
-            contents.append(
-                {"role": "user", "parts": [f"System instruction:\n{pending_system}"]}
-            )
+            append_user(f"System instruction:\n{pending_system}")
             pending_system = None
     return contents
 

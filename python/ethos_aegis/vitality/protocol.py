@@ -1623,7 +1623,6 @@ class AegisVitality:
         sw = cc.retrieve("sanitas_swarm")
         if sw:
             added["vitamin_c"]   = self.nutrient_plex.apply_vitamin_c(sw)
-            sw._vit_c_applied    = True
 
         ls = cc.retrieve("logos_scythe")
         if ls:
