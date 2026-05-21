@@ -13,7 +13,14 @@ readme          = "README.md"
 requires-python = ">=3.10"
 license         = { text = "MIT" }
 authors         = [{ name = "The Ethos Aegis Project" }]
-keywords        = ["ai-safety", "prompt-injection", "llm-security", "adversarial-robustness"]
+keywords        = [
+    "ai-safety",
+    "prompt-injection",
+    "llm-security",
+    "adversarial-robustness",
+    "celestial-language",
+    "agent-spec-pack",
+]
 
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -35,7 +42,12 @@ dependencies = []
 [project.optional-dependencies]
 dev = ["pytest>=7.4", "pytest-cov>=4.1", "pytest-xdist>=3.3", "ruff>=0.4", "mypy>=1.8"]
 fuzz = ["hypothesis>=6.100"]
-all = ["ethos-aegis[dev,fuzz]"]
+# Adds Celestial Agent Spec Pack support (AES-GCM + Ed25519). Glyph cipher works without it.
+celestial = ["cryptography>=42"]
+all = ["ethos-aegis[dev,fuzz,celestial]"]
+
+[project.scripts]
+celestial = "ethos_aegis.celestial.cli:main"
 
 [project.urls]
 Homepage    = "https://github.com/ethos-aegis/ethos-aegis"
@@ -67,6 +79,9 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]     # assert is fine in tests
+
+[tool.setuptools.package-data]
+"ethos_aegis.celestial" = ["agent_spec_schema.json"]
 
 [tool.mypy]
 python_version          = "3.10"
