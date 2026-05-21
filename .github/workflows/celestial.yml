@@ -58,7 +58,10 @@ jobs:
 
       - name: Mypy (celestial only)
         working-directory: python
-        run: mypy ethos_aegis/celestial
+        # --follow-imports=silent type-checks the celestial sources fully but
+        # suppresses errors that would surface from re-exports in the parent
+        # ethos_aegis/__init__.py reaching into vitality/security modules.
+        run: mypy --follow-imports=silent ethos_aegis/celestial
 
       - name: Pytest (celestial only)
         working-directory: python
