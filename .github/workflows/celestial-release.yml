@@ -23,15 +23,16 @@ on:
         description: "Existing tag to (re)release (e.g. celestial-v0.1.0)"
         required: true
 
-# Default to read-only permissions; jobs that need to publish releases
-# escalate locally (least-privilege per GitHub OIDC hardening guide).
-permissions:
-  contents: read
+# Permissions are declared at the job level rather than at the workflow
+# level (SonarCloud rules githubactions:S8233 and S8264) so each job
+# only sees the minimum scope it needs.
 
 jobs:
   build:
     name: build dist
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -102,6 +103,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: ${{ github.event_name == 'push' }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/download-artifact@v4
         with:
