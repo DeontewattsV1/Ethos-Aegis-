@@ -1,0 +1,2 @@
+ready handler fired
+handler fired 1 time(s)
