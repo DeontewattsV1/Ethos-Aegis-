@@ -52,15 +52,23 @@ function runOne(file: string): Promise<RunResult> {
       env: { ...process.env, NO_COLOR: "1", FORCE_COLOR: "0" },
       stdio: ["ignore", "pipe", "pipe"],
     });
-    const chunks: Buffer[] = [];
-    child.stdout.on("data", (b) => chunks.push(b as Buffer));
-    child.stderr.on("data", (b) => chunks.push(b as Buffer));
+    // Buffer stdout and stderr separately. Node does not guarantee event
+    // ordering across two independent readable streams, so interleaving them
+    // into a single buffer would produce non-deterministic snapshots when an
+    // example writes to both. We concatenate stdout-then-stderr deterministically
+    // below.
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
+    child.stdout.on("data", (b) => stdoutChunks.push(b as Buffer));
+    child.stderr.on("data", (b) => stderrChunks.push(b as Buffer));
     const timer = setTimeout(() => {
       child.kill("SIGKILL");
     }, TIMEOUT_MS);
     child.on("close", (code) => {
       clearTimeout(timer);
-      const output = Buffer.concat(chunks).toString("utf8");
+      const stdout = Buffer.concat(stdoutChunks).toString("utf8");
+      const stderr = Buffer.concat(stderrChunks).toString("utf8");
+      const output = stderr.length === 0 ? stdout : `${stdout}${stdout.endsWith("\n") || stdout.length === 0 ? "" : "\n"}${stderr}`;
       resolveFn({
         rel,
         exitCode: code ?? -1,
