@@ -97,4 +97,25 @@ describe("EventEmitter", () => {
     bus.removeAllListeners();
     expect(bus.listenerCount("ping")).toBe(0);
   });
+
+  it("off() removes a listener registered via once() (by original reference)", () => {
+    const bus = new EventEmitter<Events>();
+    const handler = vi.fn();
+    bus.once("ping", handler);
+    expect(bus.listenerCount("ping")).toBe(1);
+    bus.off("ping", handler);
+    expect(bus.listenerCount("ping")).toBe(0);
+    bus.emit("ping");
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("emit() counts listeners that threw when an error handler is registered", () => {
+    const bus = new EventEmitter<Events>();
+    bus.onError(() => {});
+    bus.on("ping", () => {
+      throw new Error("first listener threw");
+    });
+    bus.on("ping", () => {});
+    expect(bus.emit("ping")).toBe(2);
+  });
 });
