@@ -287,6 +287,63 @@ def test_to_gemini_contents_interleaved_system_after_user_preserves_alternation(
     assert "now be terse" in serialized
 
 
+def test_to_gemini_contents_leading_system_then_assistant_does_not_fold_prelude():
+    """
+    PR #33 \U0001f4dd regression: when input begins with a system message
+    followed by an assistant message (or a system kwarg plus a leading
+    assistant message), the prelude emits a synthetic ``{model "Understood."}``
+    turn to maintain alternation. If the next real message is an assistant,
+    the naive ``append_model`` fold path would produce
+    ``{model "Understood.\\nactual assistant text"}`` \u2014 i.e. the model would
+    see the synthetic placeholder concatenated onto its own historical
+    message. The fix tracks a ``last_model_synthetic`` state and replaces
+    the placeholder content with the real assistant content instead.
+    """
+    from ethos_aegis.agent.adapters.gemini_adapter import _to_gemini_contents
+
+    out = _to_gemini_contents(
+        [
+            {"role": "system", "content": "be brief"},
+            {"role": "assistant", "content": "I'll be brief."},
+            {"role": "user", "content": "go"},
+        ],
+        system=None,
+    )
+
+    assert _roles_strictly_alternate(out), (
+        f"consecutive same-role entries in Gemini contents: {out!r}"
+    )
+    # The synthetic "Understood." placeholder must NOT survive into the
+    # final model turn; the real assistant content stands on its own.
+    model_turns = [c for c in out if c["role"] == "model"]
+    assert any("I'll be brief." in c["parts"][0] for c in model_turns)
+    assert not any("Understood." in c["parts"][0] for c in model_turns)
+
+
+def test_to_gemini_contents_system_kwarg_then_assistant_does_not_fold_prelude():
+    """
+    Same fix path as the messages-list-leading-system case, but exercised
+    via the ``system`` kwarg (which is the more common shape because
+    callers usually pass system instructions out-of-band).
+    """
+    from ethos_aegis.agent.adapters.gemini_adapter import _to_gemini_contents
+
+    out = _to_gemini_contents(
+        [
+            {"role": "assistant", "content": "Greetings."},
+            {"role": "user", "content": "continue"},
+        ],
+        system="be terse",
+    )
+
+    assert _roles_strictly_alternate(out), (
+        f"consecutive same-role entries in Gemini contents: {out!r}"
+    )
+    model_turns = [c for c in out if c["role"] == "model"]
+    assert any("Greetings." in c["parts"][0] for c in model_turns)
+    assert not any("Understood." in c["parts"][0] for c in model_turns)
+
+
 def test_to_gemini_contents_adjacent_assistant_messages_preserve_alternation():
     """
     Defensive: two adjacent ``assistant`` messages used to produce two
