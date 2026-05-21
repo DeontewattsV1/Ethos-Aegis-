@@ -18,7 +18,7 @@ The identity is built around original abstract geometry:
    Avoid real military seals, eagles, flags, stars, weapons, rank marks, and department-style crests.
 
 3. **Black-on-black hierarchy**
-   The identity should work in matte black, graphite, obsidian, and smoke gray, with steel blue as the primary accent.
+   The identity should work in matte black, graphite, obsidian, and smoke, with steel blue as the primary accent.
 
 4. **Operational clarity**
    Every mark must remain readable in GitHub headers, app icons, slides, documentation, and social avatars.
@@ -30,7 +30,7 @@ The identity is built around original abstract geometry:
 | Matte Black | `#0A0B0D` |
 | Graphite | `#15181C` |
 | Gunmetal | `#222832` |
-| Smoke Gray | `#687482` |
+| Smoke | `#687482` |
 | Steel Blue | `#5E89A8` |
 | Cold Blue | `#9FC3D7` |
 | Bone White | `#F2F5F7` |
