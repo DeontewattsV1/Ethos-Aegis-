@@ -24,7 +24,7 @@
     "examples:run": "tsx scripts/run-examples.ts",
     "lint": "tsc --noEmit",
     "upgrade": "tsx scripts/upgrade.ts",
-    "upgrade:dry": "tsx scripts/upgrade.ts -- --dry-run"
+    "upgrade:dry": "tsx scripts/upgrade.ts --dry-run"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
