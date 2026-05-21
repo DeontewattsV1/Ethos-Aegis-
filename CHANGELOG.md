@@ -7,19 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Releases are automated by [release-please](https://github.com/googleapis/release-please)
 based on [Conventional Commits](https://www.conventionalcommits.org/) in the
-default branch. Don't edit this file by hand — push conventional commits to `main`
-and release-please will open / update a release PR.
+default branch. **Don't edit this file by hand** — push conventional commits to
+`main` and release-please will open / update a release PR that rewrites this
+file with the curated changelog for the next release.
 
-## [Unreleased]
+<!-- release-please-managed-content-begin -->
+<!-- release-please will overwrite the content below on the first release PR.
+     Anything between the begin/end markers is bootstrap-only. -->
 
-### Features
-- Region-marker driven README sync (`scripts/sync-readme.ts`)
-- Output snapshot capture pipeline (`scripts/run-examples.ts`)
-- Drift detection in CI (`scripts/validate-docs.ts`)
-- Typed `EventEmitter` seed library with `on` / `once` / `off` / `emit` / `onError`
-- 7 examples (basic / advanced / interactive)
-- Devcontainer, Gitpod, and CodeSandbox/Stackblitz quick-start environments
-- Three CI workflows: `docs.yml`, `examples.yml`, `readme.yml`
+The first release PR cut by release-please will replace this notice with the
+real `## [0.1.0]` section, populated from the Conventional Commits in the
+default branch up to that point.
 
-### Continuous Integration
-- Added `release-please` automation for changelog and version management
+<!-- release-please-managed-content-end -->
