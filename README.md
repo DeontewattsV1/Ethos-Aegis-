@@ -22,6 +22,7 @@ The subject library is intentionally tiny: a typed `EventEmitter` with `on`, `on
 |---|---|
 | **Gitpod**         | [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/DeontewattsV1/Ethos-Aegis-) |
 | **CodeSandbox**    | [![Open in CodeSandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/p/github/DeontewattsV1/Ethos-Aegis-/main) |
+| **StackBlitz**     | [![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/DeontewattsV1/Ethos-Aegis-) |
 | **Devcontainer**   | Open in VS Code and select "Reopen in Container" — environment ready in under 60 seconds. |
 
 ## Quick start
