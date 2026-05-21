@@ -16,6 +16,8 @@ A template that proves its own documentation is current. Every fenced code block
 
 The subject library is intentionally tiny: a typed `EventEmitter` with `on`, `once`, `off`, `emit`, error routing, and listener counts. Big enough to populate distinct examples, small enough to stay out of the way.
 
+A larger **Python sibling** lives under [`python/`](./python/README.md) — the broader Ethos Aegis research codebase. The two stacks share **nothing at the language level** (separate lockfiles, separate CI workflows, separate test runners); they only share the living-docs philosophy.
+
 ## Try It
 
 | | |
