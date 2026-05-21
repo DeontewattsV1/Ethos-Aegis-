@@ -493,6 +493,12 @@ class NutrientPlex:
         more neutrophils and lymphocytes. Here, the 'amino acids' are the
         component patterns that build richer detection capability.
         """
+        # Idempotency guard — calling apply_protein() multiple times on the
+        # same probe would otherwise build wrapper chains around `interrogate`
+        # (O(N²) pattern evaluation per call) and duplicate `_extended_sigils`
+        # entries. Once applied, return 0 to signal "no new patterns added".
+        if getattr(probe, '_protein_applied', False):
+            return 0
         new_patterns = [(re.compile(p, re.IGNORECASE), s) for p, s in self.PROTEIN_PACK]
         if not hasattr(probe, '_extended_sigils'):
             probe._extended_sigils = []
@@ -515,6 +521,7 @@ class NutrientPlex:
             return found
 
         probe.interrogate = enriched_interrogate
+        probe._protein_applied = True
         _vlog.info(f"NutrientPlex: PROTEIN applied → VanguardProbe +{len(self.PROTEIN_PACK)} sigils")
         return len(self.PROTEIN_PACK)
 
@@ -530,6 +537,9 @@ class NutrientPlex:
         corrupting influence of Unicode manipulation attacks that can damage
         the integrity of clean data before it reaches downstream cells.
         """
+        # Idempotency guard — see apply_protein() for rationale.
+        if getattr(swarm, '_vit_c_applied', False):
+            return 0
         compiled_additions = [
             (re.compile(p), sigil) for p, sigil in self.VITAMIN_C_PACK
         ]
@@ -546,6 +556,7 @@ class NutrientPlex:
             return found
 
         swarm.interrogate = fortified_interrogate
+        swarm._vit_c_applied = True
         _vlog.info(f"NutrientPlex: VITAMIN C applied → SanitasSwarm +{len(self.VITAMIN_C_PACK)} patterns")
         return len(self.VITAMIN_C_PACK)
 
@@ -562,7 +573,9 @@ class NutrientPlex:
         'semantic myelin' — its ability to conduct precise reasoning about
         deceptive language patterns without signal degradation or missed signals.
         """
-        count = 0
+        # Idempotency guard — see apply_protein() for rationale.
+        if getattr(logos, '_b12_applied', False):
+            return 0
         if not hasattr(logos, '_b12_manifold'):
             logos._b12_manifold = {}
         logos._b12_manifold.update(self.VITAMIN_B12_PACK)
@@ -580,10 +593,10 @@ class NutrientPlex:
                             MalignaClass.NarcissisMaligna, CorruptionDepth.CAUTION,
                             f"b12_pack:{deception_type}", " ║ ".join(hits[:2]), veracity
                         ))
-                        count
             return found
 
         logos.interrogate = b12_enriched_interrogate
+        logos._b12_applied = True
         total = sum(len(v) for v in self.VITAMIN_B12_PACK.values())
         _vlog.info(f"NutrientPlex: VITAMIN B12 applied → LogosScythe +{total} semantic patterns")
         return total
@@ -600,11 +613,18 @@ class NutrientPlex:
         fires, reducing the signal-to-noise floor and catching more subtle
         structural attacks that the default thresholds would miss.
         """
+        # Idempotency guard — zinc adjusts thresholds rather than wrapping
+        # methods, so re-application is idempotent in principle. We still set
+        # the flag so callers can introspect the application state uniformly
+        # across all four nutrients.
+        if getattr(watch, '_zinc_applied', False):
+            return
         for attr, value in self.ZINC_PACK_THRESHOLDS.items():
             if hasattr(watch, f'_{attr}'):
                 old = getattr(watch, f'_{attr}')
                 setattr(watch, f'_{attr}', value)
                 _vlog.info(f"NutrientPlex: ZINC → EntropicWatch.{attr}: {old} → {value}")
+        watch._zinc_applied = True
 
     def detect_deficiencies(
         self, aegis: EthosAegis
@@ -1579,11 +1599,20 @@ class AegisVitality:
     def nourish(self) -> Dict[str, int]:
         """
         Applies the full NutrientPlex nutrition protocol — feeds all five
-        nutrient packs to the appropriate cells. Call this once before
-        production deployment and repeat whenever new threat variants emerge.
+        nutrient packs to the appropriate cells. Idempotent: calling more
+        than once is a no-op that returns an empty summary, so callers can
+        invoke ``nourish()`` at any safe entry point without worrying about
+        wrapper-chain accumulation on the cells' ``interrogate`` methods.
 
-        Returns a summary of patterns added per nutrient class.
+        Returns a summary of patterns added per nutrient class. An empty
+        dict means nourishment was already applied previously.
         """
+        if self._nourished:
+            _vlog.info(
+                "AegisVitality: nourish() called but cells are already nourished — skipping."
+            )
+            return {}
+
         cc    = self.aegis.cytokine_command
         added = {}
 
@@ -1594,7 +1623,6 @@ class AegisVitality:
         sw = cc.retrieve("sanitas_swarm")
         if sw:
             added["vitamin_c"]   = self.nutrient_plex.apply_vitamin_c(sw)
-            sw._vit_c_applied    = True
 
         ls = cc.retrieve("logos_scythe")
         if ls:
@@ -1653,7 +1681,7 @@ class AegisVitality:
             _vlog.warning(f"NeuroStressBuffer: request blocked — system under stress")
             blocked_verdict = AegisVerdict(
                 is_sanctified=False, is_condemned=True,
-                sovereignty_depth=CorruptionDepth.GRAVE,
+                sovereignty_depth=CorruptionDepth.CONDEMNED,
                 axiological_report="REQUEST BLOCKED — NeuroStressBuffer circuit active.",
                 sentinel_chronicle=["NeuroStressBuffer: rate limit exceeded"]
             )

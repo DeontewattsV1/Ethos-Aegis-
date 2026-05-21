@@ -33,7 +33,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
-          cache-dependency-path: 'python/requirements.txt'
+          # Hash pyproject.toml since `pip install -e '.[dev]'` resolves
+          # dev dependencies from there, not requirements.txt. Keeping the
+          # cache key tied to the actual install manifest avoids serving
+          # stale wheels when dev extras change.
+          cache-dependency-path: 'python/pyproject.toml'
 
       - name: Install dev dependencies
         working-directory: python

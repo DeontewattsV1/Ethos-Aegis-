@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ethos-aegis.dev/schemas/agent_spec.schema.json",
+  "title": "Agent Specification",
+  "description": "Canonical shape of an agent blueprint accepted by AgentSpecCrypto.encrypt_spec().",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "creator",
+    "system_role",
+    "use_case",
+    "business_goal",
+    "users",
+    "inputs",
+    "tools",
+    "responsibilities",
+    "memory_requirements",
+    "constraints",
+    "required_output",
+    "success_criteria"
+  ],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "creator": { "type": "string" },
+    "system_role": { "type": "string" },
+    "use_case": { "type": "string" },
+    "business_goal": { "type": "string" },
+    "users": {
+      "type": ["array", "string"],
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "inputs": {
+      "type": ["array", "string"],
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "tools": {
+      "type": ["array", "string"],
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "responsibilities": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "memory_requirements": { "type": "string" },
+    "constraints": {
+      "type": "object",
+      "required": [
+        "tech_stack",
+        "model_provider",
+        "budget",
+        "latency",
+        "security_privacy",
+        "deployment_target"
+      ],
+      "properties": {
+        "tech_stack": { "type": "string" },
+        "model_provider": { "type": "string" },
+        "budget": { "type": "string" },
+        "latency": { "type": "string" },
+        "security_privacy": { "type": "string" },
+        "deployment_target": { "type": "string" }
+      }
+    },
+    "required_output": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "success_criteria": { "type": "string" }
+  },
+  "additionalProperties": false
+}

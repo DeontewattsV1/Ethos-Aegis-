@@ -1,0 +1,39 @@
+{
+  "project": "Ethos Aegis",
+  "package": "original black-on-black sovereign AI integrity defense brand identity kit",
+  "version": "1.0.0",
+  "assets": [
+    "01-primary-emblem.svg",
+    "02-monogram-icon.svg",
+    "03-wordmark-lockup.svg",
+    "04-circular-seal-style-badge.svg",
+    "05-mission-patch.svg",
+    "06-app-icon.svg",
+    "07-reverse-white-mark.svg",
+    "08-documentation-header-banner.svg",
+    "09-field-ready-badge.svg",
+    "ethos-aegis-preview.png",
+    "STYLEGUIDE.md",
+    "PROMPTS.md"
+  ],
+  "legal_safety": [
+    "Original abstract marks",
+    "No eagles",
+    "No flags",
+    "No stars",
+    "No weapons",
+    "No copied Department of Defense, military branch, or government insignia",
+    "No claim of government affiliation"
+  ],
+  "palette": {
+    "obsidian": "#050607",
+    "matte_black": "#0A0B0D",
+    "graphite": "#15181C",
+    "gunmetal": "#222832",
+    "smoke": "#687482",
+    "steel_blue": "#5E89A8",
+    "cold_blue": "#9FC3D7",
+    "bone_white": "#F2F5F7",
+    "signal_red": "#B13A3A"
+  }
+}
