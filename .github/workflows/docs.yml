@@ -63,8 +63,8 @@ jobs:
           LDT_FORCE_STAMP: "1"
         run: npx tsx scripts/sync-readme.ts
 
-      - name: Re-sync README (feature branch push)
-        if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+      - name: Re-sync README (feature branch push or manual dispatch)
+        if: (github.event_name == 'push' && github.ref != 'refs/heads/main') || github.event_name == 'workflow_dispatch'
         run: npx tsx scripts/sync-readme.ts
 
       - name: Detect changes

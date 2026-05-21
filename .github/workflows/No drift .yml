@@ -1,0 +1,12 @@
+            - name: Sintesi - Documentation Check
+  # You may pin to the exact commit or the version.
+  # uses: doctypedev/action@28312e1ff82eb48ddd58de6ad7968fa25966821d
+  uses: doctypedev/action@v0.0.1
+  with:
+    # Your OpenAI API Key
+    openai_api_key: 
+    # GitHub Token to create Pull Requests (standard GITHUB_TOKEN works)
+    github_token: 
+    # Version of Sintesi to use
+    version: # optional, default is latest
+          
