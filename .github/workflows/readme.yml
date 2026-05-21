@@ -1,0 +1,46 @@
+name: readme
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "README.md"
+      - "examples/**"
+      - "docs/output-snapshots/**"
+      - ".github/workflows/readme.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "README.md"
+      - "examples/**"
+      - "docs/output-snapshots/**"
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: readme-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+
+      - name: Install markdown-link-check
+        run: npm install --no-save markdown-link-check@3
+
+      - name: Check README links
+        run: npx markdown-link-check -q README.md || true
+
+      - name: Validate example markers + snapshots
+        run: npx tsx scripts/validate-docs.ts

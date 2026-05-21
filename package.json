@@ -1,0 +1,42 @@
+{
+  "name": "living-docs-template",
+  "version": "0.1.0",
+  "description": "Self-demonstrating, always-current documentation template. Source code, examples, and README are kept in sync by CI.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "main": "src/index.ts",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "docs": "tsx scripts/sync-readme.ts && tsx scripts/run-examples.ts",
+    "docs:api": "typedoc --out docs/api src/index.ts",
+    "verify": "tsx scripts/run-examples.ts && tsx scripts/validate-docs.ts",
+    "repl": "tsx repl.ts",
+    "examples:run": "tsx scripts/run-examples.ts",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "tsx": "^4.16.0",
+    "typedoc": "^0.26.0",
+    "typescript": "^5.5.0",
+    "vitest": "^1.6.0"
+  },
+  "keywords": [
+    "living-docs",
+    "documentation",
+    "typescript",
+    "observable",
+    "event-emitter"
+  ]
+}
