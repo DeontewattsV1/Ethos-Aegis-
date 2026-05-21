@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import secrets
 import subprocess
 import sys
 from pathlib import Path
@@ -60,11 +61,12 @@ def test_pack_then_unpack(tmp_path: Path) -> None:
     pack_file = tmp_path / "pack.json"
     restored_file = tmp_path / "restored.json"
     spec_file.write_text(json.dumps(SAMPLE_SPEC), encoding="utf-8")
+    passphrase = secrets.token_urlsafe(32)
 
     rc_pack = main([
         "pack",
         "--spec-file", str(spec_file),
-        "--passphrase", "test-pass-1",
+        "--passphrase", passphrase,
         "--output", str(pack_file),
     ])
     assert rc_pack == 0
@@ -73,7 +75,7 @@ def test_pack_then_unpack(tmp_path: Path) -> None:
     rc_unpack = main([
         "unpack",
         "--pack-file", str(pack_file),
-        "--passphrase", "test-pass-1",
+        "--passphrase", passphrase,
         "--output", str(restored_file),
     ])
     assert rc_unpack == 0

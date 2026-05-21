@@ -35,13 +35,17 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
-# scrypt parameters per RFC 7914 §2 (interactive use; ~16 MiB of memory).
-_SCRYPT_N = 2**14
+# Default scrypt cost parameters follow OWASP's 2023 Password Storage
+# Cheatsheet recommendation for sensitive data (N=2**17, r=8, p=1 ≈
+# 128 MiB working memory). Callers may lower N for tests or short-lived
+# packs via the `scrypt_n` constructor argument.
+_DEFAULT_SCRYPT_N = 2**17
 _SCRYPT_R = 8
 _SCRYPT_P = 1
 _KEY_LEN = 32
 _NONCE_LEN = 12
 _SALT_LEN = 16
+_MIN_SCRYPT_N = 2**14  # absolute floor — RFC 7914 interactive baseline
 
 
 def _canonical_json(data: dict[str, Any]) -> bytes:
@@ -49,9 +53,9 @@ def _canonical_json(data: dict[str, Any]) -> bytes:
     return json.dumps(data, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
-def _derive_key(passphrase: str, salt: bytes) -> bytes:
+def _derive_key(passphrase: str, salt: bytes, n: int = _DEFAULT_SCRYPT_N) -> bytes:
     """scrypt-based KDF producing a 32-byte AES-256-GCM key."""
-    kdf = Scrypt(salt=salt, length=_KEY_LEN, n=_SCRYPT_N, r=_SCRYPT_R, p=_SCRYPT_P)
+    kdf = Scrypt(salt=salt, length=_KEY_LEN, n=n, r=_SCRYPT_R, p=_SCRYPT_P)
     return kdf.derive(passphrase.encode("utf-8"))
 
 
@@ -113,11 +117,20 @@ class AgentSpecCrypto:
     your own ``private_key`` to reuse a long-lived identity.
     """
 
-    def __init__(self, private_key: ed25519.Ed25519PrivateKey | None = None) -> None:
+    def __init__(
+        self,
+        private_key: ed25519.Ed25519PrivateKey | None = None,
+        scrypt_n: int = _DEFAULT_SCRYPT_N,
+    ) -> None:
+        if scrypt_n < _MIN_SCRYPT_N or (scrypt_n & (scrypt_n - 1)) != 0:
+            raise ValueError(
+                f"scrypt_n must be a power of two ≥ {_MIN_SCRYPT_N}; got {scrypt_n}"
+            )
         self.private_key: ed25519.Ed25519PrivateKey = (
             private_key or ed25519.Ed25519PrivateKey.generate()
         )
         self.public_key: ed25519.Ed25519PublicKey = self.private_key.public_key()
+        self.scrypt_n: int = scrypt_n
 
     # ── Identity helpers ─────────────────────────────────────────────────────
 
@@ -143,10 +156,17 @@ class AgentSpecCrypto:
         return base64.b64encode(raw).decode("ascii")
 
     @classmethod
-    def from_private_key_b64(cls, private_key_b64: str) -> AgentSpecCrypto:
+    def from_private_key_b64(
+        cls,
+        private_key_b64: str,
+        scrypt_n: int = _DEFAULT_SCRYPT_N,
+    ) -> AgentSpecCrypto:
         """Restore a key pair from the 32-byte raw private key in base64."""
         raw = base64.b64decode(private_key_b64)
-        return cls(ed25519.Ed25519PrivateKey.from_private_bytes(raw))
+        return cls(
+            ed25519.Ed25519PrivateKey.from_private_bytes(raw),
+            scrypt_n=scrypt_n,
+        )
 
     # ── Encrypt + sign ───────────────────────────────────────────────────────
 
@@ -166,7 +186,7 @@ class AgentSpecCrypto:
         plaintext = _canonical_json(spec)
         salt = os.urandom(_SALT_LEN)
         nonce = os.urandom(_NONCE_LEN)
-        key = _derive_key(passphrase, salt)
+        key = _derive_key(passphrase, salt, n=self.scrypt_n)
         ciphertext = AESGCM(key).encrypt(nonce, plaintext, None)
 
         manifest: dict[str, Any] = {
@@ -178,6 +198,7 @@ class AgentSpecCrypto:
             "content_type": "agent_spec",
             "nonce_b64": base64.b64encode(nonce).decode("ascii"),
             "salt_b64": base64.b64encode(salt).decode("ascii"),
+            "kdf": {"name": "scrypt", "n": self.scrypt_n, "r": _SCRYPT_R, "p": _SCRYPT_P},
         }
         manifest_bytes = _canonical_json(manifest)
         signature = self.private_key.sign(manifest_bytes + ciphertext)
@@ -194,6 +215,11 @@ class AgentSpecCrypto:
     @staticmethod
     def verify_and_decrypt(pack: EncryptedAgentPack, passphrase: str) -> dict[str, Any]:
         """Verify the manifest signature and decrypt the spec body.
+
+        Reads the scrypt cost parameters from the manifest's ``kdf`` field
+        when present, so packs created with different scrypt costs
+        decrypt without out-of-band configuration; the default is used
+        for legacy packs that omit the field.
 
         Raises
         ------
@@ -222,7 +248,11 @@ class AgentSpecCrypto:
 
         # 3. AES-GCM decrypt — fails fast if the passphrase is wrong or
         #    the ciphertext was tampered with after signing.
-        key = _derive_key(passphrase, salt)
+        kdf_params = pack.manifest.get("kdf") or {}
+        scrypt_n = int(kdf_params.get("n", _DEFAULT_SCRYPT_N))
+        if scrypt_n < _MIN_SCRYPT_N or (scrypt_n & (scrypt_n - 1)) != 0:
+            raise ValueError(f"manifest reports invalid scrypt cost: {scrypt_n}")
+        key = _derive_key(passphrase, salt, n=scrypt_n)
         try:
             plaintext = AESGCM(key).decrypt(nonce, ciphertext, None)
         except InvalidTag as exc:
