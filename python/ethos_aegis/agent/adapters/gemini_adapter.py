@@ -22,13 +22,36 @@ def _to_gemini_contents(
     Gemini uses ``{"role": "user"|"model", "parts": [text]}`` while the
     BaseAdapter contract passes OpenAI-style ``{"role": "user"|"assistant"|"system", "content": text}``.
 
-    A leading ``system`` instruction (either passed via the ``system`` kwarg
-    or as a message with ``role == "system"``) is folded in as an initial
-    user/model turn pair so it surfaces in the prompt without requiring the
-    caller to reconstruct the GenerativeModel with ``system_instruction``.
+    System instructions (either passed via the ``system`` kwarg or as messages
+    with ``role == "system"``) are folded in as user/model turn pairs so they
+    surface in the prompt without requiring the caller to reconstruct the
+    GenerativeModel with ``system_instruction``:
+
+    * A *leading* system instruction (kwarg + any system messages that appear
+      before the first non-system turn) is concatenated and emitted as one
+      ``user -> model ("Understood.")`` prelude.
+    * A *trailing* system instruction (system messages that appear after
+      non-system turns and after which no further non-system turns follow)
+      is emitted as a final user-side hint *without* a synthetic model reply,
+      so the model's next generation responds to the instruction directly.
+    * A system instruction that appears *between* non-system turns is emitted
+      as a prelude before the very next non-system turn.
+
+    This avoids silently dropping any system content, which was the previous
+    behavior when system messages followed non-system messages.
     """
     contents: list = []
     pending_system = system
+
+    def flush_prelude() -> None:
+        nonlocal pending_system
+        if pending_system is not None:
+            contents.append(
+                {"role": "user", "parts": [f"System instruction:\n{pending_system}"]}
+            )
+            contents.append({"role": "model", "parts": ["Understood."]})
+            pending_system = None
+
     for msg in messages:
         role = msg.get("role", "user")
         content = msg.get("content", "")
@@ -37,14 +60,23 @@ def _to_gemini_contents(
                 content if pending_system is None else f"{pending_system}\n\n{content}"
             )
             continue
-        if pending_system is not None:
-            contents.append({"role": "user", "parts": [f"System instruction:\n{pending_system}"]})
-            contents.append({"role": "model", "parts": ["Understood."]})
-            pending_system = None
+        flush_prelude()
         gemini_role = "model" if role == "assistant" else "user"
         contents.append({"role": gemini_role, "parts": [content]})
-    if pending_system is not None and not contents:
-        contents.append({"role": "user", "parts": [f"System instruction:\n{pending_system}"]})
+
+    # Always flush any remaining pending_system so trailing system messages
+    # are not silently dropped. If no prior contents exist, emit as a
+    # standard prelude (user + "Understood." model). Otherwise, emit as a
+    # final user-side hint without a synthetic model reply so the next
+    # generate_content() call responds directly to the instruction.
+    if pending_system is not None:
+        if not contents:
+            flush_prelude()
+        else:
+            contents.append(
+                {"role": "user", "parts": [f"System instruction:\n{pending_system}"]}
+            )
+            pending_system = None
     return contents
 
 
@@ -97,18 +129,25 @@ class GeminiAdapter(BaseAdapter):
         if resolved_key:
             genai.configure(api_key=resolved_key)
 
+        # NOTE: We deliberately do NOT pass `system_instruction` to
+        # GenerativeModel here. The system prompt is applied per-call via
+        # `_to_gemini_contents()` instead. If we baked it into the model
+        # *and* also threaded a call-time `system` kwarg through
+        # `_to_gemini_contents()`, the model would see the instruction twice
+        # (once as baked-in and once as a user prelude). Routing both paths
+        # through the same prelude mechanism keeps precedence deterministic:
+        # call-time `system` overrides constructor `system_prompt`.
         model_kwargs: dict = {}
-        if system_prompt:
-            model_kwargs["system_instruction"] = system_prompt
         if safety_settings:
             model_kwargs["safety_settings"] = safety_settings
         model_kwargs.update(kwargs)
 
-        self._genai       = genai
-        self._model_id    = model
-        self._model       = genai.GenerativeModel(model, **model_kwargs)
-        self._temperature = temperature
-        self._max_tokens  = max_tokens
+        self._genai          = genai
+        self._model_id       = model
+        self._model          = genai.GenerativeModel(model, **model_kwargs)
+        self._temperature    = temperature
+        self._max_tokens     = max_tokens
+        self._system_prompt  = system_prompt
 
     # ── BaseAdapter interface ─────────────────────────────────────────────
 
@@ -122,13 +161,23 @@ class GeminiAdapter(BaseAdapter):
     def supports_streaming(self) -> bool:
         return True
 
+    def _effective_system(self, system: Optional[str]) -> Optional[str]:
+        """
+        Resolve which system instruction to apply for a single call.
+
+        Caller-supplied ``system`` overrides the adapter-level
+        ``system_prompt`` set at construction time. If both are absent,
+        no system prelude is emitted.
+        """
+        return system if system is not None else self._system_prompt
+
     def complete(
         self,
         messages: List[Dict[str, str]],
         system: Optional[str] = None,
         **kwargs: Any,
     ) -> str:
-        contents = _to_gemini_contents(messages, system)
+        contents = _to_gemini_contents(messages, self._effective_system(system))
         config = self._genai.types.GenerationConfig(
             temperature=kwargs.get("temperature", self._temperature),
             max_output_tokens=kwargs.get("max_tokens", self._max_tokens),
@@ -142,7 +191,7 @@ class GeminiAdapter(BaseAdapter):
         system: Optional[str] = None,
         **kwargs: Any,
     ) -> Iterator[str]:
-        contents = _to_gemini_contents(messages, system)
+        contents = _to_gemini_contents(messages, self._effective_system(system))
         config = self._genai.types.GenerationConfig(
             temperature=kwargs.get("temperature", self._temperature),
             max_output_tokens=kwargs.get("max_tokens", self._max_tokens),

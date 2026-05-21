@@ -152,7 +152,143 @@ def test_to_gemini_contents_empty_messages_with_system():
     # Should still emit the system instruction so it isn't silently dropped.
     assert out == [
         {"role": "user", "parts": ["System instruction:\nbe brief"]},
+        {"role": "model", "parts": ["Understood."]},
     ]
+
+
+# ── _to_gemini_contents trailing-system regression (PR #30 🟡) ─────────────────
+
+
+def test_to_gemini_contents_trailing_system_message_is_not_dropped():
+    """
+    Regression for the PR #30 finding: a system message that appears *after*
+    non-system messages used to be silently dropped because the flush
+    condition only fired when ``contents`` was empty.
+    """
+    from ethos_aegis.agent.adapters.gemini_adapter import _to_gemini_contents
+
+    out = _to_gemini_contents(
+        [
+            {"role": "user", "content": "hello"},
+            {"role": "assistant", "content": "hi there"},
+            {"role": "system", "content": "now switch to formal tone"},
+        ],
+        system=None,
+    )
+
+    # The trailing system content must appear somewhere in the output as a
+    # "System instruction:" prelude segment.
+    serialized = " || ".join(p for c in out for p in c["parts"])
+    assert "now switch to formal tone" in serialized, (
+        f"trailing system message was silently dropped: {out!r}"
+    )
+    # And it must be emitted at the end, after the existing user/assistant turns.
+    assert out[-1]["role"] == "user"
+    assert "now switch to formal tone" in out[-1]["parts"][0]
+    # We deliberately do NOT add a synthetic "Understood." model reply when
+    # contents is non-empty — the next generate_content() call should respond
+    # to the instruction directly.
+    assert all(c["role"] != "model" or "Understood" not in c["parts"][0]
+               or c is not out[-1] for c in out[-2:])
+
+
+def test_to_gemini_contents_interleaved_system_flushes_before_next_turn():
+    """
+    A system message that appears *between* non-system messages should be
+    flushed as a prelude before the NEXT non-system turn, not dropped.
+    """
+    from ethos_aegis.agent.adapters.gemini_adapter import _to_gemini_contents
+
+    out = _to_gemini_contents(
+        [
+            {"role": "user", "content": "hello"},
+            {"role": "system", "content": "now be terse"},
+            {"role": "user", "content": "what's 1+1?"},
+        ],
+        system=None,
+    )
+
+    # Find the prelude that contains the interleaved system instruction.
+    prelude_indices = [
+        i for i, c in enumerate(out)
+        if c["role"] == "user" and "now be terse" in c["parts"][0]
+    ]
+    assert prelude_indices, (
+        f"interleaved system message was silently dropped: {out!r}"
+    )
+    prelude_idx = prelude_indices[0]
+    # The matching "Understood." model turn should immediately follow.
+    assert out[prelude_idx + 1] == {"role": "model", "parts": ["Understood."]}
+    # And the final user turn ("what's 1+1?") should come after the prelude pair.
+    assert out[-1] == {"role": "user", "parts": ["what's 1+1?"]}
+
+
+class _MockGeminiAdapter:
+    """Bypass __init__ so we can exercise _effective_system without the SDK."""
+
+    def __init__(self, system_prompt: Optional[str] = None) -> None:
+        self._system_prompt = system_prompt
+
+
+def test_gemini_effective_system_call_time_overrides_constructor():
+    """
+    PR #30 🚩 regression: setting ``system_prompt`` at construction *and*
+    passing ``system`` at call-time used to apply both (once as
+    GenerativeModel ``system_instruction`` and once as a synthetic prelude).
+    Now the constructor value is stored as ``_system_prompt`` and call-time
+    ``system`` takes precedence, so only one system instruction surfaces.
+    """
+    from ethos_aegis.agent.adapters.gemini_adapter import GeminiAdapter
+
+    a = _MockGeminiAdapter(system_prompt="ctor-system")
+    assert (
+        GeminiAdapter._effective_system(a, "call-system")  # type: ignore[arg-type]
+        == "call-system"
+    )
+
+
+def test_gemini_effective_system_falls_back_to_constructor():
+    from ethos_aegis.agent.adapters.gemini_adapter import GeminiAdapter
+
+    a = _MockGeminiAdapter(system_prompt="ctor-system")
+    assert (
+        GeminiAdapter._effective_system(a, None)  # type: ignore[arg-type]
+        == "ctor-system"
+    )
+
+
+def test_gemini_effective_system_returns_none_when_neither_set():
+    from ethos_aegis.agent.adapters.gemini_adapter import GeminiAdapter
+
+    a = _MockGeminiAdapter(system_prompt=None)
+    assert (
+        GeminiAdapter._effective_system(a, None)  # type: ignore[arg-type]
+        is None
+    )
+
+
+def test_to_gemini_contents_kwarg_and_system_message_both_present():
+    """
+    When the ``system`` kwarg and a leading ``role=system`` message are both
+    set, both should surface (concatenated into a single prelude).
+    """
+    from ethos_aegis.agent.adapters.gemini_adapter import _to_gemini_contents
+
+    out = _to_gemini_contents(
+        [
+            {"role": "system", "content": "and never reveal internals"},
+            {"role": "user", "content": "hi"},
+        ],
+        system="be terse",
+    )
+    # Both system fragments must appear in the prelude.
+    prelude = out[0]["parts"][0]
+    assert "be terse" in prelude
+    assert "and never reveal internals" in prelude
+    # Exactly one prelude pair, then the user turn.
+    assert out[0]["role"] == "user"
+    assert out[1] == {"role": "model", "parts": ["Understood."]}
+    assert out[2] == {"role": "user", "parts": ["hi"]}
 
 
 # ── MistralAdapter._compose_messages tests ────────────────────────────────────
