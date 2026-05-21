@@ -1653,7 +1653,7 @@ class AegisVitality:
             _vlog.warning(f"NeuroStressBuffer: request blocked — system under stress")
             blocked_verdict = AegisVerdict(
                 is_sanctified=False, is_condemned=True,
-                sovereignty_depth=CorruptionDepth.GRAVE,
+                sovereignty_depth=CorruptionDepth.CONDEMNED,
                 axiological_report="REQUEST BLOCKED — NeuroStressBuffer circuit active.",
                 sentinel_chronicle=["NeuroStressBuffer: rate limit exceeded"]
             )

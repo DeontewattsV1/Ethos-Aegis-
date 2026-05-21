@@ -8,8 +8,44 @@ pip install google-cloud-aiplatform    # Vertex AI (optional)
 """
 
 from __future__ import annotations
-from typing import Iterator
+from typing import Any, Dict, Iterator, List, Optional
 from .base_adapter import BaseAdapter
+
+
+def _to_gemini_contents(
+    messages: List[Dict[str, str]],
+    system: Optional[str],
+) -> list:
+    """
+    Convert OpenAI-style chat messages to Gemini's `contents` format.
+
+    Gemini uses ``{"role": "user"|"model", "parts": [text]}`` while the
+    BaseAdapter contract passes OpenAI-style ``{"role": "user"|"assistant"|"system", "content": text}``.
+
+    A leading ``system`` instruction (either passed via the ``system`` kwarg
+    or as a message with ``role == "system"``) is folded in as an initial
+    user/model turn pair so it surfaces in the prompt without requiring the
+    caller to reconstruct the GenerativeModel with ``system_instruction``.
+    """
+    contents: list = []
+    pending_system = system
+    for msg in messages:
+        role = msg.get("role", "user")
+        content = msg.get("content", "")
+        if role == "system":
+            pending_system = (
+                content if pending_system is None else f"{pending_system}\n\n{content}"
+            )
+            continue
+        if pending_system is not None:
+            contents.append({"role": "user", "parts": [f"System instruction:\n{pending_system}"]})
+            contents.append({"role": "model", "parts": ["Understood."]})
+            pending_system = None
+        gemini_role = "model" if role == "assistant" else "user"
+        contents.append({"role": gemini_role, "parts": [content]})
+    if pending_system is not None and not contents:
+        contents.append({"role": "user", "parts": [f"System instruction:\n{pending_system}"]})
+    return contents
 
 
 class GeminiAdapter(BaseAdapter):
@@ -86,21 +122,33 @@ class GeminiAdapter(BaseAdapter):
     def supports_streaming(self) -> bool:
         return True
 
-    def complete(self, message: str, **kwargs) -> str:
+    def complete(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        **kwargs: Any,
+    ) -> str:
+        contents = _to_gemini_contents(messages, system)
         config = self._genai.types.GenerationConfig(
             temperature=kwargs.get("temperature", self._temperature),
             max_output_tokens=kwargs.get("max_tokens", self._max_tokens),
         )
-        response = self._model.generate_content(message, generation_config=config)
+        response = self._model.generate_content(contents, generation_config=config)
         return response.text or ""
 
-    def stream(self, message: str, **kwargs) -> Iterator[str]:
+    def stream(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Iterator[str]:
+        contents = _to_gemini_contents(messages, system)
         config = self._genai.types.GenerationConfig(
             temperature=kwargs.get("temperature", self._temperature),
             max_output_tokens=kwargs.get("max_tokens", self._max_tokens),
         )
         for chunk in self._model.generate_content(
-            message, generation_config=config, stream=True
+            contents, generation_config=config, stream=True
         ):
             if chunk.text:
                 yield chunk.text
@@ -157,20 +205,32 @@ class GeminiVertexAdapter(BaseAdapter):
     def supports_streaming(self) -> bool:
         return True
 
-    def complete(self, message: str, **kwargs) -> str:
+    def complete(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        **kwargs: Any,
+    ) -> str:
         from vertexai.generative_models import GenerationConfig
+        contents = _to_gemini_contents(messages, system)
         config = GenerationConfig(
             temperature=kwargs.get("temperature", self._temperature),
             max_output_tokens=kwargs.get("max_tokens", self._max_tokens),
         )
-        return self._model.generate_content(message, generation_config=config).text or ""
+        return self._model.generate_content(contents, generation_config=config).text or ""
 
-    def stream(self, message: str, **kwargs) -> Iterator[str]:
+    def stream(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Iterator[str]:
         from vertexai.generative_models import GenerationConfig
+        contents = _to_gemini_contents(messages, system)
         config = GenerationConfig(
             temperature=kwargs.get("temperature", self._temperature),
             max_output_tokens=kwargs.get("max_tokens", self._max_tokens),
         )
-        for chunk in self._model.generate_content(message, generation_config=config, stream=True):
+        for chunk in self._model.generate_content(contents, generation_config=config, stream=True):
             if chunk.text:
                 yield chunk.text
