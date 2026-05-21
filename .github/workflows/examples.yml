@@ -1,0 +1,40 @@
+name: examples
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: examples-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+
+      - name: Execute every example and capture output
+        run: npx tsx scripts/run-examples.ts
+
+      - name: Validate snapshots
+        run: npx tsx scripts/validate-docs.ts
+
+      - name: Fail if examples drifted from snapshots
+        run: |
+          if ! git diff --quiet docs/output-snapshots; then
+            echo "::error::Snapshot drift detected. Run 'npm run docs' locally to update output snapshots." >&2
+            git --no-pager diff docs/output-snapshots
+            exit 1
+          fi
