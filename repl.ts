@@ -163,9 +163,20 @@ session.defineCommand("scenario", {
       return;
     }
     console.log(`\nRunning scenario "${key}": ${scenario.description}`);
-    Promise.resolve(scenario.run(new EventEmitter<DemoEvents>())).finally(() => {
-      this.displayPrompt();
-    });
+    // Wrap in `new Promise(resolve => resolve(...))` so a synchronous throw
+    // inside `scenario.run()` is converted into a rejected Promise. With a
+    // plain `Promise.resolve(scenario.run(...))`, a sync throw would escape
+    // before the Promise is constructed, leaving the REPL prompt unrestored.
+    new Promise<void>((resolve) => {
+      resolve(scenario.run(new EventEmitter<DemoEvents>()));
+    })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(`scenario "${key}" threw: ${msg}`);
+      })
+      .finally(() => {
+        this.displayPrompt();
+      });
   },
 });
 
