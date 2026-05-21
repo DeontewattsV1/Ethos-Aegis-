@@ -108,8 +108,8 @@ Running scenario "all": Run every named scenario in order on a fresh emitter eac
 — off: on(), then off(), then emit — no listener fires.
   tick=1
   (no second tick logged — unsubscribed)
-— error: on('error') captures a thrown listener error.
-  caught: boom
+— error: onError() captures a thrown listener error and keeps the loop alive.
+  caught from 'hello': boom
 ```
 
 ### How it stays in sync with the library

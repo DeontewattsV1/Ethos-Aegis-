@@ -37,16 +37,20 @@ let emitter = makeEmitter();
 function makeEmitter(): EventEmitter<DemoEvents> {
   const instance = new EventEmitter<DemoEvents>();
   // Wrap `emit` so every event is recorded; tap can additionally log live.
+  // We use a Proxy so the wrapped function keeps the original method's full
+  // generic signature without needing a `as` cast.
   const originalEmit = instance.emit.bind(instance);
-  instance.emit = ((event: keyof DemoEvents, ...args: unknown[]) => {
-    history.push({ ts: new Date().toISOString(), event: String(event), args });
-    if (history.length > HISTORY_LIMIT) history.shift();
-    if (tapEnabled) {
-      console.log(`[tap] ${String(event)}`, ...args);
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return originalEmit(event as any, ...(args as any));
-  }) as typeof instance.emit;
+  instance.emit = new Proxy(originalEmit, {
+    apply(target, thisArg, argArray) {
+      const [event, ...rest] = argArray as [keyof DemoEvents, ...unknown[]];
+      history.push({ ts: new Date().toISOString(), event: String(event), args: rest });
+      if (history.length > HISTORY_LIMIT) history.shift();
+      if (tapEnabled) {
+        console.log(`[tap] ${String(event)}`, ...rest);
+      }
+      return Reflect.apply(target, thisArg, argArray);
+    },
+  });
   return instance;
 }
 
@@ -88,9 +92,11 @@ const scenarios = {
     },
   },
   error: {
-    description: "on('error') captures a thrown listener error.",
+    description: "onError() captures a thrown listener error and keeps the loop alive.",
     run(em) {
-      em.on("error", (err) => console.log(`  caught: ${err.message}`));
+      em.onError((err, event) =>
+        console.log(`  caught from '${String(event)}': ${(err as Error).message}`),
+      );
       em.on("hello", () => {
         throw new Error("boom");
       });
@@ -107,7 +113,10 @@ const allScenarios: Record<string, Scenario> = {
       for (const [name, scenario] of Object.entries(scenarios)) {
         console.log(`\n— ${name}: ${scenario.description}`);
         const fresh = new EventEmitter<DemoEvents>();
-        await scenario.run(fresh);
+        // `run()` may be sync (`void`) or async (`Promise<void>`); normalize
+        // both so the loop awaits sequentially without misusing `await` on
+        // a non-Thenable.
+        await Promise.resolve(scenario.run(fresh));
       }
     },
   },
@@ -154,9 +163,20 @@ session.defineCommand("scenario", {
       return;
     }
     console.log(`\nRunning scenario "${key}": ${scenario.description}`);
-    Promise.resolve(scenario.run(new EventEmitter<DemoEvents>())).finally(() => {
-      this.displayPrompt();
-    });
+    // Wrap in `new Promise(resolve => resolve(...))` so a synchronous throw
+    // inside `scenario.run()` is converted into a rejected Promise. With a
+    // plain `Promise.resolve(scenario.run(...))`, a sync throw would escape
+    // before the Promise is constructed, leaving the REPL prompt unrestored.
+    new Promise<void>((resolve) => {
+      resolve(scenario.run(new EventEmitter<DemoEvents>()));
+    })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(`scenario "${key}" threw: ${msg}`);
+      })
+      .finally(() => {
+        this.displayPrompt();
+      });
   },
 });
 

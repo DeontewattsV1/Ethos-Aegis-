@@ -8,7 +8,7 @@ pip install mistralai>=1.0
 """
 
 from __future__ import annotations
-from typing import Iterator
+from typing import Any, Dict, Iterator, List, Optional
 from .base_adapter import BaseAdapter
 
 
@@ -84,21 +84,31 @@ class MistralAdapter(BaseAdapter):
     def supports_streaming(self) -> bool:
         return True
 
-    def complete(self, message: str, **kwargs) -> str:
-        messages = self._build_messages(message)
+    def complete(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        **kwargs: Any,
+    ) -> str:
+        full_messages = self._compose_messages(messages, system)
         response = self._client.chat.complete(
             model=self._model,
-            messages=messages,
+            messages=full_messages,
             temperature=kwargs.get("temperature", self._temperature),
             max_tokens=kwargs.get("max_tokens", self._max_tokens),
         )
         return response.choices[0].message.content or ""
 
-    def stream(self, message: str, **kwargs) -> Iterator[str]:
-        messages = self._build_messages(message)
+    def stream(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Iterator[str]:
+        full_messages = self._compose_messages(messages, system)
         with self._client.chat.stream(
             model=self._model,
-            messages=messages,
+            messages=full_messages,
             temperature=kwargs.get("temperature", self._temperature),
             max_tokens=kwargs.get("max_tokens", self._max_tokens),
         ) as event_stream:
@@ -109,9 +119,20 @@ class MistralAdapter(BaseAdapter):
 
     # ── Helpers ───────────────────────────────────────────────────────────
 
-    def _build_messages(self, user_message: str) -> list[dict]:
-        messages: list[dict] = []
-        if self._system_prompt:
-            messages.append({"role": "system", "content": self._system_prompt})
-        messages.append({"role": "user", "content": user_message})
-        return messages
+    def _compose_messages(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str],
+    ) -> List[Dict[str, str]]:
+        """
+        Build the request messages. An explicit ``system`` argument overrides
+        the adapter-level ``system_prompt`` set at construction time. Caller-
+        supplied messages are appended verbatim and may include their own
+        ``role=system`` entries if needed.
+        """
+        effective_system = system if system is not None else self._system_prompt
+        full: List[Dict[str, str]] = []
+        if effective_system:
+            full.append({"role": "system", "content": effective_system})
+        full.extend(messages)
+        return full
