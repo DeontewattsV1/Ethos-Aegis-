@@ -49,9 +49,22 @@ jobs:
       - name: Run examples and capture output
         run: npx tsx scripts/run-examples.ts
 
-      - name: Re-sync README to inject latest output blocks + last-verified stamp
+      # The second sync pass injects fresh output blocks and (only on main) a
+      # refreshed last-verified timestamp. We deliberately skip the timestamp
+      # bump on PR runs so PRs don't fail purely because the timestamp moved —
+      # PRs should only fail when the underlying example/snapshot content drifts.
+      - name: Re-sync README (PR — no timestamp bump)
+        if: github.event_name == 'pull_request'
+        run: npx tsx scripts/sync-readme.ts
+
+      - name: Re-sync README (main — refresh last-verified stamp)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           LDT_FORCE_STAMP: "1"
+        run: npx tsx scripts/sync-readme.ts
+
+      - name: Re-sync README (feature branch push)
+        if: github.event_name == 'push' && github.ref != 'refs/heads/main'
         run: npx tsx scripts/sync-readme.ts
 
       - name: Detect changes
