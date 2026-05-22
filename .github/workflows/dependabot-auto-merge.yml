@@ -19,7 +19,6 @@ jobs:
   auto-merge:
     name: Auto-Merge
     runs-on: ubuntu-latest
-    # Only run on Dependabot PRs
     if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
       - name: Wait for CI to complete
@@ -35,7 +34,6 @@ jobs:
                 return;
               }
 
-              // Get the current PR state
               const { data: pr } = await github.rest.pulls.get({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -44,13 +42,11 @@ jobs:
 
               console.log('PR state:', pr.mergeable_state);
 
-              // If already clean, we're good
               if (pr.mergeable_state === 'clean') {
                 console.log('PR is clean, ready to merge');
                 return;
               }
 
-              // Wait up to 30 minutes for CI to complete
               const maxWait = 30 * 60 * 1000;
               const checkInterval = 30 * 1000;
               const startTime = Date.now();
@@ -69,7 +65,6 @@ jobs:
                   return;
                 }
 
-                // Check for failed status checks
                 const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
