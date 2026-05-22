@@ -1,0 +1,5 @@
+            - name: Stale Image Remover
+  # You may pin to the exact commit or the version.
+  # uses: stevemar/image-deleter@9818498d7077e04433d72b4d2b0b85c1e48906a3
+  uses: stevemar/image-deleter@v1.0.1
+          
