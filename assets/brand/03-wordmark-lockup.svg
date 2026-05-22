@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="520" viewBox="0 0 1800 520" role="img" aria-labelledby="title desc">
+<title id="title">Ethos Aegis Wordmark Lockup</title>
+<desc id="desc">Original Ethos Aegis brand asset. Abstract shield, aperture, mesh, and containment geometry. No real military insignia, seal, flag, eagle, star, or weapon is used.</desc>
+<defs>
+  <linearGradient id="steel" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#9FC3D7" stop-opacity="0.95"/>
+    <stop offset="48%" stop-color="#5E89A8" stop-opacity="0.85"/>
+    <stop offset="100%" stop-color="#222832" stop-opacity="0.9"/>
+  </linearGradient>
+  <radialGradient id="blackGlow" cx="50%" cy="45%" r="62%">
+    <stop offset="0%" stop-color="#222832" stop-opacity="0.85"/>
+    <stop offset="65%" stop-color="#0A0B0D" stop-opacity="1"/>
+    <stop offset="100%" stop-color="#050607" stop-opacity="1"/>
+  </radialGradient>
+  <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="5" result="blur"/>
+    <feMerge>
+      <feMergeNode in="blur"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <pattern id="microgrid" width="32" height="32" patternUnits="userSpaceOnUse">
+    <path d="M32 0H0V32" fill="none" stroke="#687482" stroke-opacity="0.08" stroke-width="1"/>
+  </pattern>
+</defs>
+<rect width="1800" height="520" fill="#050607"/><rect width="1800" height="520" fill="url(#microgrid)"/>
+<g filter="url(#softGlow)">
+  <circle cx="250" cy="256" r="129.8" fill="none" stroke="#5E89A8" stroke-width="3.3" stroke-opacity="0.88"/>
+  <circle cx="250" cy="256" r="84.7" fill="none" stroke="#687482" stroke-width="1.4" stroke-opacity="0.45"/>
+  <line x1="306.3" y1="279.3" x2="355.5" y2="299.7" stroke="#687482" stroke-opacity="0.28" stroke-width="1.2"/><line x1="273.3" y1="312.3" x2="293.7" y2="361.5" stroke="#687482" stroke-opacity="0.28" stroke-width="1.2"/><line x1="226.7" y1="312.3" x2="206.3" y2="361.5" stroke="#687482" stroke-opacity="0.28" stroke-width="1.2"/><line x1="193.7" y1="279.3" x2="144.5" y2="299.7" stroke="#687482" stroke-opacity="0.28" stroke-width="1.2"/><line x1="193.7" y1="232.7" x2="144.5" y2="212.3" stroke="#687482" stroke-opacity="0.28" stroke-width="1.2"/><line x1="226.7" y1="199.7" x2="206.3" y2="150.5" stroke="#687482" stroke-opacity="0.28" stroke-width="1.2"/><line x1="273.3" y1="199.7" x2="293.7" y2="150.5" stroke="#687482" stroke-opacity="0.28" stroke-width="1.2"/><line x1="306.3" y1="232.7" x2="355.5" y2="212.3" stroke="#687482" stroke-opacity="0.28" stroke-width="1.2"/>
+  <polygon points="170.2,152.6 329.8,152.6 317.1,286.8 250.0,371.5 182.9,286.8" fill="#0A0B0D" fill-opacity="0.62" stroke="#5E89A8" stroke-width="2.8" stroke-linejoin="round"/>
+  <path d="M 209.3 203.2 L 290.7 203.2 L 273.1 268.1 L 250.0 298.9 L 226.9 268.1 Z" fill="none" stroke="#9FC3D7" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M 229.1 245.0 H 270.9 M 250.0 218.6 V 294.5" stroke="#5E89A8" stroke-width="2.8" stroke-linecap="round" opacity="0.86"/>
+  <circle cx="250" cy="249.4" r="23.1" fill="none" stroke="#5E89A8" stroke-width="1.4" stroke-opacity="0.65"/>
+  <circle cx="369.4" cy="256.0" r="3.0" fill="#5E89A8" fill-opacity="0.78"/><circle cx="334.4" cy="340.4" r="3.0" fill="#5E89A8" fill-opacity="0.78"/><circle cx="250.0" cy="375.4" r="3.0" fill="#5E89A8" fill-opacity="0.78"/><circle cx="165.6" cy="340.4" r="3.0" fill="#5E89A8" fill-opacity="0.78"/><circle cx="130.6" cy="256.0" r="3.0" fill="#5E89A8" fill-opacity="0.78"/><circle cx="165.6" cy="171.6" r="3.0" fill="#5E89A8" fill-opacity="0.78"/><circle cx="250.0" cy="136.6" r="3.0" fill="#5E89A8" fill-opacity="0.78"/><circle cx="334.4" cy="171.6" r="3.0" fill="#5E89A8" fill-opacity="0.78"/>
+</g>
+
+<text x="520" y="245" fill="#F2F5F7" font-family="Arial, Helvetica, sans-serif" font-size="104" font-weight="900" letter-spacing="14">ETHOS AEGIS</text>
+<text x="524" y="306" fill="#5E89A8" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" letter-spacing="8">SOVEREIGN AI INTEGRITY DEFENSE ARCHITECTURE</text>
+<path d="M524 346H1520" stroke="#222832" stroke-width="3"/>
+<text x="524" y="398" fill="#687482" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="600" letter-spacing="3">CONTAINMENT · JUDGMENT · RESILIENCE · PURIFICATION</text>
+</svg>

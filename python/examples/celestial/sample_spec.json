@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "creator": "smoke-test",
+  "system_role": "policy-guardian",
+  "use_case": "smoke test",
+  "business_goal": "verify CLI",
+  "users": ["devin"],
+  "inputs": ["spec.json"],
+  "tools": ["celestial"],
+  "responsibilities": ["pack", "unpack"],
+  "memory_requirements": "stateless",
+  "constraints": {
+    "tech_stack": "py",
+    "model_provider": "n/a",
+    "budget": "n/a",
+    "latency": "n/a",
+    "security_privacy": "high",
+    "deployment_target": "ci"
+  },
+  "required_output": ["pack.json"],
+  "success_criteria": "round-trip ok"
+}
