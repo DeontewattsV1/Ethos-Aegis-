@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="../assets/brand/03-wordmark-lockup.svg" alt="Ethos Aegis" width="60%" />
+</p>
+
 # `python/` — Ethos Aegis Python Subtree
 
 This directory contains the **Ethos Aegis** Python package — the broader

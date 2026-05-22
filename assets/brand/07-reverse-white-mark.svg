@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+<title id="title">Ethos Aegis Reverse White Mark</title>
+<desc id="desc">Original Ethos Aegis brand asset. Abstract shield, aperture, mesh, and containment geometry. No real military insignia, seal, flag, eagle, star, or weapon is used.</desc>
+<defs>
+  <linearGradient id="steel" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#9FC3D7" stop-opacity="0.95"/>
+    <stop offset="48%" stop-color="#5E89A8" stop-opacity="0.85"/>
+    <stop offset="100%" stop-color="#222832" stop-opacity="0.9"/>
+  </linearGradient>
+  <radialGradient id="blackGlow" cx="50%" cy="45%" r="62%">
+    <stop offset="0%" stop-color="#222832" stop-opacity="0.85"/>
+    <stop offset="65%" stop-color="#0A0B0D" stop-opacity="1"/>
+    <stop offset="100%" stop-color="#050607" stop-opacity="1"/>
+  </radialGradient>
+  <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="5" result="blur"/>
+    <feMerge>
+      <feMergeNode in="blur"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <pattern id="microgrid" width="32" height="32" patternUnits="userSpaceOnUse">
+    <path d="M32 0H0V32" fill="none" stroke="#687482" stroke-opacity="0.08" stroke-width="1"/>
+  </pattern>
+</defs>
+<rect width="1024" height="1024" fill="transparent"/>
+<g filter="url(#softGlow)">
+  <circle cx="512" cy="440" r="212.4" fill="none" stroke="#F2F5F7" stroke-width="5.4" stroke-opacity="0.88"/>
+  <circle cx="512" cy="440" r="138.6" fill="none" stroke="#687482" stroke-width="2.2" stroke-opacity="0.45"/>
+  <line x1="604.2" y1="478.2" x2="684.7" y2="511.5" stroke="#687482" stroke-opacity="0.28" stroke-width="2.0"/><line x1="550.2" y1="532.2" x2="583.5" y2="612.7" stroke="#687482" stroke-opacity="0.28" stroke-width="2.0"/><line x1="473.8" y1="532.2" x2="440.5" y2="612.7" stroke="#687482" stroke-opacity="0.28" stroke-width="2.0"/><line x1="419.8" y1="478.2" x2="339.3" y2="511.5" stroke="#687482" stroke-opacity="0.28" stroke-width="2.0"/><line x1="419.8" y1="401.8" x2="339.3" y2="368.5" stroke="#687482" stroke-opacity="0.28" stroke-width="2.0"/><line x1="473.8" y1="347.8" x2="440.5" y2="267.3" stroke="#687482" stroke-opacity="0.28" stroke-width="2.0"/><line x1="550.2" y1="347.8" x2="583.5" y2="267.3" stroke="#687482" stroke-opacity="0.28" stroke-width="2.0"/><line x1="604.2" y1="401.8" x2="684.7" y2="368.5" stroke="#687482" stroke-opacity="0.28" stroke-width="2.0"/>
+  <polygon points="381.5,270.8 642.5,270.8 621.8,490.4 512.0,629.0 402.2,490.4" fill="#0A0B0D" fill-opacity="0.62" stroke="#F2F5F7" stroke-width="4.5" stroke-linejoin="round"/>
+  <path d="M 445.4 353.6 L 578.6 353.6 L 549.8 459.8 L 512.0 510.2 L 474.2 459.8 Z" fill="none" stroke="#F2F5F7" stroke-width="3.6" stroke-linejoin="round"/>
+  <path d="M 477.8 422.0 H 546.2 M 512.0 378.8 V 503.0" stroke="#F2F5F7" stroke-width="4.5" stroke-linecap="round" opacity="0.86"/>
+  <circle cx="512" cy="429.2" r="37.8" fill="none" stroke="#F2F5F7" stroke-width="2.2" stroke-opacity="0.65"/>
+  <circle cx="707.4" cy="440.0" r="5.0" fill="#F2F5F7" fill-opacity="0.78"/><circle cx="650.2" cy="578.2" r="5.0" fill="#F2F5F7" fill-opacity="0.78"/><circle cx="512.0" cy="635.4" r="5.0" fill="#F2F5F7" fill-opacity="0.78"/><circle cx="373.8" cy="578.2" r="5.0" fill="#F2F5F7" fill-opacity="0.78"/><circle cx="316.6" cy="440.0" r="5.0" fill="#F2F5F7" fill-opacity="0.78"/><circle cx="373.8" cy="301.8" r="5.0" fill="#F2F5F7" fill-opacity="0.78"/><circle cx="512.0" cy="244.6" r="5.0" fill="#F2F5F7" fill-opacity="0.78"/><circle cx="650.2" cy="301.8" r="5.0" fill="#F2F5F7" fill-opacity="0.78"/>
+</g>
+
+<text x="512" y="776" text-anchor="middle" fill="#F2F5F7" font-family="Arial, Helvetica, sans-serif" font-size="56" font-weight="900" letter-spacing="10">ETHOS AEGIS</text>
+<text x="512" y="826" text-anchor="middle" fill="#F2F5F7" fill-opacity="0.72" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="700" letter-spacing="5">REVERSE UTILITY MARK</text>
+</svg>

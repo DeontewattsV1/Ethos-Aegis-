@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+<title id="title">Ethos Aegis App Icon</title>
+<desc id="desc">Original Ethos Aegis brand asset. Abstract shield, aperture, mesh, and containment geometry. No real military insignia, seal, flag, eagle, star, or weapon is used.</desc>
+<defs>
+  <linearGradient id="steel" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#9FC3D7" stop-opacity="0.95"/>
+    <stop offset="48%" stop-color="#5E89A8" stop-opacity="0.85"/>
+    <stop offset="100%" stop-color="#222832" stop-opacity="0.9"/>
+  </linearGradient>
+  <radialGradient id="blackGlow" cx="50%" cy="45%" r="62%">
+    <stop offset="0%" stop-color="#222832" stop-opacity="0.85"/>
+    <stop offset="65%" stop-color="#0A0B0D" stop-opacity="1"/>
+    <stop offset="100%" stop-color="#050607" stop-opacity="1"/>
+  </radialGradient>
+  <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="5" result="blur"/>
+    <feMerge>
+      <feMergeNode in="blur"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <pattern id="microgrid" width="32" height="32" patternUnits="userSpaceOnUse">
+    <path d="M32 0H0V32" fill="none" stroke="#687482" stroke-opacity="0.08" stroke-width="1"/>
+  </pattern>
+</defs>
+<rect x="0" y="0" width="1024" height="1024" rx="228" fill="#050607"/><rect x="54" y="54" width="916" height="916" rx="190" fill="#0A0B0D" stroke="#222832" stroke-width="6"/>
+<g filter="url(#softGlow)">
+  <circle cx="512" cy="512" r="247.8" fill="none" stroke="#5E89A8" stroke-width="6.3" stroke-opacity="0.88"/>
+  <circle cx="512" cy="512" r="161.7" fill="none" stroke="#687482" stroke-width="2.6" stroke-opacity="0.45"/>
+  <line x1="619.6" y1="556.6" x2="713.5" y2="595.4" stroke="#687482" stroke-opacity="0.28" stroke-width="2.3"/><line x1="556.6" y1="619.6" x2="595.4" y2="713.5" stroke="#687482" stroke-opacity="0.28" stroke-width="2.3"/><line x1="467.4" y1="619.6" x2="428.6" y2="713.5" stroke="#687482" stroke-opacity="0.28" stroke-width="2.3"/><line x1="404.4" y1="556.6" x2="310.5" y2="595.4" stroke="#687482" stroke-opacity="0.28" stroke-width="2.3"/><line x1="404.4" y1="467.4" x2="310.5" y2="428.6" stroke="#687482" stroke-opacity="0.28" stroke-width="2.3"/><line x1="467.4" y1="404.4" x2="428.6" y2="310.5" stroke="#687482" stroke-opacity="0.28" stroke-width="2.3"/><line x1="556.6" y1="404.4" x2="595.4" y2="310.5" stroke="#687482" stroke-opacity="0.28" stroke-width="2.3"/><line x1="619.6" y1="467.4" x2="713.5" y2="428.6" stroke="#687482" stroke-opacity="0.28" stroke-width="2.3"/>
+  <polygon points="359.8,314.6 664.2,314.6 640.1,570.8 512.0,732.5 383.9,570.8" fill="#0A0B0D" fill-opacity="0.62" stroke="#5E89A8" stroke-width="5.2" stroke-linejoin="round"/>
+  <path d="M 434.3 411.2 L 589.7 411.2 L 556.1 535.1 L 512.0 593.9 L 467.9 535.1 Z" fill="none" stroke="#9FC3D7" stroke-width="4.2" stroke-linejoin="round"/>
+  <path d="M 472.1 491.0 H 551.9 M 512.0 440.6 V 585.5" stroke="#5E89A8" stroke-width="5.2" stroke-linecap="round" opacity="0.86"/>
+  <circle cx="512" cy="499.4" r="44.1" fill="none" stroke="#5E89A8" stroke-width="2.6" stroke-opacity="0.65"/>
+  <circle cx="740.0" cy="512.0" r="5.8" fill="#5E89A8" fill-opacity="0.78"/><circle cx="673.2" cy="673.2" r="5.8" fill="#5E89A8" fill-opacity="0.78"/><circle cx="512.0" cy="740.0" r="5.8" fill="#5E89A8" fill-opacity="0.78"/><circle cx="350.8" cy="673.2" r="5.8" fill="#5E89A8" fill-opacity="0.78"/><circle cx="284.0" cy="512.0" r="5.8" fill="#5E89A8" fill-opacity="0.78"/><circle cx="350.8" cy="350.8" r="5.8" fill="#5E89A8" fill-opacity="0.78"/><circle cx="512.0" cy="284.0" r="5.8" fill="#5E89A8" fill-opacity="0.78"/><circle cx="673.2" cy="350.8" r="5.8" fill="#5E89A8" fill-opacity="0.78"/>
+</g>
+</svg>
