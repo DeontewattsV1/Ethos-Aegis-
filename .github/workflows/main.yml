@@ -1,0 +1,18 @@
+            - name: Mise PR Review Packets
+  # You may pin to the exact commit or the version.
+  # uses: DeontewattsV1/mise-pr@83c57babc628863b0256575e4e4524a859c252f5
+  uses: DeontewattsV1/mise-pr@v0.1.0
+  with:
+    # Base git ref used for comparison. Example: origin/main or origin/${{ github.base_ref }}.
+    base-ref: # optional, default is origin/main
+    # Head git ref used for comparison. Usually HEAD.
+    head-ref: # optional, default is HEAD
+    # Fail the workflow at this risk level or higher: green, yellow, amber, red, never.
+    fail-on: # optional, default is red
+    # Post the generated review packet as a pull request comment. Requires issues: write permission.
+    comment: # optional, default is false
+    # Markdown report output path.
+    output: # optional, default is mise-pr-report.md
+    # JSON report output path for agents and automations.
+    json-output: # optional, default is mise-pr-report.json
+          
