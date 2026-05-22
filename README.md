@@ -1,12 +1,17 @@
-# living-docs-template
+<p align="center">
+  <img src="./assets/brand/08-documentation-header-banner.svg" alt="Ethos Aegis — sovereign AI integrity defense" width="100%" />
+</p>
+
+# living-docs-template &middot; <sub><sup>Ethos Aegis</sup></sub>
 
 > Self-demonstrating, always-current documentation. Source code, examples, and README are kept in sync by CI — a stale README is a build failure, not a documentation debt item.
 
 [![docs](https://github.com/DeontewattsV1/Ethos-Aegis-/actions/workflows/docs.yml/badge.svg)](https://github.com/DeontewattsV1/Ethos-Aegis-/actions/workflows/docs.yml)
 [![examples](https://github.com/DeontewattsV1/Ethos-Aegis-/actions/workflows/examples.yml/badge.svg)](https://github.com/DeontewattsV1/Ethos-Aegis-/actions/workflows/examples.yml)
 [![readme](https://github.com/DeontewattsV1/Ethos-Aegis-/actions/workflows/readme.yml/badge.svg)](https://github.com/DeontewattsV1/Ethos-Aegis-/actions/workflows/readme.yml)
+[![brand](https://img.shields.io/badge/brand-Ethos%20Aegis-0A0B0D?labelColor=15181C&color=5E89A8)](./BRAND.md)
 
-<!-- last-verified: 2026-05-21T13:36:15.993Z -->
+<!-- last-verified: 2026-05-21T15:35:44.588Z -->
 
 ---
 
@@ -16,12 +21,15 @@ A template that proves its own documentation is current. Every fenced code block
 
 The subject library is intentionally tiny: a typed `EventEmitter` with `on`, `once`, `off`, `emit`, error routing, and listener counts. Big enough to populate distinct examples, small enough to stay out of the way.
 
+A larger **Python sibling** lives under [`python/`](./python/README.md) — the broader Ethos Aegis research codebase. The two stacks share **nothing at the language level** (separate lockfiles, separate CI workflows, separate test runners); they only share the living-docs philosophy.
+
 ## Try It
 
 | | |
 |---|---|
 | **Gitpod**         | [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/DeontewattsV1/Ethos-Aegis-) |
 | **CodeSandbox**    | [![Open in CodeSandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/p/github/DeontewattsV1/Ethos-Aegis-/main) |
+| **StackBlitz**     | [![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/DeontewattsV1/Ethos-Aegis-) |
 | **Devcontainer**   | Open in VS Code and select "Reopen in Container" — environment ready in under 60 seconds. |
 
 ## Quick start
@@ -301,6 +309,22 @@ See [docs/guides/concepts.md](docs/guides/concepts.md) for the full contract.
 - README code blocks are byte-equal to the files in `examples/`.
 - Opening the repo in Gitpod or the devcontainer produces a working environment in under 60 seconds.
 - Adding a new example file and running `make docs` automatically surfaces it in the README without manual edits — drop a file, add the marker block, run `make docs`.
+
+## Brand
+
+The repo ships with the **Ethos Aegis** identity kit — original, civilian, government-grade aesthetic with no real military or government insignia. See [`BRAND.md`](./BRAND.md) for the full mark library, palette tokens, and usage rules; the source SVGs live under [`assets/brand/`](./assets/brand/).
+
+<p align="center">
+  <img src="./assets/brand/02-monogram-icon.svg" alt="monogram"           width="80" height="80" />
+  &nbsp;&nbsp;
+  <img src="./assets/brand/06-app-icon.svg"      alt="app icon"           width="80" height="80" />
+  &nbsp;&nbsp;
+  <img src="./assets/brand/04-circular-seal-style-badge.svg" alt="seal"   width="80" height="80" />
+  &nbsp;&nbsp;
+  <img src="./assets/brand/09-field-ready-badge.svg" alt="field-ready"    width="80" height="80" />
+  &nbsp;&nbsp;
+  <img src="./assets/brand/05-mission-patch.svg" alt="mission patch"      width="80" height="80" />
+</p>
 
 ## License
 
