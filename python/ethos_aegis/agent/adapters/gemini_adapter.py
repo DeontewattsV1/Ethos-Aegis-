@@ -42,14 +42,68 @@ def _to_gemini_contents(
     """
     contents: list = []
     pending_system = system
+    # Tracks whether the most recently appended model turn is a synthetic
+    # "Understood." placeholder emitted by flush_prelude(). When a real
+    # assistant message immediately follows the prelude, append_model()
+    # replaces the placeholder content instead of folding into it (which
+    # would produce "Understood.\nactual assistant text").
+    state = {"last_model_synthetic": False}
+
+    def append_user(parts_text: str) -> None:
+        # Gemini requires strict user/model alternation. If the last appended
+        # entry is already user, insert a synthetic "Understood." model turn
+        # first so the new user entry doesn't produce consecutive same-role
+        # entries (which the API rejects with 400 Invalid Argument). The
+        # synthetic model turn inserted here is sandwiched between two user
+        # turns (the new user follows immediately), so it can never be folded
+        # into by a subsequent append_model — no need to set the synthetic flag.
+        if contents and contents[-1]["role"] == "user":
+            contents.append({"role": "model", "parts": ["Understood."]})
+        contents.append({"role": "user", "parts": [parts_text]})
+        state["last_model_synthetic"] = False
+
+    def append_model(parts_text: str) -> None:
+        # Mirror of append_user: skip consecutive model entries. Two adjacent
+        # model turns can only arise if the caller passed adjacent assistant
+        # messages, or if a real assistant message follows a prelude's
+        # synthetic "Understood." placeholder. In the latter case we replace
+        # the placeholder with the real content (so the model doesn't see
+        # "Understood.\nactual" as its own historical message); in the former
+        # we fold the second message into the first.
+        if contents and contents[-1]["role"] == "model":
+            if state["last_model_synthetic"]:
+                contents[-1]["parts"][0] = parts_text
+            else:
+                contents[-1]["parts"][0] = f"{contents[-1]['parts'][0]}\n{parts_text}"
+            state["last_model_synthetic"] = False
+            return
+        # Gemini requires the first turn to be "user". If the caller passed
+        # an assistant-first message sequence with no system kwarg (so no
+        # prelude was emitted), we'd otherwise produce a leading model turn
+        # and trigger a 400 Invalid Argument. Synthesize a minimal user turn
+        # so the assistant content is interpreted as prior conversational
+        # context the model previously produced.
+        if not contents:
+            contents.append(
+                {"role": "user", "parts": ["Continue from prior context."]}
+            )
+        contents.append({"role": "model", "parts": [parts_text]})
+        state["last_model_synthetic"] = False
 
     def flush_prelude() -> None:
         nonlocal pending_system
         if pending_system is not None:
-            contents.append(
-                {"role": "user", "parts": [f"System instruction:\n{pending_system}"]}
-            )
+            append_user(f"System instruction:\n{pending_system}")
+            # NOTE: we append the synthetic "Understood." model turn directly
+            # rather than going through append_model() because (a) append_user
+            # has just guaranteed the last entry is "user", so the fold/replace
+            # logic in append_model is dead code here, and (b) we need to set
+            # state["last_model_synthetic"] = True afterwards so the NEXT
+            # append_model() call (if any) knows it can replace this
+            # placeholder rather than fold into it. Routing through
+            # append_model would clear that flag.
             contents.append({"role": "model", "parts": ["Understood."]})
+            state["last_model_synthetic"] = True
             pending_system = None
 
     for msg in messages:
@@ -61,8 +115,10 @@ def _to_gemini_contents(
             )
             continue
         flush_prelude()
-        gemini_role = "model" if role == "assistant" else "user"
-        contents.append({"role": gemini_role, "parts": [content]})
+        if role == "assistant":
+            append_model(content)
+        else:
+            append_user(content)
 
     # Always flush any remaining pending_system so trailing system messages
     # are not silently dropped. If no prior contents exist, emit as a
@@ -73,9 +129,7 @@ def _to_gemini_contents(
         if not contents:
             flush_prelude()
         else:
-            contents.append(
-                {"role": "user", "parts": [f"System instruction:\n{pending_system}"]}
-            )
+            append_user(f"System instruction:\n{pending_system}")
             pending_system = None
     return contents
 

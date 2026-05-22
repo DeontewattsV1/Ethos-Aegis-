@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+<title id="title">Ethos Aegis Monogram Icon</title>
+<desc id="desc">Original Ethos Aegis brand asset. Abstract shield, aperture, mesh, and containment geometry. No real military insignia, seal, flag, eagle, star, or weapon is used.</desc>
+<defs>
+  <linearGradient id="steel" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#9FC3D7" stop-opacity="0.95"/>
+    <stop offset="48%" stop-color="#5E89A8" stop-opacity="0.85"/>
+    <stop offset="100%" stop-color="#222832" stop-opacity="0.9"/>
+  </linearGradient>
+  <radialGradient id="blackGlow" cx="50%" cy="45%" r="62%">
+    <stop offset="0%" stop-color="#222832" stop-opacity="0.85"/>
+    <stop offset="65%" stop-color="#0A0B0D" stop-opacity="1"/>
+    <stop offset="100%" stop-color="#050607" stop-opacity="1"/>
+  </radialGradient>
+  <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="5" result="blur"/>
+    <feMerge>
+      <feMergeNode in="blur"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <pattern id="microgrid" width="32" height="32" patternUnits="userSpaceOnUse">
+    <path d="M32 0H0V32" fill="none" stroke="#687482" stroke-opacity="0.08" stroke-width="1"/>
+  </pattern>
+</defs>
+<rect width="1024" height="1024" rx="180" fill="#050607"/><rect x="52" y="52" width="920" height="920" rx="150" fill="url(#blackGlow)" stroke="#222832" stroke-width="4"/>
+<g filter="url(#softGlow)">
+  <circle cx="512" cy="490" r="207.7" fill="none" stroke="#5E89A8" stroke-width="5.3" stroke-opacity="0.88"/>
+  <circle cx="512" cy="490" r="135.5" fill="none" stroke="#687482" stroke-width="2.2" stroke-opacity="0.45"/>
+  <line x1="602.1" y1="527.3" x2="680.8" y2="559.9" stroke="#687482" stroke-opacity="0.28" stroke-width="1.9"/><line x1="549.3" y1="580.1" x2="581.9" y2="658.8" stroke="#687482" stroke-opacity="0.28" stroke-width="1.9"/><line x1="474.7" y1="580.1" x2="442.1" y2="658.8" stroke="#687482" stroke-opacity="0.28" stroke-width="1.9"/><line x1="421.9" y1="527.3" x2="343.2" y2="559.9" stroke="#687482" stroke-opacity="0.28" stroke-width="1.9"/><line x1="421.9" y1="452.7" x2="343.2" y2="420.1" stroke="#687482" stroke-opacity="0.28" stroke-width="1.9"/><line x1="474.7" y1="399.9" x2="442.1" y2="321.2" stroke="#687482" stroke-opacity="0.28" stroke-width="1.9"/><line x1="549.3" y1="399.9" x2="581.9" y2="321.2" stroke="#687482" stroke-opacity="0.28" stroke-width="1.9"/><line x1="602.1" y1="452.7" x2="680.8" y2="420.1" stroke="#687482" stroke-opacity="0.28" stroke-width="1.9"/>
+  <polygon points="384.4,324.6 639.6,324.6 619.4,539.3 512.0,674.8 404.6,539.3" fill="#0A0B0D" fill-opacity="0.62" stroke="#5E89A8" stroke-width="4.4" stroke-linejoin="round"/>
+  <path d="M 446.9 405.5 L 577.1 405.5 L 549.0 509.4 L 512.0 558.6 L 475.0 509.4 Z" fill="none" stroke="#9FC3D7" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M 478.6 472.4 H 545.4 M 512.0 430.2 V 551.6" stroke="#5E89A8" stroke-width="4.4" stroke-linecap="round" opacity="0.86"/>
+  <circle cx="512" cy="479.4" r="37.0" fill="none" stroke="#5E89A8" stroke-width="2.2" stroke-opacity="0.65"/>
+  <circle cx="703.1" cy="490.0" r="4.8" fill="#5E89A8" fill-opacity="0.78"/><circle cx="647.1" cy="625.1" r="4.8" fill="#5E89A8" fill-opacity="0.78"/><circle cx="512.0" cy="681.1" r="4.8" fill="#5E89A8" fill-opacity="0.78"/><circle cx="376.9" cy="625.1" r="4.8" fill="#5E89A8" fill-opacity="0.78"/><circle cx="320.9" cy="490.0" r="4.8" fill="#5E89A8" fill-opacity="0.78"/><circle cx="376.9" cy="354.9" r="4.8" fill="#5E89A8" fill-opacity="0.78"/><circle cx="512.0" cy="298.9" r="4.8" fill="#5E89A8" fill-opacity="0.78"/><circle cx="647.1" cy="354.9" r="4.8" fill="#5E89A8" fill-opacity="0.78"/>
+</g>
+
+<text x="512" y="558" text-anchor="middle" fill="#F2F5F7" font-family="Arial Black, Arial, sans-serif" font-size="170" font-weight="900" letter-spacing="-8">EA</text>
+<path d="M318 684H706" stroke="#5E89A8" stroke-width="8" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
+<title id="title">Ethos Aegis Circular Seal-Style Badge</title>
+<desc id="desc">Original Ethos Aegis brand asset. Abstract shield, aperture, mesh, and containment geometry. No real military insignia, seal, flag, eagle, star, or weapon is used.</desc>
+<defs>
+  <linearGradient id="steel" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#9FC3D7" stop-opacity="0.95"/>
+    <stop offset="48%" stop-color="#5E89A8" stop-opacity="0.85"/>
+    <stop offset="100%" stop-color="#222832" stop-opacity="0.9"/>
+  </linearGradient>
+  <radialGradient id="blackGlow" cx="50%" cy="45%" r="62%">
+    <stop offset="0%" stop-color="#222832" stop-opacity="0.85"/>
+    <stop offset="65%" stop-color="#0A0B0D" stop-opacity="1"/>
+    <stop offset="100%" stop-color="#050607" stop-opacity="1"/>
+  </radialGradient>
+  <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur stdDeviation="5" result="blur"/>
+    <feMerge>
+      <feMergeNode in="blur"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+  <pattern id="microgrid" width="32" height="32" patternUnits="userSpaceOnUse">
+    <path d="M32 0H0V32" fill="none" stroke="#687482" stroke-opacity="0.08" stroke-width="1"/>
+  </pattern>
+</defs>
+<rect width="1200" height="1200" fill="#050607"/><circle cx="600" cy="600" r="540" fill="url(#blackGlow)" stroke="#222832" stroke-width="8"/><circle cx="600" cy="600" r="476" fill="none" stroke="#5E89A8" stroke-width="5" stroke-opacity="0.85"/><circle cx="600" cy="600" r="360" fill="none" stroke="#687482" stroke-width="2" stroke-opacity="0.45"/>
+<g filter="url(#softGlow)">
+  <circle cx="600" cy="566" r="184.1" fill="none" stroke="#5E89A8" stroke-width="4.7" stroke-opacity="0.88"/>
+  <circle cx="600" cy="566" r="120.1" fill="none" stroke="#687482" stroke-width="2.0" stroke-opacity="0.45"/>
+  <line x1="679.9" y1="599.1" x2="749.7" y2="628.0" stroke="#687482" stroke-opacity="0.28" stroke-width="1.7"/><line x1="633.1" y1="645.9" x2="662.0" y2="715.7" stroke="#687482" stroke-opacity="0.28" stroke-width="1.7"/><line x1="566.9" y1="645.9" x2="538.0" y2="715.7" stroke="#687482" stroke-opacity="0.28" stroke-width="1.7"/><line x1="520.1" y1="599.1" x2="450.3" y2="628.0" stroke="#687482" stroke-opacity="0.28" stroke-width="1.7"/><line x1="520.1" y1="532.9" x2="450.3" y2="504.0" stroke="#687482" stroke-opacity="0.28" stroke-width="1.7"/><line x1="566.9" y1="486.1" x2="538.0" y2="416.3" stroke="#687482" stroke-opacity="0.28" stroke-width="1.7"/><line x1="633.1" y1="486.1" x2="662.0" y2="416.3" stroke="#687482" stroke-opacity="0.28" stroke-width="1.7"/><line x1="679.9" y1="532.9" x2="749.7" y2="504.0" stroke="#687482" stroke-opacity="0.28" stroke-width="1.7"/>
+  <polygon points="486.9,419.4 713.1,419.4 695.2,609.7 600.0,729.8 504.8,609.7" fill="#0A0B0D" fill-opacity="0.62" stroke="#5E89A8" stroke-width="3.9" stroke-linejoin="round"/>
+  <path d="M 542.3 491.1 L 657.7 491.1 L 632.8 583.2 L 600.0 626.8 L 567.2 583.2 Z" fill="none" stroke="#9FC3D7" stroke-width="3.1" stroke-linejoin="round"/>
+  <path d="M 570.4 550.4 H 629.6 M 600.0 513.0 V 620.6" stroke="#5E89A8" stroke-width="3.9" stroke-linecap="round" opacity="0.86"/>
+  <circle cx="600" cy="556.6" r="32.8" fill="none" stroke="#5E89A8" stroke-width="2.0" stroke-opacity="0.65"/>
+  <circle cx="769.4" cy="566.0" r="4.3" fill="#5E89A8" fill-opacity="0.78"/><circle cx="719.8" cy="685.8" r="4.3" fill="#5E89A8" fill-opacity="0.78"/><circle cx="600.0" cy="735.4" r="4.3" fill="#5E89A8" fill-opacity="0.78"/><circle cx="480.2" cy="685.8" r="4.3" fill="#5E89A8" fill-opacity="0.78"/><circle cx="430.6" cy="566.0" r="4.3" fill="#5E89A8" fill-opacity="0.78"/><circle cx="480.2" cy="446.2" r="4.3" fill="#5E89A8" fill-opacity="0.78"/><circle cx="600.0" cy="396.6" r="4.3" fill="#5E89A8" fill-opacity="0.78"/><circle cx="719.8" cy="446.2" r="4.3" fill="#5E89A8" fill-opacity="0.78"/>
+</g>
+
+<defs>
+  <path id="topArc" d="M 190 602 A 410 410 0 0 1 1010 602" fill="none"/>
+  <path id="bottomArc" d="M 1010 650 A 410 410 0 0 1 190 650" fill="none"/>
+</defs>
+<text font-family="Arial, Helvetica, sans-serif" font-size="46" font-weight="900" letter-spacing="7" fill="#F2F5F7">
+  <textPath href="#topArc" startOffset="50%" text-anchor="middle">ETHOS AEGIS</textPath>
+</text>
+<text font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" letter-spacing="5" fill="#5E89A8">
+  <textPath href="#bottomArc" startOffset="50%" text-anchor="middle">INTEGRITY DEFENSE ARCHITECTURE</textPath>
+</text>
+<text x="600" y="982" text-anchor="middle" fill="#687482" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" letter-spacing="4">ORIGINAL MARK · NO GOVERNMENT AFFILIATION</text>
+</svg>
