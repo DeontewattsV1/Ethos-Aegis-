@@ -28,8 +28,28 @@ permissions:
 jobs:
   regenerate:
     runs-on: ubuntu-latest
-    # Skip self-triggered runs from our docs commit-back to prevent an infinite loop.
-    if: "${{ !contains(github.event.head_commit.message, 'docs refresh README snippets') }}"
+    # ─── Infinite-loop safeguard ────────────────────────────────────────────────
+    # The job below pushes back to `main` using `secrets.GITHUB_TOKEN`. There
+    # are two independent safeguards keeping that push from re-triggering this
+    # workflow into an infinite loop. **Either one alone is sufficient — both
+    # together are defense-in-depth.**
+    #
+    # 1. GitHub's built-in protection: workflow runs triggered by pushes that
+    #    use `secrets.GITHUB_TOKEN` do NOT create new workflow runs. This is
+    #    a documented platform behavior, not something we configure.
+    #    https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication#using-the-github_token-in-a-workflow
+    #
+    # 2. The `startsWith()` guard below: even if the commit-back ever switched
+    #    to a PAT (which DOES re-trigger workflows), this job would still skip
+    #    itself because the bot commit's message starts with the literal
+    #    sentinel "docs refresh README snippets". `startsWith` is used instead
+    #    of `contains` so that a human commit that merely *mentions* the
+    #    sentinel in its body (e.g. quoting it in a PR description copied into
+    #    the commit) still runs the workflow.
+    #
+    # Verified live by inspecting the last 5 bot commits on `main` — none
+    # triggered a new docs.yml run (see PR-D in the session history).
+    if: "${{ !startsWith(github.event.head_commit.message, 'docs refresh README snippets') }}"
     steps:
       - uses: actions/checkout@v4
         with:
@@ -82,6 +102,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add README.md docs/output-snapshots
+          # IMPORTANT: the first line of this commit message MUST stay
+          # "docs refresh README snippets ..." — the `startsWith()` guard at
+          # the top of this workflow keys off that exact prefix.
           git commit -m "docs refresh README snippets + output snapshots"
           git push
 
