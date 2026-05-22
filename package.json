@@ -22,7 +22,9 @@
     "verify": "tsx scripts/run-examples.ts && tsx scripts/validate-docs.ts",
     "repl": "tsx repl.ts",
     "examples:run": "tsx scripts/run-examples.ts",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "upgrade": "tsx scripts/upgrade.ts",
+    "upgrade:dry": "tsx scripts/upgrade.ts --dry-run"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

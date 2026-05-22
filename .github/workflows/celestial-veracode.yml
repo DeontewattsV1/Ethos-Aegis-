@@ -1,0 +1,146 @@
+name: celestial-veracode
+
+# Veracode Pipeline Scan for the ethos_aegis.celestial sub-package.
+# Follows the Veracode Playbook: download Pipeline Scan, zip the
+# project, run the JAR against it, and surface results as a workflow
+# artifact + summary.
+#
+# The job no-ops when the Veracode credentials are not configured, so
+# external forks / PRs from contributors without secret access do not
+# fail CI.  Configure these secrets to enable the scan:
+#   - VERACODE_API_ID
+#   - VERACODE_API_KEY
+# Optional:
+#   - VERACODE_POLICY_NAME (defaults to "Veracode Recommended High")
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "python/ethos_aegis/celestial/**"
+      - ".github/workflows/celestial-veracode.yml"
+  pull_request:
+    paths:
+      - "python/ethos_aegis/celestial/**"
+      - ".github/workflows/celestial-veracode.yml"
+  workflow_dispatch:
+  schedule:
+    # Weekly Monday 06:00 UTC re-scan to catch drift in dependencies.
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: celestial-veracode-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pipeline-scan:
+    name: Veracode Pipeline Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Detect credentials
+        id: gate
+        env:
+          VERACODE_API_ID: ${{ secrets.VERACODE_API_ID }}
+          VERACODE_API_KEY: ${{ secrets.VERACODE_API_KEY }}
+        run: |
+          if [ -n "${VERACODE_API_ID}" ] && [ -n "${VERACODE_API_KEY}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Veracode secrets not configured — skipping pipeline scan."
+          fi
+
+      - name: Download Pipeline Scan
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          curl -sSO https://downloads.veracode.com/securityscan/pipeline-scan-LATEST.zip
+          unzip -o pipeline-scan-LATEST.zip
+          ls -la pipeline-scan.jar
+
+      - name: Build scan archive
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          mkdir -p scan-input
+          cp -R python/ethos_aegis scan-input/
+          cp -R python/tests scan-input/
+          cp python/pyproject.toml scan-input/
+          (cd scan-input && zip -qr ../celestial-scan.zip .)
+          ls -la celestial-scan.zip
+
+      - name: Run Pipeline Scan
+        if: steps.gate.outputs.enabled == 'true'
+        env:
+          VID: ${{ secrets.VERACODE_API_ID }}
+          VKEY: ${{ secrets.VERACODE_API_KEY }}
+          POLICY: ${{ secrets.VERACODE_POLICY_NAME || 'Veracode Recommended High' }}
+        # `--fail_on_severity` is intentionally restricted to Very High +
+        # High so the gate is informative on a first run and can be
+        # tightened (e.g. Medium) once the baseline is clean. The full
+        # JSON report is always uploaded as an artifact for triage.
+        run: |
+          java -jar pipeline-scan.jar \
+            -vid "${VID}" \
+            -vkey "${VKEY}" \
+            -f celestial-scan.zip \
+            --issue_details true \
+            -pf "${POLICY}" \
+            -fjf veracode-results.json \
+            --fail_on_severity "Very High, High" \
+            -i "ethos_aegis.celestial.*" \
+            || echo "PIPELINE_SCAN_EXIT=$?" >> "$GITHUB_ENV"
+
+      - name: Summarise findings
+        if: steps.gate.outputs.enabled == 'true' && always()
+        run: |
+          if [ -f veracode-results.json ]; then
+            python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, pathlib
+          data = json.loads(pathlib.Path("veracode-results.json").read_text())
+          findings = data.get("findings", [])
+          print(f"## Veracode Pipeline Scan — {len(findings)} finding(s)")
+          if not findings:
+              print("No issues reported.")
+          else:
+              print("| Severity | CWE | File | Line | Title |")
+              print("|---|---|---|---|---|")
+              for f in findings:
+                  sev = f.get("severity", "?")
+                  cwe = f.get("cwe_id", "?")
+                  loc = f.get("files", {}).get("source_file", {})
+                  print(f"| {sev} | CWE-{cwe} | {loc.get('file', '?')} | {loc.get('line', '?')} | {f.get('title','?')} |")
+          PY
+          else
+            echo "_no veracode-results.json was produced_" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload scan artifacts
+        if: steps.gate.outputs.enabled == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: veracode-pipeline-scan
+          path: |
+            veracode-results.json
+            celestial-scan.zip
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Re-raise failure
+        if: steps.gate.outputs.enabled == 'true' && env.PIPELINE_SCAN_EXIT
+        run: |
+          echo "Pipeline scan exited with code ${PIPELINE_SCAN_EXIT}"
+          exit "${PIPELINE_SCAN_EXIT}"
