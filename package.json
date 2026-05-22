@@ -1,6 +1,6 @@
 {
   "name": "living-docs-template",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Self-demonstrating, always-current documentation template. Source code, examples, and README are kept in sync by CI.",
   "license": "Apache-2.0",
   "type": "module",
