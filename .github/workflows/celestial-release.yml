@@ -12,7 +12,17 @@ name: celestial-release
 # Specification Pack are marketed as a stand-alone cyber-security
 # package on top of the (free) Ethos Aegis core, so we want a clean
 # tag → release flow that does not interfere with release-please.
+ci(celestial): scope all workflow permissions per-job
+SonarCloud rules githubactions:S8233 and S8264 both want permissions
+declared at the job level rather than the workflow level so each job
+gets only the minimum scope it needs.  Move all 'permissions:' blocks
+in celestial.yml, celestial-veracode.yml, and celestial-release.yml
+out of the workflow root and into the specific jobs that use them.
 
+- celestial.yml      : both jobs => contents: read
+- celestial-veracode : pipeline-scan => contents: read
+- celestial-release  : build/publish-pypi => contents: read,
+                       release => contents: write
 on:
   push:
     tags:
@@ -23,15 +33,16 @@ on:
         description: "Existing tag to (re)release (e.g. celestial-v0.1.0)"
         required: true
 
-# Default to read-only permissions; jobs that need to publish releases
-# escalate locally (least-privilege per GitHub OIDC hardening guide).
-permissions:
-  contents: read
+# Permissions are declared at the job level rather than at the workflow
+# level (SonarCloud rules githubactions:S8233 and S8264) so each job
+# only sees the minimum scope it needs.
 
 jobs:
   build:
     name: build dist
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -102,6 +113,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: ${{ github.event_name == 'push' }}
+    permissions:
+      contents: read
     steps:
       - uses: actions/download-artifact@v4
         with:
