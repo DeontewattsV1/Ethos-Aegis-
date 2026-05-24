@@ -1,4 +1,4 @@
-<p align="center">
+ <p align="center">
   <img src="./assets/brand/08-documentation-header-banner.svg" alt="Ethos Aegis — sovereign AI integrity defense" width="100%" />
 </p>
 
