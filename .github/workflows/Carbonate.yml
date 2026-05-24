@@ -1,0 +1,18 @@
+            - name: Carbonate
+  # You may pin to the exact commit or the version.
+  # uses: callmekatootie/carbonate@9ab709978948c57a9f8968aa95ee317f6d027ad3
+  uses: callmekatootie/carbonate@v1.0.2
+  with:
+    # The GITHUB_TOKEN. Will read off the environment variable by default
+    github-token: # optional, default is ${{ github.token }}
+    # All images are hosted on Imgur. Thus, provide your Imgur app client id
+    imgur-client-id: 
+    # Should the code block be formatted using prettier? Pass String `true` or String `false`. Default is `true`
+    use-prettier: # optional, default is true
+    # This is read only if `use-prettier` is set to `true`. This is the parser to use with Prettier. Default value is babel
+    prettier-parser: # optional, default is babel
+    # This is read only if `use-prettier` is set to `true`. This is the Prettier options object, as a JSON string. Default values are the ones defined by Prettier itself. Check out their documentation
+    prettier-options: # optional
+    # The Carbon options object, as a JSON string. See `https://github.com/petersolopov/carbonara#post-apicook` for a list of supported options. Ignores the `code` property though. For default values, please check out the constants.js file in the source code of this action
+    carbon-options: # optional
+          
