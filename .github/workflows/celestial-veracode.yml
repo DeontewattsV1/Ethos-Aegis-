@@ -28,8 +28,8 @@ on:
     # Weekly Monday 06:00 UTC re-scan to catch drift in dependencies.
     - cron: "0 6 * * 1"
 
-permissions:
-  contents: read
+# Permissions are declared per-job (SonarCloud rules githubactions:S8233
+# and S8264) so each job is granted only the scope it actually needs.
 
 concurrency:
   group: celestial-veracode-${{ github.ref }}
@@ -40,6 +40,8 @@ jobs:
     name: Veracode Pipeline Scan
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
