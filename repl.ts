@@ -64,7 +64,7 @@ const scenarios = {
   subscribe: {
     description: "on('hello') + 3 emits — the most basic subscribe loop.",
     run(em) {
-      const off = em.on("hello", (name) => console.log(`  hello, ${name}`));
+      const off = em.on("hello", (name) => { console.log(`  hello, ${name}`); });
       em.emit("hello", "ada");
       em.emit("hello", "grace");
       em.emit("hello", "linus");
@@ -74,7 +74,7 @@ const scenarios = {
   once: {
     description: "once('tick') fires for the first emit only.",
     run(em) {
-      em.once("tick", (n) => console.log(`  once tick=${n}`));
+      em.once("tick", (n) => { console.log(`  once tick=${n}`); });
       em.emit("tick", 1);
       em.emit("tick", 2);
       em.emit("tick", 3);
@@ -83,7 +83,7 @@ const scenarios = {
   off: {
     description: "on(), then off(), then emit — no listener fires.",
     run(em) {
-      const handler = (n: number) => console.log(`  tick=${n}`);
+      const handler = (n: number) => { console.log(`  tick=${n}`); };
       const unsubscribe = em.on("tick", handler);
       em.emit("tick", 1);
       unsubscribe();
@@ -94,9 +94,9 @@ const scenarios = {
   error: {
     description: "onError() captures a thrown listener error and keeps the loop alive.",
     run(em) {
-      em.onError((err, event) =>
-        console.log(`  caught from '${String(event)}': ${(err as Error).message}`),
-      );
+      em.onError((err, event) => {
+        console.log(`  caught from '${String(event)}': ${(err as Error).message}`);
+      });
       em.on("hello", () => {
         throw new Error("boom");
       });
