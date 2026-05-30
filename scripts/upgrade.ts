@@ -80,7 +80,7 @@ if (beforeLines.length === 0) {
 }
 
 console.log(`\nOutdated dependencies (${beforeLines.length}):`);
-beforeLines.forEach((line) => console.log(line));
+beforeLines.forEach((line) => { console.log(line); });
 
 if (isDryRun) {
   console.log("\nDry-run mode — no changes made.");
@@ -108,7 +108,7 @@ console.log(`Still outdated  : ${stillOutdated.length} (major bumps require manu
 
 if (stillOutdated.length > 0) {
   console.log("\nRemaining (out of semver range — review manually):");
-  stillOutdated.forEach((line) => console.log(line));
+  stillOutdated.forEach((line) => { console.log(line); });
   console.log("\nTo bump one of these explicitly:");
   console.log("  npm install --save <name>@latest");
 }

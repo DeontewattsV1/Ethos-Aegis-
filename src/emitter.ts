@@ -44,7 +44,7 @@ export class EventEmitter<Events extends EventMap> {
     const set = this.handlers.get(event) ?? new Set<Listener<unknown[]>>();
     set.add(listener as Listener<unknown[]>);
     this.handlers.set(event, set);
-    return () => this.off(event, listener);
+    return () => { this.off(event, listener); };
   }
 
   /** Subscribe to an event for exactly one emission. */
