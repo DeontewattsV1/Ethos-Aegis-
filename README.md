@@ -12,7 +12,6 @@
 [![brand](https://img.shields.io/badge/brand-Ethos%20Aegis-0A0B0D?labelColor=15181C&color=5E89A8)](./BRAND.md)
 
 <!-- last-verified: 2026-05-30T06:57:53.508Z -->
-<!-- last-verified: 2026-05-30T06:57:53.508Z -->
 ---
 
 ## What this is
