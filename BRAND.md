@@ -1,8 +1,8 @@
-<p align="center">
+ <p align="center">
   <img src="./assets/brand/08-documentation-header-banner.svg" alt="Ethos Aegis — sovereign AI integrity defense" width="100%" />
 </p>
 
-# Ethos Aegis &mdash; Brand Identity
+ # Ethos Aegis &mdash; Brand Identity
 
 Original, civilian, government-grade visual identity for the **Ethos Aegis** sovereign AI integrity defense architecture. Built to feel institutional, doctrinal, and unbreakable while staying intentionally and provably independent of any real military or government insignia.
 

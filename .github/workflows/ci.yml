@@ -41,6 +41,9 @@ jobs:
       - name: Verify npm lockfile
         run: test -f package-lock.json
 
+      - name: Refresh lock metadata
+        run: npm install --package-lock-only --ignore-scripts
+
       - name: Clean install
         run: npm ci
 
