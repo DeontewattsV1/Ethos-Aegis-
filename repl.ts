@@ -94,9 +94,9 @@ const scenarios = {
   error: {
     description: "onError() captures a thrown listener error and keeps the loop alive.",
     run(em) {
-      em.onError((err, event) =>
-        { console.log(`  caught from '${String(event)}': ${(err as Error).message}`; },
-      );
+      em.onError((err, event) => {
+        console.log(`  caught from '${String(event)}': ${(err as Error).message}`);
+      });
       em.on("hello", () => {
         throw new Error("boom");
       });
