@@ -7,7 +7,7 @@ on:
       - "examples/**"
       - "scripts/**"
       - "README.md"
-      - ".github/workflows/docs.yml"
+      - ".github/workflows/package.json"
   pull_request:
     branches: [main]
     paths:
@@ -45,7 +45,7 @@ jobs:
     #    sentinel "docs refresh README snippets".
     #
     # Verified live by inspecting the last 5 bot commits on `main` — none
-    # triggered a new docs.yml run (see PR-D in the session history).
+    # triggered a new package.json run (see PR-D in the session history).
     if: "${{ !contains(github.event.head_commit.message, 'docs refresh README snippets') }}"
     steps:
       - uses: actions/checkout@v4
