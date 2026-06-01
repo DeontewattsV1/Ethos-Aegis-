@@ -33,6 +33,8 @@
     "repl": "tsx repl.ts",
     "examples:run": "tsx scripts/run-examples.ts",
     "lint": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "ci": "npm ci && npm run lint && npm test && npm run verify && npm run build",
     "upgrade": "tsx scripts/upgrade.ts",
     "upgrade:dry": "tsx scripts/upgrade.ts --dry-run"
   },

@@ -40,7 +40,7 @@ jobs:
         run: npm install --no-save markdown-link-check@3
 
       - name: Check README links
-        run: npx markdown-link-check -q README.md || true
+        run: npx markdown-link-check -q README.md
 
       - name: Validate example markers + snapshots
         run: npx tsx scripts/validate-docs.ts
