@@ -8,10 +8,3 @@ docs/api/
 .env.local
 .vscode/
 .idea/
-
-# Python (for python/ subtree)
-__pycache__/
-*.pyc
-.pytest_cache/
-.ruff_cache/
-*.egg-info/

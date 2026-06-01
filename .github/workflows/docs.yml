@@ -39,17 +39,14 @@ jobs:
     #    a documented platform behavior, not something we configure.
     #    https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication#using-the-github_token-in-a-workflow
     #
-    # 2. The `startsWith()` guard below: even if the commit-back ever switched
+    # 2. The `contains()` guard below: even if the commit-back ever switched
     #    to a PAT (which DOES re-trigger workflows), this job would still skip
-    #    itself because the bot commit's message starts with the literal
-    #    sentinel "docs refresh README snippets". `startsWith` is used instead
-    #    of `contains` so that a human commit that merely *mentions* the
-    #    sentinel in its body (e.g. quoting it in a PR description copied into
-    #    the commit) still runs the workflow.
+    #    itself because the bot commit's message contains the literal
+    #    sentinel "docs refresh README snippets".
     #
     # Verified live by inspecting the last 5 bot commits on `main` — none
     # triggered a new docs.yml run (see PR-D in the session history).
-    if: "${{ !startsWith(github.event.head_commit.message, 'docs refresh README snippets') }}"
+    if: "${{ !contains(github.event.head_commit.message, 'docs refresh README snippets') }}"
     steps:
       - uses: actions/checkout@v4
         with:

@@ -22,11 +22,8 @@
   ],
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc -p tsconfig.build.json",
-    "ci": "npm run lint && npm test && npm run verify && npm run build",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
-    "coverage": "vitest run --coverage",
     "docs": "tsx scripts/sync-readme.ts && tsx scripts/run-examples.ts && tsx scripts/sync-readme.ts",
     "docs:api": "typedoc --out docs/api src/index.ts",
     "verify": "tsx scripts/run-examples.ts && tsx scripts/validate-docs.ts",

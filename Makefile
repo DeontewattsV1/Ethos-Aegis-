@@ -1,4 +1,4 @@
-.PHONY: install demo docs verify test repl upgrade upgrade-dry clean help
+.PHONY: install demo docs verify test repl clean help
 
 help:
 	@echo "Living Docs Template — canonical entry points"
@@ -8,9 +8,7 @@ help:
 	@echo "  make docs      # regenerate README snippets + output snapshots"
 	@echo "  make verify    # run all examples and diff against snapshots"
 	@echo "  make test      # vitest with coverage"
-	@echo "  make repl      # interactive REPL with .dot commands (.help inside)"
-	@echo "  make upgrade   # bump deps within semver + regen docs + run tests + lint"
-	@echo "  make upgrade-dry # list outdated deps without changing anything"
+	@echo "  make repl      # interactive REPL with library preloaded"
 	@echo "  make clean     # remove node_modules, coverage, generated docs/api"
 
 install:
@@ -33,12 +31,6 @@ test:
 
 repl:
 	npx tsx repl.ts
-
-upgrade:
-	npx tsx scripts/upgrade.ts
-
-upgrade-dry:
-	npx tsx scripts/upgrade.ts --dry-run
 
 clean:
 	rm -rf node_modules coverage docs/api
