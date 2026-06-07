@@ -1,0 +1,30 @@
+diff --git a/src/emitter.ts b/src/emitter.ts
+--- a/src/emitter.ts
++++ b/src/emitter.ts
+@@ -47,1 +47,1 @@
+-    return () => this.off(event, listener);
++    return () => { this.off(event, listener); };
+diff --git a/scripts/upgrade.ts b/scripts/upgrade.ts
+--- a/scripts/upgrade.ts
++++ b/scripts/upgrade.ts
+@@ -83,1 +83,1 @@
+-beforeLines.forEach((line) => console.log(line));
++beforeLines.forEach((line) => { console.log(line); });
+@@ -111,1 +111,1 @@
+-  stillOutdated.forEach((line) => console.log(line));
++  stillOutdated.forEach((line) => { console.log(line); });
+diff --git a/repl.ts b/repl.ts
+--- a/repl.ts
++++ b/repl.ts
+@@ -67,1 +67,1 @@
+-      const off = em.on("hello", (name) => console.log(`  hello, ${name}`));
++      const off = em.on("hello", (name) => { console.log(`  hello, ${name}`); });
+@@ -77,1 +77,1 @@
+-      em.once("tick", (n) => console.log(`  once tick=${n}`));
++      em.once("tick", (n) => { console.log(`  once tick=${n}`); });
+@@ -86,1 +86,1 @@
+-      const handler = (n: number) => console.log(`  tick=${n}`);
++      const handler = (n: number) => { console.log(`  tick=${n}`); };
+@@ -98,1 +98,1 @@
+-        console.log(`  caught from '${String(event)}': ${(err as Error).message}`),
++        { console.log(`  caught from '${String(event)}': ${(err as Error).message}`); },
