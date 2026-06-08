@@ -8,3 +8,15 @@ docs/api/
 .env.local
 .vscode/
 .idea/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.python-version
+.venv/
+venv/
+logs/
+.pytest_cache/
+.coverage
+Thumbs.db
+*.egg-info/
