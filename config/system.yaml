@@ -1,0 +1,16 @@
+system:
+  name: ETHOS-AEGIS
+  version: 0.1.0
+  environment: development
+
+governance:
+  ethics_enabled: true
+  policy_validation: strict
+
+execution:
+  max_parallel_agents: 10
+  retry_limit: 3
+
+simulation:
+  enabled: true
+  event_logging: true
