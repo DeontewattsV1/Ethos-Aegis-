@@ -1,0 +1,17 @@
+# Execution Flow
+
+```text
+INPUT
+ ↓
+ETHICAL VALIDATION
+ ↓
+TASK PLANNING
+ ↓
+AGENT ASSIGNMENT
+ ↓
+EXECUTION
+ ↓
+REVIEW
+ ↓
+PUBLICATION
+```
