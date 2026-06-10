@@ -9,9 +9,43 @@
 [![examples](https://github.com/DeontewattsV1/Ethos-Aegis-/actions/workflows/examples.yml/badge.svg)](https://github.com/DeontewattsV1/Ethos-Aegis-/actions/workflows/examples.yml)
 [![readme](https://github.com/DeontewattsV1/Ethos-Aegis-/actions/workflows/readme.yml/badge.svg)](https://github.com/DeontewattsV1/Ethos-Aegis-/actions/workflows/readme.yml)
 [![brand](https://img.shields.io/badge/brand-Ethos%20Aegis-0A0B0D?labelColor=15181C&color=5E89A8)](./BRAND.md)
+[![4D Visual Tests](https://github.com/DeontewattsV1/Ethos-Aegis-/actions/workflows/4d-visual-tests.yml/badge.svg)](https://github.com/DeontewattsV1/Ethos-Aegis-/actions/workflows/4d-visual-tests.yml)
 
 <!-- last-verified: 2026-05-30T07:04:22.606Z -->
 ---
+
+
+---
+
+## 4D Immersive Visual Test Module
+
+The `ethos_4d` package maps every task lifecycle event into a **four-dimensional ethical spacetime manifold** and renders it live in the terminal.
+
+| Dimension | Axis | Range |
+|---|---|---|
+| **X** | NodeType (Governance → SecurityLayer) | 0 – 9 |
+| **Y** | TaskState (QUEUED → FAILED) | 0 – 10 |
+| **Z** | Ethical weight / policy risk score | 0.0 – 1.0 |
+| **T** | Simulation tick (continuous time) | ℝ⁺ |
+
+Each task becomes a **world-line** — a trajectory through ethical spacetime. The module computes:
+
+- **Ethical Curvature Tensor** — d²Z/dY² along the state axis (detects abrupt ethical phase shifts)
+- **Phase Transition Detection** — state pairs with ΔZ ≥ threshold (`VALIDATED→ETHICAL_CHECK` is always `CRITICAL`)
+- **Manifold Entropy** — Shannon entropy of task distribution across states (bottleneck detection)
+- **Geodesic Deviation Analysis** — how far each task deviates from the ideal straight-line path
+- **Lyapunov Exponent** — divergence rate of nearby world-lines (chaos vs. stability detection)
+
+```bash
+# Run the full 4D immersive render
+python -m ethos_4d.test_harness
+
+# Run the scientific test suite
+pytest tests/test_4d_visual.py -v
+```
+
+> CI runs three jobs on every push to `ethos_4d/`: unit tests (Python 3.11 + 3.12), full immersive render smoke test, and scientific metrics validation.
+
 
 ## What this is
 
