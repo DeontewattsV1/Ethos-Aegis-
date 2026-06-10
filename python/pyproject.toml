@@ -13,14 +13,7 @@ readme          = "README.md"
 requires-python = ">=3.10"
 license         = { text = "MIT" }
 authors         = [{ name = "The Ethos Aegis Project" }]
-keywords        = [
-    "ai-safety",
-    "prompt-injection",
-    "llm-security",
-    "adversarial-robustness",
-    "celestial-language",
-    "agent-spec-pack",
-]
+keywords        = ["ai-safety", "prompt-injection", "llm-security", "adversarial-robustness"]
 
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -39,15 +32,20 @@ classifiers = [
 # Zero runtime dependencies — pure Python stdlib
 dependencies = []
 
+
+[tool.setuptools.packages.find]
+where   = ["."]
+include = ["ethos_aegis*", "ethos_4d*"]
+exclude = ["tests*", "scripts*"]
+
 [project.optional-dependencies]
-dev = ["pytest>=7.4", "pytest-cov>=4.1", "pytest-xdist>=3.3", "ruff>=0.4", "mypy>=1.8"]
+dev = ["pytest>=7.4", "pytest-cov>=4.1", "pytest-xdist>=3.3", "pytest-timeout>=2.3", "ruff>=0.4", "mypy>=1.8"]
+test = ["pytest>=7.4", "pytest-cov>=4.1", "pytest-timeout>=2.3"]
 fuzz = ["hypothesis>=6.100"]
-# Adds Celestial Agent Spec Pack support (AES-GCM + Ed25519). Glyph cipher works without it.
-celestial = ["cryptography>=42"]
-all = ["ethos-aegis[dev,fuzz,celestial]"]
+all = ["ethos-aegis[dev,fuzz]"]
 
 [project.scripts]
-celestial = "ethos_aegis.celestial.cli:main"
+aegis-demo = "scripts.demo:main"
 
 [project.urls]
 Homepage    = "https://github.com/ethos-aegis/ethos-aegis"
@@ -62,7 +60,7 @@ testpaths   = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts     = "--tb=short -q --deselect tests/test_scaffolds.py::test_verifier_combines_hooks --deselect tests/test_suite.py::TestEthosAegisPipeline::test_aegis_verdict_has_all_fields"
+addopts     = "--tb=short -q"
 log_level   = "WARNING"
 
 [tool.ruff]
@@ -79,15 +77,6 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]     # assert is fine in tests
-
-[tool.setuptools.packages.find]
-where   = ["."]
-include = ["ethos_aegis*", "ethos_4d*"]
-exclude = ["tests*"]
-
-[tool.setuptools.package-data]
-"ethos_aegis.celestial" = ["agent_spec_schema.json"]
-"ethos_4d" = ["py.typed"]
 
 [tool.mypy]
 python_version          = "3.10"
