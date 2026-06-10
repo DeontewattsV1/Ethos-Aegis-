@@ -27,7 +27,6 @@ type HistoryEntry = {
   ts: string;
   event: string;
   args: unknown[];
-  notified: number;
 };
 
 const HISTORY_LIMIT = 20;
@@ -37,8 +36,6 @@ let emitter = makeEmitter();
 
 function makeEmitter(): EventEmitter<DemoEvents> {
   const instance = new EventEmitter<DemoEvents>();
-  // NOTE: This custom EventEmitter.emit returns the listener count, unlike
-  // Node's built-in EventEmitter which returns a boolean.
   // Wrap `emit` so every event is recorded; tap can additionally log live.
   // We use a Proxy so the wrapped function keeps the original method's full
   // generic signature without needing a `as` cast.
@@ -46,18 +43,12 @@ function makeEmitter(): EventEmitter<DemoEvents> {
   instance.emit = new Proxy(originalEmit, {
     apply(target, thisArg, argArray) {
       const [event, ...rest] = argArray as [keyof DemoEvents, ...unknown[]];
-      const notified = Reflect.apply(target, thisArg, argArray);
-      history.push({
-        ts: new Date().toISOString(),
-        event: String(event),
-        args: rest,
-        notified,
-      });
+      history.push({ ts: new Date().toISOString(), event: String(event), args: rest });
       if (history.length > HISTORY_LIMIT) history.shift();
       if (tapEnabled) {
-        console.log(`[tap] ${String(event)} (${notified} listeners)`, ...rest);
+        console.log(`[tap] ${String(event)}`, ...rest);
       }
-      return notified;
+      return Reflect.apply(target, thisArg, argArray);
     },
   });
   return instance;
@@ -172,12 +163,6 @@ session.defineCommand("scenario", {
   action(name) {
     this.clearBufferedCommand();
     const key = name.trim();
-    if (!key) {
-      console.log("Usage: .scenario <name>");
-      console.log(`Available scenarios: ${Object.keys(allScenarios).join(", ")}`);
-      this.displayPrompt();
-      return;
-    }
     const scenario = allScenarios[key];
     if (scenario === undefined) {
       console.log(
@@ -226,15 +211,6 @@ session.defineCommand("tap", {
   },
 });
 
-function formatTimestamp(iso: string): string {
-  const d = new Date(iso);
-  const h = d.getHours().toString().padStart(2, "0");
-  const m = d.getMinutes().toString().padStart(2, "0");
-  const s = d.getSeconds().toString().padStart(2, "0");
-  const ms = d.getMilliseconds().toString().padStart(3, "0");
-  return `${h}:${m}:${s}.${ms}`;
-}
-
 session.defineCommand("history", {
   help: "Show recent emits on the preloaded `emitter` (most recent last).",
   action() {
@@ -243,11 +219,7 @@ session.defineCommand("history", {
       console.log("(no emits recorded yet)");
     } else {
       for (const entry of history) {
-        const ts = formatTimestamp(entry.ts);
-        console.log(
-          `  ${ts}  ${entry.event.padEnd(8)} (${entry.notified} listeners)`,
-          ...entry.args,
-        );
+        console.log(`  ${entry.ts}  ${entry.event}`, ...entry.args);
       }
     }
     this.displayPrompt();
