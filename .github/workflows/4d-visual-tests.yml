@@ -16,6 +16,11 @@ on:
       - 'python/pyproject.toml'
       - '.github/workflows/4d-visual-tests.yml'
   workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Manual trigger reason'
+        required: false
+        default: 'manual'
 
 permissions:
   contents: read
