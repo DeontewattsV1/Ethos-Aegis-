@@ -45,6 +45,8 @@ class MistralAdapter(BaseAdapter):
         self._max_tokens    = max_tokens
         self._system_prompt = system_prompt
 
+    # -- BaseAdapter interface ------------------------------------------------
+
     @property
     def provider_name(self) -> str:
         return "mistral"
@@ -88,15 +90,17 @@ class MistralAdapter(BaseAdapter):
                 if delta:
                     yield delta
 
+    # -- Helpers -------------------------------------------------------------
+
     def _compose_messages(
         self,
         messages: List[Dict[str, str]],
-        system: Optional[str] = None,
+        system: Optional[str],
     ) -> list[dict]:
-        """Build a Mistral-ready message list.
+        """Build the Mistral message list, resolving system instruction priority.
 
-        Call-time *system* takes precedence over the constructor's
-        ``system_prompt``. If neither is set, no system message is prepended.
+        Call-time ``system`` takes precedence over ``_system_prompt`` set at
+        construction, so both are never applied simultaneously.
         """
         result: list[dict] = []
         effective = system if system is not None else self._system_prompt
@@ -104,6 +108,3 @@ class MistralAdapter(BaseAdapter):
             result.append({"role": "system", "content": effective})
         result.extend(messages)
         return result
-
-    # Backward-compat alias (some callers used the old name)
-    _build_messages = _compose_messages
