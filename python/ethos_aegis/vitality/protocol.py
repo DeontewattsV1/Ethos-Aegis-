@@ -537,13 +537,13 @@ class NutrientPlex:
         corrupting influence of Unicode manipulation attacks that can damage
         the integrity of clean data before it reaches downstream cells.
         """
-        if getattr(swarm, '_vitc_applied', False):
+        if getattr(swarm, '_vit_c_applied', False):
             return 0
 
         compiled_additions = [
             (re.compile(p), sigil) for p, sigil in self.VITAMIN_C_PACK
         ]
-        swarm._vitc_applied = True
+        swarm._vit_c_applied = True
         original_interrogate = swarm.interrogate
 
         def fortified_interrogate(payload: str, context: Dict) -> List[Malignum]:
@@ -615,11 +615,14 @@ class NutrientPlex:
         fires, reducing the signal-to-noise floor and catching more subtle
         structural attacks that the default thresholds would miss.
         """
+        if getattr(watch, '_zinc_applied', False):
+            return
         for attr, value in self.ZINC_PACK_THRESHOLDS.items():
             if hasattr(watch, f'_{attr}'):
                 old = getattr(watch, f'_{attr}')
                 setattr(watch, f'_{attr}', value)
                 _vlog.info(f"NutrientPlex: ZINC → EntropicWatch.{attr}: {old} → {value}")
+        watch._zinc_applied = True
 
     def detect_deficiencies(
         self, aegis: EthosAegis
@@ -1670,7 +1673,7 @@ class AegisVitality:
             _vlog.warning(f"NeuroStressBuffer: request blocked — system under stress")
             blocked_verdict = AegisVerdict(
                 is_sanctified=False, is_condemned=True,
-                sovereignty_depth=CorruptionDepth.GRAVE,
+                sovereignty_depth=CorruptionDepth.CONDEMNED,
                 axiological_report="REQUEST BLOCKED — NeuroStressBuffer circuit active.",
                 sentinel_chronicle=["NeuroStressBuffer: rate limit exceeded"]
             )
