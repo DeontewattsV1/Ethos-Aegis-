@@ -123,13 +123,22 @@ const allScenarios: Record<string, Scenario> = {
 };
 
 // ─── REPL bootstrap ─────────────────────────────────────────────────────────
-console.log("living-docs-template REPL");
+const STEEL_BLUE = "\x1b[38;2;94;137;168m";
+const RESET = "\x1b[0m";
+
+console.log(`${STEEL_BLUE}LIVING DOCS REPL${RESET}`);
 console.log("=========================");
-console.log("Pre-loaded: `EventEmitter`, `emitter`");
+console.log("Pre-loaded: `EventEmitter`, `emitter` (Aegis Leukocyte bus)");
 console.log("Type `.help` for the full command list.");
+console.log(`\n${STEEL_BLUE}Shortcut hints:${RESET}`);
+console.log("  Ctrl+C  Abort current expression / Clear line");
+console.log("  Ctrl+D  Exit the REPL");
 console.log("");
 
-const session: REPLServer = repl.start({ prompt: "ldt> ", useColors: true });
+const session: REPLServer = repl.start({
+  prompt: `${STEEL_BLUE}ldt>${RESET} `,
+  useColors: true,
+});
 refreshContext(session);
 
 function refreshContext(srv: REPLServer): void {
@@ -138,6 +147,23 @@ function refreshContext(srv: REPLServer): void {
   srv.context.history = history;
   srv.context.scenarios = allScenarios;
 }
+
+session.defineCommand("about", {
+  help: "Display template mission and design tokens.",
+  action() {
+    this.clearBufferedCommand();
+    console.log(`\n${STEEL_BLUE}LIVING DOCS TEMPLATE${RESET}`);
+    console.log("--------------------------------------------------");
+    console.log("Mission: Self-demonstrating, always-current documentation scaffold.");
+    console.log("Core: Typed EventEmitter with living snapshot verification.");
+    console.log(`\n${STEEL_BLUE}Design Palette (Institutional):${RESET}`);
+    console.log("  Obsidian:   #050607");
+    console.log("  Steel Blue: #5E89A8 (Primary Accent)");
+    console.log("  Bone White: #F2F5F7 (Primary Text)");
+    console.log("\nAligned by design.");
+    this.displayPrompt();
+  },
+});
 
 session.defineCommand("demo", {
   help: "Run a short subscribe → emit → log demo on the preloaded emitter.",
