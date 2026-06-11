@@ -149,6 +149,15 @@ session.defineCommand("demo", {
   },
 });
 
+session.defineCommand("cls", {
+  help: "Clear the terminal screen.",
+  action() {
+    this.clearBufferedCommand();
+    console.clear();
+    this.displayPrompt();
+  },
+});
+
 session.defineCommand("scenario", {
   help: "Run a named scenario. Usage: .scenario <name>",
   action(name) {
