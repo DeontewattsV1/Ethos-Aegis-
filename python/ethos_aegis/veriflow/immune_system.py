@@ -1,13 +1,10 @@
-"""
-VeriflowImmuneSystem -- agentic data immune system for CKAN-backed knowledge hubs.
-"""
 from __future__ import annotations
 
 import hashlib
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 
 from ethos_aegis.agent.scaffolds.task_verifier_mesh import DeterministicVerifier
 
@@ -15,84 +12,41 @@ from .ckan_adapter import CKANCapabilityMatrix, CKANClient, CKANIngestionResult,
 from .question_answering import AnswerRecord, VeriflowReasoner
 
 
-# ---------------------------------------------------------------------------
-# Data structures
-# ---------------------------------------------------------------------------
-
-@dataclass
+@dataclass(slots=True)
 class DatasetCacheEntry:
-    """Cached result of a CKAN resource ingestion pass."""
-
     resource_id: str
-    package_id: str
+    digest: str
     rows: list[dict[str, Any]]
     fields: list[SchemaField]
-    ingestion_path: str
-    ingestion_metadata: dict[str, Any]
+    # Ingestion metadata surfaced to answer_question evidence
+    package_id: str = ""
+    ingestion_path: str = ""
+    ingestion_metadata: dict[str, Any] = field(default_factory=dict)
     upstream_fingerprint: str = ""
-    digest: str = ""
     last_answer: Optional[AnswerRecord] = None
 
-    @classmethod
-    def from_ingestion(
-        cls,
-        result: CKANIngestionResult,
-        *,
-        upstream_fingerprint: str = "",
-        digest: str = "",
-    ) -> "DatasetCacheEntry":
-        return cls(
-            resource_id=result.resource_id,
-            package_id=result.package_id,
-            rows=result.rows,
-            fields=result.fields,
-            ingestion_path=result.path,
-            ingestion_metadata=result.metadata or {},
-            upstream_fingerprint=upstream_fingerprint,
-            digest=digest,
-        )
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _row_digest(rows: list[dict[str, Any]]) -> str:
-    return hashlib.sha256(
-        json.dumps(rows, sort_keys=True, default=str).encode("utf-8")
-    ).hexdigest()
-
-
-def _metadata_fingerprint(resource: dict[str, Any], package: dict[str, Any]) -> str:
-    parts = [
-        resource.get("last_modified", ""),
-        resource.get("metadata_modified", ""),
-        package.get("metadata_modified", ""),
-    ]
-    return hashlib.sha256("|".join(parts).encode()).hexdigest()
-
-
-_STATE_FILE_NAME = "veriflow_immune_state.json"
-
-
-# ---------------------------------------------------------------------------
-# Core class
-# ---------------------------------------------------------------------------
 
 class VeriflowImmuneSystem:
     """
     Agentic data immune system for CKAN-backed knowledge hubs.
 
+    Flow:
+        CKAN resource -> startup capability probe -> digest/fingerprint check
+        -> deterministic verifier -> formula cache -> answer engine
+
     Args:
-        ckan:                CKANClient instance.
-        verifier:            DeterministicVerifier (default: fresh instance).
-        reasoner:            VeriflowReasoner (default: fresh instance).
-        probe_on_startup:    Run capability probe during ``__init__``.
-        sample_resource_id:  Resource ID used for the startup probe.
-        state_dir:           Optional Path; persists capability matrix JSON.
-        fingerprint_mode:    ``"digest"`` (full SHA-256, default) or
-                             ``"datastore_lightweight"`` (metadata timestamps).
-        row_signature_limit: Max rows used when computing digest. 0 = all.
+        ckan:                  CKANClient instance.
+        verifier:              DeterministicVerifier (auto-created if None).
+        reasoner:              VeriflowReasoner (auto-created if None).
+        probe_on_startup:      Run capability probe at construction time.
+        sample_resource_id:    Resource to probe on startup.
+        state_dir:             Optional path for persisting cache state.
+        fingerprint_mode:      ``"digest"`` (default) or
+                               ``"datastore_lightweight"`` -- lightweight mode
+                               re-ingests when row content changes even if
+                               CKAN metadata timestamps are unchanged.
+        row_signature_limit:   How many rows to include in lightweight
+                               fingerprint (default: 100).
     """
 
     def __init__(
@@ -103,9 +57,9 @@ class VeriflowImmuneSystem:
         *,
         probe_on_startup: bool = True,
         sample_resource_id: str | None = None,
-        state_dir: Path | None = None,
+        state_dir: Path | str | None = None,
         fingerprint_mode: str = "digest",
-        row_signature_limit: int = 0,
+        row_signature_limit: int = 100,
     ) -> None:
         self.ckan = ckan
         self.verifier = verifier or DeterministicVerifier()
@@ -113,31 +67,23 @@ class VeriflowImmuneSystem:
         self._cache: dict[str, DatasetCacheEntry] = {}
         self._capability_matrix: CKANCapabilityMatrix | None = None
         self._probe_sample_resource_id = sample_resource_id
-        self._state_dir = state_dir
+        self._state_dir = Path(state_dir) if state_dir else None
         self._fingerprint_mode = fingerprint_mode
         self._row_signature_limit = row_signature_limit
-
         if probe_on_startup:
             self.bootstrap(sample_resource_id=sample_resource_id)
 
-    # -- Properties ----------------------------------------------------------
-
-    @property
-    def capability_matrix(self) -> CKANCapabilityMatrix | None:
-        return self._capability_matrix
+    # -- Public read-only access to the cache --------------------------------
 
     @property
     def cache(self) -> dict[str, DatasetCacheEntry]:
         return self._cache
 
     @property
-    def state_file(self) -> Optional[Path]:
-        """Path to the persisted state JSON, or None if no state_dir set."""
-        if self._state_dir is None:
-            return None
-        return self._state_dir / _STATE_FILE_NAME
+    def capability_matrix(self) -> CKANCapabilityMatrix | None:
+        return self._capability_matrix
 
-    # -- Lifecycle -----------------------------------------------------------
+    # -- Bootstrap -----------------------------------------------------------
 
     def bootstrap(
         self,
@@ -146,73 +92,83 @@ class VeriflowImmuneSystem:
         force: bool = False,
     ) -> CKANCapabilityMatrix:
         sample = sample_resource_id or self._probe_sample_resource_id
-
-        # Try loading from persisted state first
-        if not force and self._capability_matrix is None and self._state_dir:
-            loaded = self._load_state()
-            if loaded is not None:
-                self._capability_matrix = loaded
-                return loaded
-
         if self._capability_matrix is not None and not force:
             if sample and sample != self._probe_sample_resource_id:
                 force = True
             else:
                 return self._capability_matrix
-
         matrix = self.ckan.probe_capabilities(sample_resource_id=sample)
         self._capability_matrix = matrix
         self._probe_sample_resource_id = sample
-        self._persist_state()
         return matrix
 
-    # -- Refresh -------------------------------------------------------------
+    # -- Core ingestion ------------------------------------------------------
 
     def refresh_resource(self, resource_id: str) -> DatasetCacheEntry:
-        """Ingest or re-use a cached CKAN resource.
+        """Ingest (or re-ingest if stale) a CKAN resource into the cache.
+
+        Automatically bootstraps the capability matrix if not yet done.
+        In ``datastore_lightweight`` fingerprint mode, performs a cheap row
+        probe via ``datastore_search`` *before* calling ``ingest_resource`` so
+        that unchanged resources skip the full ingestion round-trip entirely.
 
         Args:
-            resource_id: CKAN resource UUID.
+            resource_id: CKAN resource UUID to ingest.
+
         Returns:
-            DatasetCacheEntry with rows, fields, path, metadata, fingerprint.
+            The (possibly updated) ``DatasetCacheEntry`` for this resource.
         """
+        # Ensure capability matrix is available
         if self._capability_matrix is None:
             self.bootstrap(sample_resource_id=resource_id)
 
-        # Lightweight mode: check metadata fingerprint before fetching rows
-        if self._fingerprint_mode == "datastore_lightweight":
-            new_fp = self._lightweight_fingerprint(resource_id)
-            existing = self._cache.get(resource_id)
-            if existing and existing.upstream_fingerprint == new_fp:
+        existing = self._cache.get(resource_id)
+
+        # Lightweight mode: cheap probe BEFORE full ingest
+        if self._fingerprint_mode == "datastore_lightweight" and existing is not None:
+            probe_fingerprint = self._probe_lightweight_fingerprint(resource_id)
+            if probe_fingerprint == existing.upstream_fingerprint:
                 return existing
 
-        # Ingest
+        # Full ingest
         result: CKANIngestionResult = self.ckan.ingest_resource(resource_id)
+        rows   = result.rows
+        fields = result.fields
 
-        rows_sample = (
-            result.rows[: self._row_signature_limit]
-            if self._row_signature_limit > 0
-            else result.rows
-        )
+        # Compute fingerprint and digest
+        fingerprint = self._compute_fingerprint(resource_id, rows)
+        digest = hashlib.sha256(
+            json.dumps(rows, sort_keys=True).encode("utf-8")
+        ).hexdigest()
 
-        if self._fingerprint_mode == "datastore_lightweight":
-            fingerprint = new_fp  # already computed
-            digest = _row_digest(rows_sample)
-        else:
-            digest = _row_digest(rows_sample)
-            fingerprint = digest
-
-        existing = self._cache.get(resource_id)
-        if existing and existing.upstream_fingerprint == fingerprint:
+        # Standard digest mode: skip storing if unchanged
+        if (
+            self._fingerprint_mode == "digest"
+            and existing is not None
+            and existing.digest == digest
+        ):
             return existing
 
-        payload = json.dumps(rows_sample, sort_keys=True, default=str)
-        verification = self.verifier.verify_source_snapshot(payload)
+        # Run deterministic verification
+        verification = self.verifier.verify_source_snapshot(json.dumps(rows))
         if not verification.passed and getattr(verification, "issue_type", "") == "syntax_error":
-            raise ValueError("Dataset failed deterministic serialization verification.")
+            raise ValueError(
+                "Dataset cache failed deterministic serialization verification."
+            )
 
-        entry = DatasetCacheEntry.from_ingestion(
-            result, upstream_fingerprint=fingerprint, digest=digest
+        ingestion_path = result.path if hasattr(result, "path") else ""
+        package_id     = result.package_id if hasattr(result, "package_id") else ""
+        metadata       = result.metadata if hasattr(result, "metadata") else {}
+
+        entry = DatasetCacheEntry(
+            resource_id=resource_id,
+            digest=digest,
+            rows=rows,
+            fields=fields,
+            package_id=package_id,
+            ingestion_path=ingestion_path,
+            ingestion_metadata=metadata,
+            upstream_fingerprint=fingerprint,
         )
         self._cache[resource_id] = entry
         return entry
@@ -226,10 +182,16 @@ class VeriflowImmuneSystem:
         *,
         target_field: str | None = None,
     ) -> AnswerRecord:
+        """Answer a question about a cached resource.
+
+        Auto-refreshes the resource if it is not yet in cache.
+        """
         if resource_id not in self._cache:
             self.refresh_resource(resource_id)
+
         if self._capability_matrix is None:
             self.bootstrap(sample_resource_id=resource_id)
+
         entry = self._cache[resource_id]
         answer = self.reasoner.answer(
             question,
@@ -238,63 +200,35 @@ class VeriflowImmuneSystem:
             target_field=target_field,
             capability_matrix=self._capability_matrix,
         )
-        answer.evidence["ingestion_path"] = entry.ingestion_path
-        answer.evidence["ingestion_metadata"] = entry.ingestion_metadata
+        # Enrich evidence with ingestion context
+        answer.evidence.update({
+            "ingestion_path":     entry.ingestion_path,
+            "ingestion_metadata": entry.ingestion_metadata,
+        })
         entry.last_answer = answer
         return answer
 
-    # -- Persistence helpers -------------------------------------------------
+    # -- Internal helpers ----------------------------------------------------
 
-    def _persist_state(self) -> None:
-        if self._state_dir is None or self._capability_matrix is None:
-            return
-        self._state_dir.mkdir(parents=True, exist_ok=True)
-        sf = self.state_file
+    def _probe_lightweight_fingerprint(self, resource_id: str) -> str:
+        """Fetch a small row sample via datastore_search to cheaply detect changes."""
         try:
-            data = {
-                "api_base": self._capability_matrix.api_base,
-                "version": self._capability_matrix.version.raw,
-                "capabilities": {
-                    k: {"name": v.name, "state": v.state, "source": v.source, "detail": v.detail}
-                    for k, v in self._capability_matrix.capabilities.items()
-                },
-            }
-            sf.write_text(json.dumps(data, indent=2))
-        except Exception:
-            pass
-
-    def _load_state(self) -> Optional[CKANCapabilityMatrix]:
-        sf = self.state_file
-        if sf is None or not sf.exists():
-            return None
-        try:
-            from .ckan_adapter import CKANVersion, CapabilityRecord
-            data = json.loads(sf.read_text())
-            caps = {
-                k: CapabilityRecord(
-                    name=v["name"], state=v["state"],
-                    source=v["source"], detail=v["detail"],
-                )
-                for k, v in data.get("capabilities", {}).items()
-            }
-            return CKANCapabilityMatrix(
-                api_base=data["api_base"],
-                version=CKANVersion.parse(data["version"]),
-                capabilities=caps,
+            result = self.ckan.datastore_search(
+                resource_id, limit=self._row_signature_limit
             )
+            rows = result.get("result", {}).get("records", [])
         except Exception:
-            return None
-
-    def _lightweight_fingerprint(self, resource_id: str) -> str:
-        try:
-            resource = self.ckan.resource_show(resource_id).get("result", {})
-            package_id = resource.get("package_id", "")
-            package: dict = {}
-            if package_id:
-                try:
-                    package = self.ckan.package_show(package_id).get("result", {})
-                except Exception:
-                    pass
-            return _metadata_fingerprint(resource, package)
-        except Exception:
+            # If probe fails (e.g. datastore unavailable), fall back to full ingest
             return ""
+        raw = json.dumps(rows[: self._row_signature_limit], sort_keys=True).encode("utf-8")
+        return hashlib.sha256(raw).hexdigest()
+
+    def _compute_fingerprint(
+        self, resource_id: str, rows: list[dict[str, Any]]
+    ) -> str:
+        if self._fingerprint_mode == "datastore_lightweight":
+            sample = rows[: self._row_signature_limit]
+            raw = json.dumps(sample, sort_keys=True).encode("utf-8")
+        else:
+            raw = json.dumps(rows, sort_keys=True).encode("utf-8")
+        return hashlib.sha256(raw).hexdigest()
