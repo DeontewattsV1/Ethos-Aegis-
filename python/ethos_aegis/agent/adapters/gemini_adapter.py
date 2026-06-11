@@ -1,15 +1,77 @@
 """
-GeminiAdapter — Ethos Aegis adapter for Google Gemini / Vertex AI.
+GeminiAdapter -- Ethos Aegis adapter for Google Gemini / Vertex AI.
 
 Supports Google AI Studio (generativeai SDK) and Vertex AI endpoints.
 
 pip install google-generativeai>=0.7   # Google AI Studio
 pip install google-cloud-aiplatform    # Vertex AI (optional)
 """
-
 from __future__ import annotations
-from typing import Iterator
+
+from typing import Dict, Iterator, List, Optional
 from .base_adapter import BaseAdapter
+
+
+def _to_gemini_contents(
+    messages: List[Dict[str, str]],
+    *,
+    system: Optional[str] = None,
+) -> List[Dict]:
+    """Convert a standard message list into Gemini ``contents`` format.
+
+    Rules:
+    - ``role: "system"`` messages are folded into the next user turn as a
+      preamble, so they do not produce a standalone Gemini ``user`` turn.
+    - If a system kwarg is supplied it is prepended to the very first user
+      message (or added as a standalone user turn if the list is otherwise
+      empty).
+    - Consecutive same-role turns are merged with a newline separator.
+    - Trailing system messages that have no following user turn are emitted
+      as a final ``user`` turn (Gemini requires alternating roles).
+
+    Returns:
+        A list of ``{"role": "user"|"model", "parts": [{"text": "..."}]}``
+        dicts suitable for ``GenerativeModel.generate_content()``.
+    """
+    gemini_role = {"user": "user", "assistant": "model", "model": "model"}
+
+    # Inject system kwarg as a virtual system message at the front
+    normalised: List[Dict[str, str]] = []
+    if system:
+        normalised.append({"role": "system", "content": system})
+    normalised.extend(messages)
+
+    # Fold system messages into the following user turn
+    pending_system: List[str] = []
+    merged: List[Dict[str, str]] = []
+    for msg in normalised:
+        role = msg.get("role", "user")
+        content = msg.get("content", "")
+        if role == "system":
+            pending_system.append(content)
+        else:
+            if pending_system and role == "user":
+                content = "\n\n".join(pending_system) + "\n\n" + content
+                pending_system = []
+            merged.append({"role": role, "content": content})
+
+    # Handle trailing system messages (no following user turn)
+    if pending_system:
+        merged.append({"role": "user", "content": "\n\n".join(pending_system)})
+
+    if not merged:
+        return []
+
+    # Merge consecutive same-role turns and map to Gemini format
+    contents: List[Dict] = []
+    for msg in merged:
+        g_role = gemini_role.get(msg["role"], "user")
+        if contents and contents[-1]["role"] == g_role:
+            contents[-1]["parts"][0]["text"] += "\n" + msg["content"]
+        else:
+            contents.append({"role": g_role, "parts": [{"text": msg["content"]}]})
+
+    return contents
 
 
 class GeminiAdapter(BaseAdapter):
@@ -17,13 +79,13 @@ class GeminiAdapter(BaseAdapter):
     Wraps the Google Gemini GenerativeModel API.
 
     Args:
-        api_key:    Google AI Studio API key (or set GOOGLE_API_KEY env var).
-        model:      Gemini model ID. Default: "gemini-1.5-pro".
-        temperature: Sampling temperature. Default: 0.7.
-        max_tokens:  Max output tokens. Default: 1024.
+        api_key:       Google AI Studio API key (or set GOOGLE_API_KEY env var).
+        model:         Gemini model ID. Default: "gemini-1.5-pro".
+        temperature:   Sampling temperature. Default: 0.7.
+        max_tokens:    Max output tokens. Default: 1024.
         system_prompt: System instruction (Gemini 1.5+ only).
         safety_settings: Override Gemini safety settings dict.
-        **kwargs:   Forwarded to GenerativeModel constructor.
+        **kwargs:      Forwarded to GenerativeModel constructor.
 
     Examples::
 
@@ -56,8 +118,8 @@ class GeminiAdapter(BaseAdapter):
                 "GeminiAdapter requires: pip install google-generativeai>=0.7"
             ) from exc
 
-        import os
-        resolved_key = api_key or os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        import os as _os
+        resolved_key = api_key or _os.getenv("GOOGLE_API_KEY") or _os.getenv("GEMINI_API_KEY")
         if resolved_key:
             genai.configure(api_key=resolved_key)
 
@@ -74,7 +136,7 @@ class GeminiAdapter(BaseAdapter):
         self._temperature = temperature
         self._max_tokens  = max_tokens
 
-    # ── BaseAdapter interface ─────────────────────────────────────────────
+    # -- BaseAdapter interface ------------------------------------------------
 
     @property
     def provider_name(self) -> str:
@@ -86,21 +148,47 @@ class GeminiAdapter(BaseAdapter):
     def supports_streaming(self) -> bool:
         return True
 
-    def complete(self, message: str, **kwargs) -> str:
+    def complete(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        **kwargs,
+    ) -> str:
+        """Complete a conversation.
+
+        Args:
+            messages: List of ``{"role": ..., "content": ...}`` dicts.
+            system:   Optional system prompt override.
+            **kwargs: ``temperature``, ``max_tokens`` overrides.
+        """
+        contents = _to_gemini_contents(messages, system=system)
         config = self._genai.types.GenerationConfig(
             temperature=kwargs.get("temperature", self._temperature),
             max_output_tokens=kwargs.get("max_tokens", self._max_tokens),
         )
-        response = self._model.generate_content(message, generation_config=config)
+        response = self._model.generate_content(contents, generation_config=config)
         return response.text or ""
 
-    def stream(self, message: str, **kwargs) -> Iterator[str]:
+    def stream(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        **kwargs,
+    ) -> Iterator[str]:
+        """Stream a completion.
+
+        Args:
+            messages: List of ``{"role": ..., "content": ...}`` dicts.
+            system:   Optional system prompt override.
+            **kwargs: ``temperature``, ``max_tokens`` overrides.
+        """
+        contents = _to_gemini_contents(messages, system=system)
         config = self._genai.types.GenerationConfig(
             temperature=kwargs.get("temperature", self._temperature),
             max_output_tokens=kwargs.get("max_tokens", self._max_tokens),
         )
         for chunk in self._model.generate_content(
-            message, generation_config=config, stream=True
+            contents, generation_config=config, stream=True
         ):
             if chunk.text:
                 yield chunk.text
@@ -157,20 +245,34 @@ class GeminiVertexAdapter(BaseAdapter):
     def supports_streaming(self) -> bool:
         return True
 
-    def complete(self, message: str, **kwargs) -> str:
+    def complete(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        **kwargs,
+    ) -> str:
         from vertexai.generative_models import GenerationConfig
+        contents = _to_gemini_contents(messages, system=system)
         config = GenerationConfig(
             temperature=kwargs.get("temperature", self._temperature),
             max_output_tokens=kwargs.get("max_tokens", self._max_tokens),
         )
-        return self._model.generate_content(message, generation_config=config).text or ""
+        return self._model.generate_content(contents, generation_config=config).text or ""
 
-    def stream(self, message: str, **kwargs) -> Iterator[str]:
+    def stream(
+        self,
+        messages: List[Dict[str, str]],
+        system: Optional[str] = None,
+        **kwargs,
+    ) -> Iterator[str]:
         from vertexai.generative_models import GenerationConfig
+        contents = _to_gemini_contents(messages, system=system)
         config = GenerationConfig(
             temperature=kwargs.get("temperature", self._temperature),
             max_output_tokens=kwargs.get("max_tokens", self._max_tokens),
         )
-        for chunk in self._model.generate_content(message, generation_config=config, stream=True):
+        for chunk in self._model.generate_content(
+            contents, generation_config=config, stream=True
+        ):
             if chunk.text:
                 yield chunk.text
