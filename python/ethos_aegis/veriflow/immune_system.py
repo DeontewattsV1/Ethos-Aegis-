@@ -83,6 +83,13 @@ class VeriflowImmuneSystem:
     def capability_matrix(self) -> CKANCapabilityMatrix | None:
         return self._capability_matrix
 
+    @property
+    def state_file(self) -> Optional[Path]:
+        """Path to the persisted state JSON, or None if no state_dir is configured."""
+        if self._state_dir is None:
+            return None
+        return self._state_dir / "veriflow_immune_state.json"
+
     # -- Bootstrap -----------------------------------------------------------
 
     def bootstrap(
@@ -92,25 +99,83 @@ class VeriflowImmuneSystem:
         force: bool = False,
     ) -> CKANCapabilityMatrix:
         sample = sample_resource_id or self._probe_sample_resource_id
+
+        # Try loading persisted matrix before probing the network
+        if not force and self._capability_matrix is None:
+            loaded = self._load_state()
+            if loaded is not None:
+                self._capability_matrix = loaded
+                self._probe_sample_resource_id = sample
+                return loaded
+
         if self._capability_matrix is not None and not force:
             if sample and sample != self._probe_sample_resource_id:
                 force = True
             else:
                 return self._capability_matrix
+
         matrix = self.ckan.probe_capabilities(sample_resource_id=sample)
         self._capability_matrix = matrix
         self._probe_sample_resource_id = sample
+        self._persist_state()
         return matrix
+
+    def _persist_state(self) -> None:
+        """Persist capability matrix to state_file if state_dir is configured."""
+        if self._state_dir is None or self._capability_matrix is None:
+            return
+        try:
+            self._state_dir.mkdir(parents=True, exist_ok=True)
+            sf = self.state_file
+            caps = {
+                k: {"name": v.name, "state": v.state, "source": v.source, "detail": v.detail}
+                for k, v in self._capability_matrix.capabilities.items()
+            }
+            import json as _json
+            sf.write_text(_json.dumps({
+                "api_base": self._capability_matrix.api_base,
+                "version": self._capability_matrix.version.raw,
+                "capabilities": caps,
+            }, indent=2))
+        except Exception:
+            pass
+
+    def _load_state(self) -> "CKANCapabilityMatrix | None":
+        """Load persisted capability matrix from state_file, or return None."""
+        sf = self.state_file
+        if sf is None or not sf.exists():
+            return None
+        try:
+            import json as _json
+            from .ckan_adapter import CKANVersion, CapabilityRecord
+            data = _json.loads(sf.read_text())
+            caps = {
+                k: CapabilityRecord(
+                    name=v["name"], state=v["state"],
+                    source=v["source"], detail=v["detail"],
+                )
+                for k, v in data.get("capabilities", {}).items()
+            }
+            return CKANCapabilityMatrix(
+                api_base=data["api_base"],
+                version=CKANVersion.parse(data["version"]),
+                capabilities=caps,
+            )
+        except Exception:
+            return None
 
     # -- Core ingestion ------------------------------------------------------
 
     def refresh_resource(self, resource_id: str) -> DatasetCacheEntry:
         """Ingest (or re-ingest if stale) a CKAN resource into the cache.
 
-        Automatically bootstraps the capability matrix if not yet done.
-        In ``datastore_lightweight`` fingerprint mode, performs a cheap row
-        probe via ``datastore_search`` *before* calling ``ingest_resource`` so
-        that unchanged resources skip the full ingestion round-trip entirely.
+        Always performs a cheap upstream fingerprint probe first so that
+        unchanged resources skip the full ingestion round-trip entirely.
+
+        - Default mode (``"digest"``): fingerprint = SHA-256 of resource +
+          package metadata timestamps via ``resource_show`` / ``package_show``.
+        - ``"datastore_lightweight"``: fingerprint = SHA-256 of a small row
+          sample via ``datastore_search``.
 
         Args:
             resource_id: CKAN resource UUID to ingest.
@@ -124,10 +189,10 @@ class VeriflowImmuneSystem:
 
         existing = self._cache.get(resource_id)
 
-        # Lightweight mode: cheap probe BEFORE full ingest
-        if self._fingerprint_mode == "datastore_lightweight" and existing is not None:
-            probe_fingerprint = self._probe_lightweight_fingerprint(resource_id)
-            if probe_fingerprint == existing.upstream_fingerprint:
+        # Always probe upstream fingerprint first (cheap metadata or row sample)
+        if existing is not None:
+            probe_fingerprint = self._probe_upstream_fingerprint(resource_id)
+            if probe_fingerprint and probe_fingerprint == existing.upstream_fingerprint:
                 return existing
 
         # Full ingest
@@ -136,16 +201,16 @@ class VeriflowImmuneSystem:
         fields = result.fields
 
         # Compute fingerprint and digest
-        fingerprint = self._compute_fingerprint(resource_id, rows)
+        fingerprint = self._probe_upstream_fingerprint(resource_id) or self._compute_fingerprint(resource_id, rows)
         digest = hashlib.sha256(
             json.dumps(rows, sort_keys=True).encode("utf-8")
         ).hexdigest()
 
-        # Standard digest mode: skip storing if unchanged
+        # Extra guard: if fingerprint AND digest both match, return cached
         if (
-            self._fingerprint_mode == "digest"
-            and existing is not None
+            existing is not None
             and existing.digest == digest
+            and existing.upstream_fingerprint == fingerprint
         ):
             return existing
 
@@ -210,24 +275,48 @@ class VeriflowImmuneSystem:
 
     # -- Internal helpers ----------------------------------------------------
 
-    def _probe_lightweight_fingerprint(self, resource_id: str) -> str:
-        """Fetch a small row sample via datastore_search to cheaply detect changes."""
+    def _probe_upstream_fingerprint(self, resource_id: str) -> str:
+        """Compute a cheap upstream fingerprint without a full ingest.
+
+        - ``datastore_lightweight`` mode: hash a small row sample via
+          ``datastore_search`` so that row changes (even without metadata
+          changes) are detected.
+        - Default ``digest`` mode: hash resource + package metadata timestamps
+          via ``resource_show`` / ``package_show`` for a network-cheap probe.
+        Returns ``""`` on any error (caller falls through to full ingest).
+        """
         try:
-            result = self.ckan.datastore_search(
-                resource_id, limit=self._row_signature_limit
-            )
-            rows = result.get("result", {}).get("records", [])
+            if self._fingerprint_mode == "datastore_lightweight":
+                result = self.ckan.datastore_search(
+                    resource_id, limit=self._row_signature_limit or 100
+                )
+                rows = result.get("result", {}).get("records", [])
+                limit = self._row_signature_limit or len(rows)
+                raw = json.dumps(rows[:limit], sort_keys=True).encode("utf-8")
+                return hashlib.sha256(raw).hexdigest()
+            else:
+                resource = self.ckan.resource_show(resource_id).get("result", {})
+                package_id = resource.get("package_id", "")
+                package: dict = {}
+                if package_id:
+                    try:
+                        package = self.ckan.package_show(package_id).get("result", {})
+                    except Exception:
+                        pass
+                parts = [
+                    resource.get("last_modified", ""),
+                    resource.get("metadata_modified", ""),
+                    package.get("metadata_modified", ""),
+                ]
+                return hashlib.sha256("|".join(parts).encode()).hexdigest()
         except Exception:
-            # If probe fails (e.g. datastore unavailable), fall back to full ingest
             return ""
-        raw = json.dumps(rows[: self._row_signature_limit], sort_keys=True).encode("utf-8")
-        return hashlib.sha256(raw).hexdigest()
 
     def _compute_fingerprint(
         self, resource_id: str, rows: list[dict[str, Any]]
     ) -> str:
         if self._fingerprint_mode == "datastore_lightweight":
-            sample = rows[: self._row_signature_limit]
+            sample = rows[: self._row_signature_limit] if self._row_signature_limit else rows
             raw = json.dumps(sample, sort_keys=True).encode("utf-8")
         else:
             raw = json.dumps(rows, sort_keys=True).encode("utf-8")
