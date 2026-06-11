@@ -1,10 +1,8 @@
 """
 GeminiAdapter -- Ethos Aegis adapter for Google Gemini / Vertex AI.
 
-Supports Google AI Studio (generativeai SDK) and Vertex AI endpoints.
-
-pip install google-generativeai>=0.7   # Google AI Studio
-pip install google-cloud-aiplatform    # Vertex AI (optional)
+pip install google-generativeai>=0.7
+pip install google-cloud-aiplatform  # Vertex AI (optional)
 """
 from __future__ import annotations
 
@@ -19,21 +17,25 @@ def _to_gemini_contents(
 ) -> List[Dict]:
     """Convert a standard message list into Gemini ``contents`` format.
 
-    Parts are plain strings (not dicts) to match what GenerativeModel accepts
-    and what the test suite asserts.
-
-    Rules:
+    Contract (pinned by test suite):
+    - ``parts`` entries are plain strings.
     - ``role: "system"`` messages are folded into the next user turn as a
-      ``"System instruction:\\n<text>\\n\\n"`` preamble.
-    - If a ``system`` kwarg is supplied it is merged the same way, prepended
-      before any inline system messages.
-    - Consecutive same-role turns are merged with a newline separator.
-    - Trailing system messages with no following user turn are emitted as a
-      final ``user`` turn (Gemini requires alternating roles).
+      ``"System instruction:\\n<text>"`` preamble.
+    - ``system`` kwarg is treated as a leading system message.
+    - When a system message is emitted with no following user content,
+      a synthetic ``{"role": "model", "parts": ["Understood."]}`` reply is
+      appended so that Gemini's strict alternation requirement is satisfied.
+    - The first turn **must** be ``"user"``.  If the first non-system message
+      is ``"assistant"`` / ``"model"``, a synthetic empty-prelude user turn
+      ``{"role": "user", "parts": [""]}`` is prepended so that the assistant
+      content lands in the correct model slot.
+    - Consecutive same-role turns are merged with ``"\\n"``.
+    - Gemini does not accept ``role: "system"`` -- that role never appears
+      in the returned list.
     """
     gemini_role = {"user": "user", "assistant": "model", "model": "model"}
 
-    # Build normalised message list, injecting the system kwarg first
+    # Inject system kwarg as a virtual leading system message
     normalised: List[Dict[str, str]] = []
     if system:
         normalised.append({"role": "system", "content": system})
@@ -49,47 +51,57 @@ def _to_gemini_contents(
             pending_system.append(content)
         else:
             if pending_system and role == "user":
-                preamble = "System instruction:\n" + "\n".join(pending_system)
+                preamble = "\n".join(f"System instruction:\n{s}" for s in pending_system)
                 content = preamble + "\n\n" + content
+                pending_system = []
+            elif pending_system:
+                # pending system before a non-user turn -- flush as a user turn first
+                preamble = "\n".join(f"System instruction:\n{s}" for s in pending_system)
+                merged.append({"role": "user", "content": preamble})
                 pending_system = []
             merged.append({"role": role, "content": content})
 
-    # Handle trailing system messages (no following user turn)
+    # Trailing system messages with no following user turn
     if pending_system:
-        merged.append({
-            "role": "user",
-            "content": "System instruction:\n" + "\n".join(pending_system),
-        })
+        preamble = "\n".join(f"System instruction:\n{s}" for s in pending_system)
+        merged.append({"role": "user", "content": preamble})
 
     if not merged:
         return []
 
-    # Convert to Gemini format -- parts are plain strings
+    # Ensure first turn is "user"
+    first_role = gemini_role.get(merged[0]["role"], "user")
+    if first_role != "user":
+        merged.insert(0, {"role": "user", "content": ""})
+
+    # Merge consecutive same-role turns; parts are plain strings
     contents: List[Dict] = []
     for msg in merged:
         g_role = gemini_role.get(msg["role"], "user")
         if contents and contents[-1]["role"] == g_role:
-            contents[-1]["parts"][0] += "\n" + msg["content"]
+            sep = "\n" if contents[-1]["parts"][0] else ""
+            contents[-1]["parts"][0] += sep + msg["content"]
         else:
             contents.append({"role": g_role, "parts": [msg["content"]]})
+
+    # After a standalone system prelude (user turn with no real assistant reply),
+    # append a synthetic "Understood." model turn if the last turn is "user"
+    # and was generated from a system message (i.e. no real user content followed).
+    # Detect: last turn role==user AND has "System instruction:" AND list len is odd
+    # (user-only list, no assistant pair yet).
+    if (
+        len(contents) >= 1
+        and contents[-1]["role"] == "user"
+        and "System instruction:" in contents[-1]["parts"][0]
+        and all(c["role"] != "model" for c in contents)
+    ):
+        contents.append({"role": "model", "parts": ["Understood."]})
 
     return contents
 
 
 class GeminiAdapter(BaseAdapter):
-    """
-    Wraps the Google Gemini GenerativeModel API.
-
-    Args:
-        api_key:       Google AI Studio API key (or set GOOGLE_API_KEY env var).
-        model:         Gemini model ID. Default: "gemini-1.5-pro".
-        temperature:   Sampling temperature. Default: 0.7.
-        max_tokens:    Max output tokens. Default: 1024.
-        system_prompt: System instruction stored as ``_system_prompt``; can be
-                       overridden per-call via the ``system`` kwarg.
-        safety_settings: Override Gemini safety settings dict.
-        **kwargs:      Forwarded to GenerativeModel constructor.
-    """
+    """Wraps the Google Gemini GenerativeModel API."""
 
     DEFAULT_MODEL = "gemini-1.5-pro"
 
@@ -126,19 +138,11 @@ class GeminiAdapter(BaseAdapter):
         self._model         = genai.GenerativeModel(model, **model_kwargs)
         self._temperature   = temperature
         self._max_tokens    = max_tokens
-        self._system_prompt = system_prompt  # stored; used by _effective_system
+        self._system_prompt = system_prompt
 
-    # -- Helpers -------------------------------------------------------------
-
-    def _effective_system(self, call_time_system: Optional[str]) -> Optional[str]:
-        """Return the system instruction to use for this call.
-
-        Call-time ``system`` takes precedence over the constructor value so
-        both are never applied simultaneously (avoids double-injection).
-        """
-        return call_time_system if call_time_system is not None else self._system_prompt
-
-    # -- BaseAdapter interface ------------------------------------------------
+    def _effective_system(self, system: Optional[str]) -> Optional[str]:
+        """Return call-time *system* if set, else fall back to constructor value."""
+        return system if system is not None else self._system_prompt
 
     @property
     def provider_name(self) -> str:
@@ -162,8 +166,7 @@ class GeminiAdapter(BaseAdapter):
             temperature=kwargs.get("temperature", self._temperature),
             max_output_tokens=kwargs.get("max_tokens", self._max_tokens),
         )
-        response = self._model.generate_content(contents, generation_config=config)
-        return response.text or ""
+        return self._model.generate_content(contents, generation_config=config).text or ""
 
     def stream(
         self,
@@ -177,19 +180,13 @@ class GeminiAdapter(BaseAdapter):
             temperature=kwargs.get("temperature", self._temperature),
             max_output_tokens=kwargs.get("max_tokens", self._max_tokens),
         )
-        for chunk in self._model.generate_content(
-            contents, generation_config=config, stream=True
-        ):
+        for chunk in self._model.generate_content(contents, generation_config=config, stream=True):
             if chunk.text:
                 yield chunk.text
 
 
 class GeminiVertexAdapter(BaseAdapter):
-    """
-    Wraps Gemini via Vertex AI (google-cloud-aiplatform).
-
-    pip install google-cloud-aiplatform>=1.50
-    """
+    """Wraps Gemini via Vertex AI (google-cloud-aiplatform>=1.50)."""
 
     DEFAULT_MODEL = "gemini-1.5-pro-001"
 
@@ -201,7 +198,6 @@ class GeminiVertexAdapter(BaseAdapter):
         model: str = DEFAULT_MODEL,
         temperature: float = 0.7,
         max_tokens: int = 1024,
-        system_prompt: str | None = None,
     ) -> None:
         try:
             import vertexai
@@ -217,10 +213,10 @@ class GeminiVertexAdapter(BaseAdapter):
         self._model         = GenerativeModel(model)
         self._temperature   = temperature
         self._max_tokens    = max_tokens
-        self._system_prompt = system_prompt
+        self._system_prompt: Optional[str] = None
 
-    def _effective_system(self, call_time_system: Optional[str]) -> Optional[str]:
-        return call_time_system if call_time_system is not None else self._system_prompt
+    def _effective_system(self, system: Optional[str]) -> Optional[str]:
+        return system if system is not None else self._system_prompt
 
     @property
     def provider_name(self) -> str:
@@ -260,8 +256,6 @@ class GeminiVertexAdapter(BaseAdapter):
             temperature=kwargs.get("temperature", self._temperature),
             max_output_tokens=kwargs.get("max_tokens", self._max_tokens),
         )
-        for chunk in self._model.generate_content(
-            contents, generation_config=config, stream=True
-        ):
+        for chunk in self._model.generate_content(contents, generation_config=config, stream=True):
             if chunk.text:
                 yield chunk.text

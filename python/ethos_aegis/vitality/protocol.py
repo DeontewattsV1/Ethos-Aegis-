@@ -493,10 +493,17 @@ class NutrientPlex:
         more neutrophils and lymphocytes. Here, the 'amino acids' are the
         component patterns that build richer detection capability.
         """
-        new_patterns = [(re.compile(p, re.IGNORECASE), s) for p, s in self.PROTEIN_PACK]
         if not hasattr(probe, '_extended_sigils'):
             probe._extended_sigils = []
+        else:
+            # Already applied -- idempotent, return 0
+            if getattr(probe, '_protein_applied', False):
+                return 0
+
+        new_patterns = [(re.compile(p, re.IGNORECASE), s) for p, s in self.PROTEIN_PACK]
         probe._extended_sigils.extend(new_patterns)
+        probe._protein_applied = True
+
         # Monkey-patch the interrogate method to also check extended sigils
         original_interrogate = probe.interrogate
 
@@ -530,9 +537,13 @@ class NutrientPlex:
         corrupting influence of Unicode manipulation attacks that can damage
         the integrity of clean data before it reaches downstream cells.
         """
+        if getattr(swarm, '_vitc_applied', False):
+            return 0
+
         compiled_additions = [
             (re.compile(p), sigil) for p, sigil in self.VITAMIN_C_PACK
         ]
+        swarm._vitc_applied = True
         original_interrogate = swarm.interrogate
 
         def fortified_interrogate(payload: str, context: Dict) -> List[Malignum]:
@@ -562,10 +573,14 @@ class NutrientPlex:
         'semantic myelin' — its ability to conduct precise reasoning about
         deceptive language patterns without signal degradation or missed signals.
         """
-        count = 0
         if not hasattr(logos, '_b12_manifold'):
             logos._b12_manifold = {}
+        elif getattr(logos, '_b12_applied', False):
+            return 0
+
+        count = 0
         logos._b12_manifold.update(self.VITAMIN_B12_PACK)
+        logos._b12_applied = True
         original_interrogate = logos.interrogate
 
         def b12_enriched_interrogate(payload: str, context: Dict) -> List[Malignum]:
@@ -1578,12 +1593,14 @@ class AegisVitality:
 
     def nourish(self) -> Dict[str, int]:
         """
-        Applies the full NutrientPlex nutrition protocol — feeds all five
-        nutrient packs to the appropriate cells. Call this once before
-        production deployment and repeat whenever new threat variants emerge.
+        Applies the full NutrientPlex nutrition protocol. Idempotent: repeated
+        calls after the first are no-ops and return ``{}``.
 
         Returns a summary of patterns added per nutrient class.
         """
+        if self._nourished:
+            return {}
+
         cc    = self.aegis.cytokine_command
         added = {}
 
