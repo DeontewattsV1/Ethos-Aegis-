@@ -17,131 +17,128 @@ def _to_gemini_contents(
 ) -> List[Dict]:
     """Convert a standard message list into Gemini ``contents`` format.
 
-    Contract (pinned by test suite):
+    Pinned contract (test suite):
+    - ``parts`` are plain strings, never ``{"text": "..."}`` dicts.
+    - ``role: "system"`` never appears in output.
+    - System text is ALWAYS emitted as a standalone user prelude entry,
+      never folded into the content of a real user turn.
 
-    - ``parts`` entries are plain strings (not ``{"text": "..."}`` dicts).
-    - Gemini does not accept ``role: "system"`` — that role never appears in
-      the returned list.
-    - ``system`` kwarg and ``role: "system"`` messages are folded together
-      into a single synthetic user/model prelude pair:
-        ``{"role": "user", "parts": ["System instruction:\\n..."]}``
-        ``{"role": "model", "parts": ["Understood."]}``
-    - When a system message appears *between* turns it is flushed as a
-      user/model prelude pair immediately before the next user content.
-    - Trailing system messages (no following user content) become the final
-      user turn (no Understood. because there is no next turn to alternate to).
-    - A standalone system-only call (no other messages) emits:
-        ``[user(prelude), model("Understood.")]``
-    - The first turn must always be ``"user"``. If the first non-system
-      message is ``"assistant"``/``"model"``, a synthetic user prelude is
-      prepended.
+    Placement rules for system preludes:
+    - **Before a following user turn** (leading or interleaved):
+        emit [user(prelude), model("Understood.")] THEN the real user turn.
+    - **Trailing after a model turn** (natural alternation already satisfied):
+        emit [user(prelude)] — no Understood. added.
+    - **Trailing after a user turn** (would create consecutive user turns):
+        emit [model("Understood."), user(prelude)] to preserve alternation.
+    - **Standalone (no real messages)**:
+        emit [user(prelude), model("Understood.")].
+
+    Other rules:
+    - First turn must be ``"user"``. Leading assistant/model content gets a
+      synthetic ``{"role": "user", "parts": [""]}`` prepended.
     - Consecutive same-role turns are merged with ``"\\n"``.
     """
     gemini_role = {"user": "user", "assistant": "model", "model": "model"}
 
-    # Inject system kwarg as a leading virtual system message
-    normalised: List[Dict[str, str]] = []
+    # --- Step 1: build an ordered event list ---
+    # Each event is ('sys', text) or ('real', role, content)
+    events: List[tuple] = []
     if system:
-        normalised.append({"role": "system", "content": system})
-    normalised.extend(messages)
-
-    if not normalised:
-        return []
-
-    # Determine if there are any real (non-system) messages
-    real_messages = [m for m in normalised if m.get("role") != "system"]
-
-    # ----------------------------------------------------------------
-    # Build merged list: fold system messages into the following user turn
-    # as a "System instruction:\n..." preamble, OR as a standalone prelude
-    # pair when there is no following user message.
-    # ----------------------------------------------------------------
-    pending_system: List[str] = []
-    merged: List[Dict[str, str]] = []  # role: user|assistant|model + content
-
-    def _flush_system_as_prelude(following_content: str = "") -> str:
-        """Combine pending system messages with optional following content.
-        Returns the combined content string."""
-        nonlocal pending_system
-        preamble = "\n".join(f"System instruction:\n{s}" for s in pending_system)
-        pending_system = []
-        if following_content:
-            return preamble + "\n\n" + following_content
-        return preamble
-
-    for msg in normalised:
+        events.append(('sys', system))
+    for msg in messages:
         role = msg.get("role", "user")
         content = msg.get("content", "")
         if role == "system":
-            pending_system.append(content)
-        elif role == "user":
-            if pending_system:
-                # Fold system preamble into this user turn
-                content = _flush_system_as_prelude(content)
-            merged.append({"role": "user", "content": content})
+            events.append(('sys', content))
         else:
-            # assistant / model
-            if pending_system:
-                # System before a non-user turn: emit standalone prelude user
-                # turn then the model turn follows naturally
-                merged.append({"role": "user", "content": _flush_system_as_prelude()})
-            merged.append({"role": role, "content": content})
+            events.append(('real', role, content))
 
-    # Trailing system with no following turn
-    if pending_system:
-        preamble = _flush_system_as_prelude()
-        merged.append({"role": "user", "content": preamble})
+    # --- Step 2: group consecutive sys events and pair with context ---
+    # Build a cleaned sequence: ('prelude', text) | ('real', gemini_role, content)
+    cleaned: List[tuple] = []
+    pending_sys: List[str] = []
 
-    if not merged:
+    for ev in events:
+        if ev[0] == 'sys':
+            pending_sys.append(ev[1])
+        else:
+            if pending_sys:
+                preamble = "\n".join(f"System instruction:\n{s}" for s in pending_sys)
+                pending_sys = []
+                cleaned.append(('prelude', preamble))
+            _, role, content = ev
+            cleaned.append(('real', gemini_role.get(role, 'user'), content))
+
+    # Trailing sys
+    if pending_sys:
+        preamble = "\n".join(f"System instruction:\n{s}" for s in pending_sys)
+        cleaned.append(('prelude', preamble))
+
+    if not cleaned:
         return []
 
-    # Ensure first turn is "user"
-    first_g_role = gemini_role.get(merged[0]["role"], "user")
-    if first_g_role != "user":
-        merged.insert(0, {"role": "user", "content": ""})
+    # --- Step 3: emit Gemini contents with alternation rules ---
+    # We build the final list by processing each cleaned item and
+    # inserting synthetic turns as needed.
+    out: List[Dict] = []
 
-    # Convert to Gemini format with plain-string parts
-    # Merge consecutive same-role turns
-    contents: List[Dict] = []
-    for msg in merged:
-        g_role = gemini_role.get(msg["role"], "user")
-        if contents and contents[-1]["role"] == g_role:
-            sep = "\n" if contents[-1]["parts"][0] else ""
-            contents[-1]["parts"][0] += sep + msg["content"]
+    def last_role() -> Optional[str]:
+        return out[-1]["role"] if out else None
+
+    def append_turn(role: str, text: str) -> None:
+        """Append a turn, merging with previous if same role."""
+        if out and out[-1]["role"] == role:
+            sep = "\n" if out[-1]["parts"][0] else ""
+            out[-1]["parts"][0] += sep + text
         else:
-            contents.append({"role": g_role, "parts": [msg["content"]]})
+            out.append({"role": role, "parts": [text]})
 
-    # ----------------------------------------------------------------
-    # Insert synthetic "Understood." model turns after system preludes
-    # to maintain strict alternation.
-    #
-    # A turn is a "system prelude" if:
-    #   - role is "user"
-    #   - content contains "System instruction:"
-    #   - it is NOT the final turn (i.e. a real user message follows)
-    #     OR it is the only turn (standalone system-only case)
-    # ----------------------------------------------------------------
-    final: List[Dict] = []
-    for i, turn in enumerate(contents):
-        final.append(turn)
-        is_prelude = (
-            turn["role"] == "user"
-            and "System instruction:" in turn["parts"][0]
-        )
-        if is_prelude:
-            next_turn = contents[i + 1] if i + 1 < len(contents) else None
-            is_last = next_turn is None
-            next_is_user = next_turn is not None and next_turn["role"] == "user"
+    for i, item in enumerate(cleaned):
+        if item[0] == 'prelude':
+            preamble = item[1]
+            # Look ahead: is there a following real user turn?
+            next_real = None
+            for j in range(i + 1, len(cleaned)):
+                if cleaned[j][0] == 'real':
+                    next_real = cleaned[j]
+                    break
 
-            if is_last:
-                # Standalone system — emit Understood.
-                final.append({"role": "model", "parts": ["Understood."]})
-            elif next_is_user:
-                # Prelude before a user turn — emit Understood. so turns alternate
-                final.append({"role": "model", "parts": ["Understood."]})
-            # If next is model, no Understood. needed (already alternating)
+            if next_real is not None and next_real[1] == 'user':
+                # Prelude before a real user turn:
+                # emit [user(prelude), model(Understood.)] -- real user follows naturally
+                if last_role() == 'user':
+                    # maintain alternation
+                    append_turn('model', 'Understood.')
+                append_turn('user', preamble)
+                append_turn('model', 'Understood.')
+            elif next_real is None:
+                # Trailing prelude (no more real messages)
+                lr = last_role()
+                if lr == 'user':
+                    # user -> would create consecutive users -> insert model first
+                    append_turn('model', 'Understood.')
+                    append_turn('user', preamble)
+                elif lr == 'model' or lr is None:
+                    # natural: just append user prelude
+                    append_turn('user', preamble)
+                    # standalone (no prior content) -> add Understood.
+                    if lr is None:
+                        append_turn('model', 'Understood.')
+            else:
+                # Prelude before a real model turn (rare)
+                if last_role() == 'user':
+                    append_turn('model', 'Understood.')
+                append_turn('user', preamble)
 
-    return final
+        else:
+            # Real turn
+            _, g_role, content = item
+            # Ensure first turn is user
+            if not out and g_role != 'user':
+                append_turn('user', '')
+            append_turn(g_role, content)
+
+    return out
 
 
 class GeminiAdapter(BaseAdapter):
@@ -185,7 +182,6 @@ class GeminiAdapter(BaseAdapter):
         self._system_prompt = system_prompt
 
     def _effective_system(self, system: Optional[str]) -> Optional[str]:
-        """Return call-time *system* if set, else fall back to constructor value."""
         return system if system is not None else self._system_prompt
 
     @property
@@ -198,12 +194,7 @@ class GeminiAdapter(BaseAdapter):
     def supports_streaming(self) -> bool:
         return True
 
-    def complete(
-        self,
-        messages: List[Dict[str, str]],
-        system: Optional[str] = None,
-        **kwargs,
-    ) -> str:
+    def complete(self, messages, system=None, **kwargs) -> str:
         effective = self._effective_system(system)
         contents = _to_gemini_contents(messages, system=effective)
         config = self._genai.types.GenerationConfig(
@@ -212,12 +203,7 @@ class GeminiAdapter(BaseAdapter):
         )
         return self._model.generate_content(contents, generation_config=config).text or ""
 
-    def stream(
-        self,
-        messages: List[Dict[str, str]],
-        system: Optional[str] = None,
-        **kwargs,
-    ) -> Iterator[str]:
+    def stream(self, messages, system=None, **kwargs) -> Iterator[str]:
         effective = self._effective_system(system)
         contents = _to_gemini_contents(messages, system=effective)
         config = self._genai.types.GenerationConfig(
@@ -234,15 +220,9 @@ class GeminiVertexAdapter(BaseAdapter):
 
     DEFAULT_MODEL = "gemini-1.5-pro-001"
 
-    def __init__(
-        self,
-        project: str,
-        *,
-        location: str = "us-central1",
-        model: str = DEFAULT_MODEL,
-        temperature: float = 0.7,
-        max_tokens: int = 1024,
-    ) -> None:
+    def __init__(self, project: str, *, location: str = "us-central1",
+                 model: str = DEFAULT_MODEL, temperature: float = 0.7,
+                 max_tokens: int = 1024) -> None:
         try:
             import vertexai
             from vertexai.generative_models import GenerativeModel
@@ -251,54 +231,32 @@ class GeminiVertexAdapter(BaseAdapter):
             raise ImportError(
                 "GeminiVertexAdapter requires: pip install google-cloud-aiplatform>=1.50"
             ) from exc
-
         self._model_id      = model
         self._model         = GenerativeModel(model)
         self._temperature   = temperature
         self._max_tokens    = max_tokens
         self._system_prompt: Optional[str] = None
 
-    def _effective_system(self, system: Optional[str]) -> Optional[str]:
+    def _effective_system(self, system):
         return system if system is not None else self._system_prompt
 
     @property
-    def provider_name(self) -> str:
-        return "gemini-vertex"
+    def provider_name(self): return "gemini-vertex"
+    def model_id(self): return self._model_id
+    def supports_streaming(self): return True
 
-    def model_id(self) -> str:
-        return self._model_id
-
-    def supports_streaming(self) -> bool:
-        return True
-
-    def complete(
-        self,
-        messages: List[Dict[str, str]],
-        system: Optional[str] = None,
-        **kwargs,
-    ) -> str:
+    def complete(self, messages, system=None, **kwargs) -> str:
         from vertexai.generative_models import GenerationConfig
-        effective = self._effective_system(system)
-        contents = _to_gemini_contents(messages, system=effective)
-        config = GenerationConfig(
-            temperature=kwargs.get("temperature", self._temperature),
-            max_output_tokens=kwargs.get("max_tokens", self._max_tokens),
-        )
+        contents = _to_gemini_contents(messages, system=self._effective_system(system))
+        config = GenerationConfig(temperature=kwargs.get("temperature", self._temperature),
+                                  max_output_tokens=kwargs.get("max_tokens", self._max_tokens))
         return self._model.generate_content(contents, generation_config=config).text or ""
 
-    def stream(
-        self,
-        messages: List[Dict[str, str]],
-        system: Optional[str] = None,
-        **kwargs,
-    ) -> Iterator[str]:
+    def stream(self, messages, system=None, **kwargs) -> Iterator[str]:
         from vertexai.generative_models import GenerationConfig
-        effective = self._effective_system(system)
-        contents = _to_gemini_contents(messages, system=effective)
-        config = GenerationConfig(
-            temperature=kwargs.get("temperature", self._temperature),
-            max_output_tokens=kwargs.get("max_tokens", self._max_tokens),
-        )
+        contents = _to_gemini_contents(messages, system=self._effective_system(system))
+        config = GenerationConfig(temperature=kwargs.get("temperature", self._temperature),
+                                  max_output_tokens=kwargs.get("max_tokens", self._max_tokens))
         for chunk in self._model.generate_content(contents, generation_config=config, stream=True):
             if chunk.text:
                 yield chunk.text
