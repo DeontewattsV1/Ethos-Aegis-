@@ -16,6 +16,11 @@
 import repl, { type REPLServer } from "node:repl";
 import { EventEmitter } from "./src/index.js";
 
+const isColor = process.stdout.isTTY && !process.env.NO_COLOR;
+const bold = (s: string) => isColor ? `\x1b[1m${s}\x1b[22m` : s;
+const cyan = (s: string) => isColor ? `\x1b[36m${s}\x1b[39m` : s;
+const green = (s: string) => isColor ? `\x1b[32m${s}\x1b[39m` : s;
+
 // ─── State ──────────────────────────────────────────────────────────────────
 type DemoEvents = {
   hello: [name: string];
@@ -123,10 +128,10 @@ const allScenarios: Record<string, Scenario> = {
 };
 
 // ─── REPL bootstrap ─────────────────────────────────────────────────────────
-console.log("living-docs-template REPL");
+console.log(bold(cyan("living-docs-template REPL")));
 console.log("=========================");
-console.log("Pre-loaded: `EventEmitter`, `emitter`");
-console.log("Type `.help` for the full command list.");
+console.log(`Pre-loaded: ${green("`EventEmitter`")}, ${green("`emitter`")}`);
+console.log(`Type ${bold(".help")} for the full command list.`);
 console.log("");
 
 const session: REPLServer = repl.start({ prompt: "ldt> ", useColors: true });
@@ -206,7 +211,7 @@ session.defineCommand("tap", {
   action() {
     this.clearBufferedCommand();
     tapEnabled = !tapEnabled;
-    console.log(`tap is now ${tapEnabled ? "ON" : "OFF"}`);
+    console.log(`tap is now ${tapEnabled ? green("ON") : "OFF"}`);
     this.displayPrompt();
   },
 });
@@ -219,7 +224,8 @@ session.defineCommand("history", {
       console.log("(no emits recorded yet)");
     } else {
       for (const entry of history) {
-        console.log(`  ${entry.ts}  ${entry.event}`, ...entry.args);
+        const time = entry.ts.split("T")[1]?.split(".")[0] ?? "--:--:--";
+        console.log(`  ${time}  ${cyan(entry.event)}`, ...entry.args);
       }
     }
     this.displayPrompt();
