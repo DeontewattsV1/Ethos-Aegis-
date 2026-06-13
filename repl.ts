@@ -3,7 +3,7 @@
  * plus a small set of `.dot` commands that turn the REPL into a quick
  * exploration sandbox: `.demo`, `.scenario`, `.tap`, `.history`, `.reset`.
  *
- * Run with: `npm run repl`
+ * Run with: `pnpm repl`
  *
  * Quick start:
  *   ldt> .help                    # list commands
@@ -40,11 +40,32 @@ type HistoryEntry = {
 
 const HISTORY_LIMIT = 20;
 const history: HistoryEntry[] = [];
+const knownEvents = new Set<string>();
 let tapEnabled = false;
 let emitter = makeEmitter();
 
 function makeEmitter(): EventEmitter<DemoEvents> {
   const instance = new EventEmitter<DemoEvents>();
+
+  // Track event names on subscribe too
+  const originalOn = instance.on.bind(instance);
+  instance.on = new Proxy(originalOn, {
+    apply(target, thisArg, argArray) {
+      const [event] = argArray as [keyof DemoEvents, unknown];
+      knownEvents.add(String(event));
+      return Reflect.apply(target, thisArg, argArray);
+    },
+  });
+
+  const originalOnce = instance.once.bind(instance);
+  instance.once = new Proxy(originalOnce, {
+    apply(target, thisArg, argArray) {
+      const [event] = argArray as [keyof DemoEvents, unknown];
+      knownEvents.add(String(event));
+      return Reflect.apply(target, thisArg, argArray);
+    },
+  });
+
   // Wrap `emit` so every event is recorded; tap can additionally log live.
   // We use a Proxy so the wrapped function keeps the original method's full
   // generic signature without needing a `as` cast.
@@ -52,13 +73,16 @@ function makeEmitter(): EventEmitter<DemoEvents> {
   instance.emit = new Proxy(originalEmit, {
     apply(target, thisArg, argArray) {
       const [event, ...rest] = argArray as [keyof DemoEvents, ...unknown[]];
+      knownEvents.add(String(event));
       // Note: This custom EventEmitter implementation's emit() returns the
       // number of listeners notified (number), unlike Node.js's (boolean).
       const count = Reflect.apply(target, thisArg, argArray);
       history.push({ ts: new Date().toISOString(), event: String(event), args: rest, count });
       if (history.length > HISTORY_LIMIT) history.shift();
       if (tapEnabled) {
-        console.log(`${magenta("[tap]")} ${String(event)} (n=${count})`, ...rest);
+        const time = new Date().toISOString().split("T")[1]?.split(".")[0] ?? "--:--:--";
+        const n = count > 0 ? green(`[n=${count}]`) : dim(`[n=${count}]`);
+        console.log(`${magenta("[tap]")} ${dim(time)} ${cyan(String(event))} ${n}`, ...rest);
       }
       return count;
     },
@@ -123,7 +147,8 @@ const allScenarios: Record<string, Scenario> = {
     description: "Run every named scenario in order on a fresh emitter each time.",
     async run() {
       for (const [name, scenario] of Object.entries(scenarios)) {
-        console.log(`\n— ${name}: ${scenario.description}`);
+        console.log(`\n${bold(cyan(`=== SCENARIO: ${name} ===`))}`);
+        console.log(`${dim(scenario.description)}`);
         const fresh = new EventEmitter<DemoEvents>();
         // `run()` may be sync (`void`) or async (`Promise<void>`); normalize
         // both so the loop awaits sequentially without misusing `await` on
@@ -157,6 +182,26 @@ session.defineCommand("demo", {
     this.clearBufferedCommand();
     console.log("Running .demo on the current `emitter`:");
     scenarios.subscribe.run(emitter);
+    this.displayPrompt();
+  },
+});
+
+session.defineCommand("status", {
+  help: "Show the current REPL status (tap, history, active listeners).",
+  action() {
+    this.clearBufferedCommand();
+    console.log(bold("REPL Status:"));
+    console.log(`  tap:     ${tapEnabled ? green("ON") : red("OFF")}`);
+    console.log(`  history: ${history.length} / ${HISTORY_LIMIT} entries`);
+    console.log(`  events:  ${knownEvents.size === 0 ? dim("(none)") : [...knownEvents].join(", ")}`);
+
+    const active = [...knownEvents].filter(ev => emitter.listenerCount(ev as keyof DemoEvents) > 0);
+    if (active.length > 0) {
+      console.log(bold("\nActive Listeners:"));
+      for (const ev of active) {
+        console.log(`  ${cyan(ev.padEnd(12))} ${green(String(emitter.listenerCount(ev as keyof DemoEvents)))}`);
+      }
+    }
     this.displayPrompt();
   },
 });
@@ -210,7 +255,7 @@ session.defineCommand("scenarios", {
     this.clearBufferedCommand();
     console.log("Available scenarios:");
     for (const [name, scenario] of Object.entries(allScenarios)) {
-      console.log(`  ${name.padEnd(10)} ${scenario.description}`);
+      console.log(`  ${cyan("•")} ${cyan(name.padEnd(12))} ${scenario.description}`);
     }
     this.displayPrompt();
   },
