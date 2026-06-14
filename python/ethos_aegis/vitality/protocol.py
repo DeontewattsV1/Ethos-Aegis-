@@ -493,17 +493,10 @@ class NutrientPlex:
         more neutrophils and lymphocytes. Here, the 'amino acids' are the
         component patterns that build richer detection capability.
         """
+        new_patterns = [(re.compile(p, re.IGNORECASE), s) for p, s in self.PROTEIN_PACK]
         if not hasattr(probe, '_extended_sigils'):
             probe._extended_sigils = []
-        else:
-            # Already applied -- idempotent, return 0
-            if getattr(probe, '_protein_applied', False):
-                return 0
-
-        new_patterns = [(re.compile(p, re.IGNORECASE), s) for p, s in self.PROTEIN_PACK]
         probe._extended_sigils.extend(new_patterns)
-        probe._protein_applied = True
-
         # Monkey-patch the interrogate method to also check extended sigils
         original_interrogate = probe.interrogate
 
@@ -537,13 +530,9 @@ class NutrientPlex:
         corrupting influence of Unicode manipulation attacks that can damage
         the integrity of clean data before it reaches downstream cells.
         """
-        if getattr(swarm, '_vit_c_applied', False):
-            return 0
-
         compiled_additions = [
             (re.compile(p), sigil) for p, sigil in self.VITAMIN_C_PACK
         ]
-        swarm._vit_c_applied = True
         original_interrogate = swarm.interrogate
 
         def fortified_interrogate(payload: str, context: Dict) -> List[Malignum]:
@@ -573,14 +562,10 @@ class NutrientPlex:
         'semantic myelin' — its ability to conduct precise reasoning about
         deceptive language patterns without signal degradation or missed signals.
         """
+        count = 0
         if not hasattr(logos, '_b12_manifold'):
             logos._b12_manifold = {}
-        elif getattr(logos, '_b12_applied', False):
-            return 0
-
-        count = 0
         logos._b12_manifold.update(self.VITAMIN_B12_PACK)
-        logos._b12_applied = True
         original_interrogate = logos.interrogate
 
         def b12_enriched_interrogate(payload: str, context: Dict) -> List[Malignum]:
@@ -615,14 +600,11 @@ class NutrientPlex:
         fires, reducing the signal-to-noise floor and catching more subtle
         structural attacks that the default thresholds would miss.
         """
-        if getattr(watch, '_zinc_applied', False):
-            return
         for attr, value in self.ZINC_PACK_THRESHOLDS.items():
             if hasattr(watch, f'_{attr}'):
                 old = getattr(watch, f'_{attr}')
                 setattr(watch, f'_{attr}', value)
                 _vlog.info(f"NutrientPlex: ZINC → EntropicWatch.{attr}: {old} → {value}")
-        watch._zinc_applied = True
 
     def detect_deficiencies(
         self, aegis: EthosAegis
@@ -1596,14 +1578,12 @@ class AegisVitality:
 
     def nourish(self) -> Dict[str, int]:
         """
-        Applies the full NutrientPlex nutrition protocol. Idempotent: repeated
-        calls after the first are no-ops and return ``{}``.
+        Applies the full NutrientPlex nutrition protocol — feeds all five
+        nutrient packs to the appropriate cells. Call this once before
+        production deployment and repeat whenever new threat variants emerge.
 
         Returns a summary of patterns added per nutrient class.
         """
-        if self._nourished:
-            return {}
-
         cc    = self.aegis.cytokine_command
         added = {}
 
@@ -1673,7 +1653,7 @@ class AegisVitality:
             _vlog.warning(f"NeuroStressBuffer: request blocked — system under stress")
             blocked_verdict = AegisVerdict(
                 is_sanctified=False, is_condemned=True,
-                sovereignty_depth=CorruptionDepth.CONDEMNED,
+                sovereignty_depth=CorruptionDepth.GRAVE,
                 axiological_report="REQUEST BLOCKED — NeuroStressBuffer circuit active.",
                 sentinel_chronicle=["NeuroStressBuffer: rate limit exceeded"]
             )
