@@ -11,7 +11,6 @@ import time
 import urllib.request
 import urllib.error
 import pytest
-from pathlib import Path
 
 SERVER_PORT = 18080
 BASE_URL = f"http://localhost:{SERVER_PORT}"
@@ -50,7 +49,7 @@ def server_proc():
         pytest.skip(f"Port {SERVER_PORT} is in use")
     proc = subprocess.Popen(
         [sys.executable, "server.py", "--port", str(SERVER_PORT), "--host", "127.0.0.1"],
-        cwd=str(Path(__file__).parent.parent),
+        cwd="/home/claude/ETHOS_AEGIS",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )

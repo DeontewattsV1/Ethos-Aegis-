@@ -47,22 +47,6 @@ class FakeCKANClient(CKANClient):
         self.probe_calls.append(sample_resource_id)
         return self._matrix
 
-    def resource_show(self, resource_id: str) -> dict:
-        """Return stable metadata so upstream fingerprint probe works correctly."""
-        resource = self._result.resource if hasattr(self._result, "resource") else {}
-        return {"success": True, "result": dict(resource)}
-
-    def package_show(self, package_id: str) -> dict:
-        """Return stable package metadata for fingerprint probe."""
-        package = self._result.package if hasattr(self._result, "package") else {}
-        return {"success": True, "result": dict(package)}
-
-    def datastore_search(self, resource_id: str, **kwargs) -> dict:
-        """Return current rows for lightweight fingerprint mode."""
-        limit = kwargs.get("limit", 100)
-        rows = list(self._result.rows[:limit])
-        return {"success": True, "result": {"records": rows, "total": len(self._result.rows)}}
-
     def ingest_resource(self, resource_id: str, **kwargs) -> CKANIngestionResult:
         self.ingest_calls.append({"resource_id": resource_id, **kwargs})
         return self._result
