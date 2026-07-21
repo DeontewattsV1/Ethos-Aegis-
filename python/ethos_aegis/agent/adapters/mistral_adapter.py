@@ -1,9 +1,6 @@
 """
 MistralAdapter -- Ethos Aegis adapter for the Mistral AI API.
 
-Supports all Mistral chat-completion models via the official SDK or raw HTTP.
-Compatible with: Mistral AI Cloud, Mistral self-hosted, La Plateforme.
-
 pip install mistralai>=1.0
 """
 from __future__ import annotations
@@ -13,18 +10,7 @@ from .base_adapter import BaseAdapter
 
 
 class MistralAdapter(BaseAdapter):
-    """
-    Wraps the Mistral AI ChatCompletion API.
-
-    Args:
-        api_key:       Mistral API key (or set MISTRAL_API_KEY env var).
-        model:         Mistral model ID. Default: "mistral-large-latest".
-        server_url:    Override base URL for self-hosted endpoints.
-        temperature:   Sampling temperature. Default: 0.7.
-        max_tokens:    Max tokens to generate. Default: 1024.
-        system_prompt: Optional system message prepended to every conversation.
-        **kwargs:      Forwarded to the Mistral client constructor.
-    """
+    """Wraps the Mistral AI ChatCompletion API."""
 
     DEFAULT_MODEL = "mistral-large-latest"
 
@@ -77,14 +63,7 @@ class MistralAdapter(BaseAdapter):
         system: Optional[str] = None,
         **kwargs,
     ) -> str:
-        """Complete a conversation.
-
-        Args:
-            messages: List of ``{"role": ..., "content": ...}`` dicts.
-            system:   Optional system prompt override.
-            **kwargs: ``temperature``, ``max_tokens`` overrides.
-        """
-        built = self._build_messages(messages, system=system)
+        built = self._compose_messages(messages, system)
         response = self._client.chat.complete(
             model=self._model,
             messages=built,
@@ -99,14 +78,7 @@ class MistralAdapter(BaseAdapter):
         system: Optional[str] = None,
         **kwargs,
     ) -> Iterator[str]:
-        """Stream a completion.
-
-        Args:
-            messages: List of ``{"role": ..., "content": ...}`` dicts.
-            system:   Optional system prompt override.
-            **kwargs: ``temperature``, ``max_tokens`` overrides.
-        """
-        built = self._build_messages(messages, system=system)
+        built = self._compose_messages(messages, system)
         with self._client.chat.stream(
             model=self._model,
             messages=built,
@@ -120,14 +92,19 @@ class MistralAdapter(BaseAdapter):
 
     # -- Helpers -------------------------------------------------------------
 
-    def _build_messages(
+    def _compose_messages(
         self,
         messages: List[Dict[str, str]],
-        system: Optional[str] = None,
+        system: Optional[str],
     ) -> list[dict]:
+        """Build the Mistral message list, resolving system instruction priority.
+
+        Call-time ``system`` takes precedence over ``_system_prompt`` set at
+        construction, so both are never applied simultaneously.
+        """
         result: list[dict] = []
-        effective_system = system or self._system_prompt
-        if effective_system:
-            result.append({"role": "system", "content": effective_system})
+        effective = system if system is not None else self._system_prompt
+        if effective:
+            result.append({"role": "system", "content": effective})
         result.extend(messages)
         return result
