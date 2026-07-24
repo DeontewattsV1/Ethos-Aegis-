@@ -138,10 +138,13 @@ const allScenarios: Record<string, Scenario> = {
 console.log(bold(cyan("Living Docs REPL")));
 console.log(dim("────────────────"));
 console.log(`Pre-loaded: ${green("`EventEmitter`")}, ${green("`emitter`")}`);
+console.log(bold(cyan("ETHOS AEGIS REPL")));
+console.log(dim("========================="));
+console.log(`Pre-loaded: ${green("`EventEmitter`")}, ${green("`emitter`")}, ${green("`scenarios`")}`);
 console.log(`Type ${bold(".help")} for the full command list.`);
 console.log("");
 
-const session: REPLServer = repl.start({ prompt: "ldt> ", useColors: true });
+const session: REPLServer = repl.start({ prompt: cyan("aegis> "), useColors: true });
 refreshContext(session);
 
 function refreshContext(srv: REPLServer): void {
@@ -183,7 +186,7 @@ session.defineCommand("scenario", {
       this.displayPrompt();
       return;
     }
-    console.log(`\nRunning scenario "${key}": ${scenario.description}`);
+    console.log(`\n${bold("Running scenario")} ${cyan(`"${key}"`)}: ${dim(scenario.description)}`);
     // Wrap in `new Promise(resolve => resolve(...))` so a synchronous throw
     // inside `scenario.run()` is converted into a rejected Promise. With a
     // plain `Promise.resolve(scenario.run(...))`, a sync throw would escape
@@ -197,6 +200,11 @@ session.defineCommand("scenario", {
       .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
         console.log(red(`  ✗ scenario "${key}" failed: ${msg}`));
+        console.log(green("✔ Scenario completed successfully."));
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(red(`✘ Scenario "${key}" failed: ${msg}`));
       })
       .finally(() => {
         this.displayPrompt();
@@ -208,10 +216,11 @@ session.defineCommand("scenarios", {
   help: "List all available scenarios.",
   action() {
     this.clearBufferedCommand();
-    console.log("Available scenarios:");
+    console.log(bold("\nAvailable scenarios:"));
     for (const [name, scenario] of Object.entries(allScenarios)) {
-      console.log(`  ${name.padEnd(10)} ${scenario.description}`);
+      console.log(`  ${cyan(name.padEnd(10))} ${dim(scenario.description)}`);
     }
+    console.log("");
     this.displayPrompt();
   },
 });
@@ -222,6 +231,7 @@ session.defineCommand("tap", {
     this.clearBufferedCommand();
     tapEnabled = !tapEnabled;
     console.log(`tap is now ${tapEnabled ? green("ON") : red("OFF")}`);
+    console.log(`tap is now ${tapEnabled ? bold(green("ON")) : bold("OFF")}`);
     this.displayPrompt();
   },
 });
@@ -231,13 +241,16 @@ session.defineCommand("history", {
   action() {
     this.clearBufferedCommand();
     if (history.length === 0) {
-      console.log("(no emits recorded yet)");
+      console.log(dim("(no emits recorded yet)"));
     } else {
+      console.log(bold("\nRecent Emits:"));
       for (const entry of history) {
         const time = entry.ts.split("T")[1]?.split(".")[0] ?? "--:--:--";
         const n = entry.count > 0 ? green(`[n=${entry.count}]`) : dim("[n=0]");
         console.log(`  ${dim(time)}  ${cyan(entry.event)} ${n}`, ...entry.args);
+        console.log(`  ${dim(time)}  ${cyan(entry.event.padEnd(10))} ${JSON.stringify(entry.args)}`);
       }
+      console.log("");
     }
     this.displayPrompt();
   },
