@@ -24,6 +24,11 @@ const red = (s: string) => isColor ? `\x1b[31m${s}\x1b[39m` : s;
 const magenta = (s: string) => isColor ? `\x1b[35m${s}\x1b[39m` : s;
 const dim = (s: string) => isColor ? `\x1b[2m${s}\x1b[22m` : s;
 
+const getTime = (ts?: string) => {
+  const d = ts ? new Date(ts) : new Date();
+  return d.toISOString().split("T")[1]?.split(".")[0] ?? "--:--:--";
+};
+
 // ─── State ──────────────────────────────────────────────────────────────────
 type DemoEvents = {
   hello: [name: string];
@@ -80,9 +85,9 @@ function makeEmitter(): EventEmitter<DemoEvents> {
       history.push({ ts: new Date().toISOString(), event: String(event), args: rest, count });
       if (history.length > HISTORY_LIMIT) history.shift();
       if (tapEnabled) {
-        const time = new Date().toISOString().split("T")[1]?.split(".")[0] ?? "--:--:--";
+        const time = dim(getTime());
         const n = count > 0 ? green(`[n=${count}]`) : dim(`[n=${count}]`);
-        console.log(`${magenta("[tap]")} ${dim(time)} ${cyan(String(event))} ${n}`, ...rest);
+        console.log(`${magenta("[tap]")} ${time}  ${cyan(String(event))} ${n}`, ...rest);
       }
       return count;
     },
@@ -163,10 +168,13 @@ const allScenarios: Record<string, Scenario> = {
 console.log(bold(cyan("Living Docs REPL")));
 console.log(dim("────────────────"));
 console.log(`Pre-loaded: ${green("`EventEmitter`")}, ${green("`emitter`")}`);
+console.log(bold(cyan("ETHOS AEGIS REPL")));
+console.log(dim("========================="));
+console.log(`Pre-loaded: ${green("`EventEmitter`")}, ${green("`emitter`")}, ${green("`scenarios`")}`);
 console.log(`Type ${bold(".help")} for the full command list.`);
 console.log("");
 
-const session: REPLServer = repl.start({ prompt: "ldt> ", useColors: true });
+const session: REPLServer = repl.start({ prompt: cyan("aegis> "), useColors: true });
 refreshContext(session);
 
 function refreshContext(srv: REPLServer): void {
@@ -176,12 +184,30 @@ function refreshContext(srv: REPLServer): void {
   srv.context.scenarios = allScenarios;
 }
 
+session.defineCommand("about", {
+  help: "Display template mission and design tokens.",
+  action() {
+    this.clearBufferedCommand();
+    console.log(`\n${STEEL_BLUE}LIVING DOCS TEMPLATE${RESET}`);
+    console.log("--------------------------------------------------");
+    console.log("Mission: Self-demonstrating, always-current documentation scaffold.");
+    console.log("Core: Typed EventEmitter with living snapshot verification.");
+    console.log(`\n${STEEL_BLUE}Design Palette (Institutional):${RESET}`);
+    console.log("  Obsidian:   #050607");
+    console.log("  Steel Blue: #5E89A8 (Primary Accent)");
+    console.log("  Bone White: #F2F5F7 (Primary Text)");
+    console.log("\nAligned by design.");
+    this.displayPrompt();
+  },
+});
+
 session.defineCommand("demo", {
   help: "Run a short subscribe → emit → log demo on the preloaded emitter.",
   action() {
     this.clearBufferedCommand();
     console.log("Running .demo on the current `emitter`:");
     scenarios.subscribe.run(emitter);
+    console.log(green("  ✓ demo complete"));
     this.displayPrompt();
   },
 });
@@ -228,7 +254,7 @@ session.defineCommand("scenario", {
       this.displayPrompt();
       return;
     }
-    console.log(`\nRunning scenario "${key}": ${scenario.description}`);
+    console.log(`\n${bold("Running scenario")} ${cyan(`"${key}"`)}: ${dim(scenario.description)}`);
     // Wrap in `new Promise(resolve => resolve(...))` so a synchronous throw
     // inside `scenario.run()` is converted into a rejected Promise. With a
     // plain `Promise.resolve(scenario.run(...))`, a sync throw would escape
@@ -242,6 +268,11 @@ session.defineCommand("scenario", {
       .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
         console.log(red(`  ✗ scenario "${key}" failed: ${msg}`));
+        console.log(green("✔ Scenario completed successfully."));
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(red(`✘ Scenario "${key}" failed: ${msg}`));
       })
       .finally(() => {
         this.displayPrompt();
@@ -253,10 +284,11 @@ session.defineCommand("scenarios", {
   help: "List all available scenarios.",
   action() {
     this.clearBufferedCommand();
-    console.log("Available scenarios:");
+    console.log(bold("\nAvailable scenarios:"));
     for (const [name, scenario] of Object.entries(allScenarios)) {
-      console.log(`  ${cyan("•")} ${cyan(name.padEnd(12))} ${scenario.description}`);
+      console.log(`  ${cyan(name.padEnd(10))} ${dim(scenario.description)}`);
     }
+    console.log("");
     this.displayPrompt();
   },
 });
@@ -267,6 +299,7 @@ session.defineCommand("tap", {
     this.clearBufferedCommand();
     tapEnabled = !tapEnabled;
     console.log(`tap is now ${tapEnabled ? green("ON") : red("OFF")}`);
+    console.log(`tap is now ${tapEnabled ? bold(green("ON")) : bold("OFF")}`);
     this.displayPrompt();
   },
 });
@@ -276,13 +309,16 @@ session.defineCommand("history", {
   action() {
     this.clearBufferedCommand();
     if (history.length === 0) {
-      console.log("(no emits recorded yet)");
+      console.log(dim("(no emits recorded yet)"));
     } else {
+      console.log(bold("\nRecent Emits:"));
       for (const entry of history) {
-        const time = entry.ts.split("T")[1]?.split(".")[0] ?? "--:--:--";
-        const n = entry.count > 0 ? green(`[n=${entry.count}]`) : dim("[n=0]");
+        const time = getTime(entry.ts);
+        const n = entry.count > 0 ? green(`[n=${entry.count}]`) : dim(`[n=${entry.count}]`);
         console.log(`  ${dim(time)}  ${cyan(entry.event)} ${n}`, ...entry.args);
+        console.log(`  ${dim(time)}  ${cyan(entry.event.padEnd(10))} ${JSON.stringify(entry.args)}`);
       }
+      console.log("");
     }
     this.displayPrompt();
   },
@@ -295,7 +331,7 @@ session.defineCommand("reset", {
     emitter = makeEmitter();
     history.length = 0;
     refreshContext(session);
-    console.log("emitter and history reset.");
+    console.log(`${green("✓")} emitter and history reset.`);
     this.displayPrompt();
   },
 });
