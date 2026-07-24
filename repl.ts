@@ -154,6 +154,23 @@ function refreshContext(srv: REPLServer): void {
   srv.context.scenarios = allScenarios;
 }
 
+session.defineCommand("about", {
+  help: "Display template mission and design tokens.",
+  action() {
+    this.clearBufferedCommand();
+    console.log(`\n${STEEL_BLUE}LIVING DOCS TEMPLATE${RESET}`);
+    console.log("--------------------------------------------------");
+    console.log("Mission: Self-demonstrating, always-current documentation scaffold.");
+    console.log("Core: Typed EventEmitter with living snapshot verification.");
+    console.log(`\n${STEEL_BLUE}Design Palette (Institutional):${RESET}`);
+    console.log("  Obsidian:   #050607");
+    console.log("  Steel Blue: #5E89A8 (Primary Accent)");
+    console.log("  Bone White: #F2F5F7 (Primary Text)");
+    console.log("\nAligned by design.");
+    this.displayPrompt();
+  },
+});
+
 session.defineCommand("demo", {
   help: "Run a short subscribe → emit → log demo on the preloaded emitter.",
   action() {
