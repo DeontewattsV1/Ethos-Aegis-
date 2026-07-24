@@ -16,6 +16,14 @@
 import repl, { type REPLServer } from "node:repl";
 import { EventEmitter } from "./src/index.js";
 
+const isColor = process.stdout.isTTY && !process.env.NO_COLOR;
+const bold = (s: string) => isColor ? `\x1b[1m${s}\x1b[22m` : s;
+const cyan = (s: string) => isColor ? `\x1b[36m${s}\x1b[39m` : s;
+const green = (s: string) => isColor ? `\x1b[32m${s}\x1b[39m` : s;
+const red = (s: string) => isColor ? `\x1b[31m${s}\x1b[39m` : s;
+const magenta = (s: string) => isColor ? `\x1b[35m${s}\x1b[39m` : s;
+const dim = (s: string) => isColor ? `\x1b[2m${s}\x1b[22m` : s;
+
 // ─── State ──────────────────────────────────────────────────────────────────
 type DemoEvents = {
   hello: [name: string];
@@ -27,6 +35,7 @@ type HistoryEntry = {
   ts: string;
   event: string;
   args: unknown[];
+  count: number;
 };
 
 const HISTORY_LIMIT = 20;
@@ -43,12 +52,15 @@ function makeEmitter(): EventEmitter<DemoEvents> {
   instance.emit = new Proxy(originalEmit, {
     apply(target, thisArg, argArray) {
       const [event, ...rest] = argArray as [keyof DemoEvents, ...unknown[]];
-      history.push({ ts: new Date().toISOString(), event: String(event), args: rest });
+      // Note: This custom EventEmitter implementation's emit() returns the
+      // number of listeners notified (number), unlike Node.js's (boolean).
+      const count = Reflect.apply(target, thisArg, argArray);
+      history.push({ ts: new Date().toISOString(), event: String(event), args: rest, count });
       if (history.length > HISTORY_LIMIT) history.shift();
       if (tapEnabled) {
-        console.log(`[tap] ${String(event)}`, ...rest);
+        console.log(`${magenta("[tap]")} ${String(event)} (n=${count})`, ...rest);
       }
-      return Reflect.apply(target, thisArg, argArray);
+      return count;
     },
   });
   return instance;
@@ -123,22 +135,16 @@ const allScenarios: Record<string, Scenario> = {
 };
 
 // ─── REPL bootstrap ─────────────────────────────────────────────────────────
-const STEEL_BLUE = "\x1b[38;2;94;137;168m";
-const RESET = "\x1b[0m";
-
-console.log(`${STEEL_BLUE}LIVING DOCS REPL${RESET}`);
-console.log("=========================");
-console.log("Pre-loaded: `EventEmitter`, `emitter` (Aegis Leukocyte bus)");
-console.log("Type `.help` for the full command list.");
-console.log(`\n${STEEL_BLUE}Shortcut hints:${RESET}`);
-console.log("  Ctrl+C  Abort current expression / Clear line");
-console.log("  Ctrl+D  Exit the REPL");
+console.log(bold(cyan("Living Docs REPL")));
+console.log(dim("────────────────"));
+console.log(`Pre-loaded: ${green("`EventEmitter`")}, ${green("`emitter`")}`);
+console.log(bold(cyan("ETHOS AEGIS REPL")));
+console.log(dim("========================="));
+console.log(`Pre-loaded: ${green("`EventEmitter`")}, ${green("`emitter`")}, ${green("`scenarios`")}`);
+console.log(`Type ${bold(".help")} for the full command list.`);
 console.log("");
 
-const session: REPLServer = repl.start({
-  prompt: `${STEEL_BLUE}ldt>${RESET} `,
-  useColors: true,
-});
+const session: REPLServer = repl.start({ prompt: cyan("aegis> "), useColors: true });
 refreshContext(session);
 
 function refreshContext(srv: REPLServer): void {
@@ -197,7 +203,7 @@ session.defineCommand("scenario", {
       this.displayPrompt();
       return;
     }
-    console.log(`\nRunning scenario "${key}": ${scenario.description}`);
+    console.log(`\n${bold("Running scenario")} ${cyan(`"${key}"`)}: ${dim(scenario.description)}`);
     // Wrap in `new Promise(resolve => resolve(...))` so a synchronous throw
     // inside `scenario.run()` is converted into a rejected Promise. With a
     // plain `Promise.resolve(scenario.run(...))`, a sync throw would escape
@@ -205,9 +211,17 @@ session.defineCommand("scenario", {
     new Promise<void>((resolve) => {
       resolve(scenario.run(new EventEmitter<DemoEvents>()));
     })
+      .then(() => {
+        console.log(green("  ✓ scenario complete"));
+      })
       .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
-        console.log(`scenario "${key}" threw: ${msg}`);
+        console.log(red(`  ✗ scenario "${key}" failed: ${msg}`));
+        console.log(green("✔ Scenario completed successfully."));
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(red(`✘ Scenario "${key}" failed: ${msg}`));
       })
       .finally(() => {
         this.displayPrompt();
@@ -219,10 +233,11 @@ session.defineCommand("scenarios", {
   help: "List all available scenarios.",
   action() {
     this.clearBufferedCommand();
-    console.log("Available scenarios:");
+    console.log(bold("\nAvailable scenarios:"));
     for (const [name, scenario] of Object.entries(allScenarios)) {
-      console.log(`  ${name.padEnd(10)} ${scenario.description}`);
+      console.log(`  ${cyan(name.padEnd(10))} ${dim(scenario.description)}`);
     }
+    console.log("");
     this.displayPrompt();
   },
 });
@@ -232,7 +247,8 @@ session.defineCommand("tap", {
   action() {
     this.clearBufferedCommand();
     tapEnabled = !tapEnabled;
-    console.log(`tap is now ${tapEnabled ? "ON" : "OFF"}`);
+    console.log(`tap is now ${tapEnabled ? green("ON") : red("OFF")}`);
+    console.log(`tap is now ${tapEnabled ? bold(green("ON")) : bold("OFF")}`);
     this.displayPrompt();
   },
 });
@@ -242,11 +258,16 @@ session.defineCommand("history", {
   action() {
     this.clearBufferedCommand();
     if (history.length === 0) {
-      console.log("(no emits recorded yet)");
+      console.log(dim("(no emits recorded yet)"));
     } else {
+      console.log(bold("\nRecent Emits:"));
       for (const entry of history) {
-        console.log(`  ${entry.ts}  ${entry.event}`, ...entry.args);
+        const time = entry.ts.split("T")[1]?.split(".")[0] ?? "--:--:--";
+        const n = entry.count > 0 ? green(`[n=${entry.count}]`) : dim("[n=0]");
+        console.log(`  ${dim(time)}  ${cyan(entry.event)} ${n}`, ...entry.args);
+        console.log(`  ${dim(time)}  ${cyan(entry.event.padEnd(10))} ${JSON.stringify(entry.args)}`);
       }
+      console.log("");
     }
     this.displayPrompt();
   },
