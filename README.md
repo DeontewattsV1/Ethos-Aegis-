@@ -203,7 +203,39 @@ pytest tests/test_4d_visual.py -v
 ```
 
 ---
+## Summary
 
+Implements the full agent harness architecture as a new `ethos_aegis/harness/` module, directly derived from the synthesized research across Anthropic, OpenAI, LangChain, and the practitioner community.
+
+## 12 Components
+
+| # | Component | Module |
+|---|-----------|--------|
+| 1 | Orchestration Loop (TAO/ReAct) | `orchestrator.py` |
+| 2 | Tool Registry & Sandboxed Execution | `tools.py` |
+| 3 | Three-Tier Memory System | `memory.py` |
+| 4 | Context Management (compaction, masking, JIT) | `context.py` |
+| 5 | Prompt Construction (priority stack) | `context.py` |
+| 6 | Output Parsing (native + ReAct + retry) | `output_parser.py` |
+| 7 | State Management + Ralph Loop checkpoints | `state.py` |
+| 8 | Layered Error Handling (4 categories) | `errors.py` |
+| 9 | Three-Level Guardrails + Aegis tripwire | `guardrails.py` |
+| 10 | Verification Loops (rules + LLM-as-judge) | `verification.py` |
+| 11 | Sub-agent Orchestration | `orchestrator.py` |
+| 12 | Types & Config | `types.py` |
+
+## Key design decisions
+- **Thin harness**: orchestration loop is intentionally a "dumb loop" — all intelligence in the model (Anthropic pattern)
+- **Aegis integration**: every input/output/tool call passes through the EthosAegis immune system via `GuardrailLayer`
+- **Lost in the Middle mitigation**: high-signal tokens positioned at START and END of assembled prompt
+- **Observation masking**: JetBrains Junie strategy — hide old tool outputs, keep tool calls visible
+- **Ralph Loop**: two-phase progress file pattern for multi-session long-running tasks
+- **Parallel readonly tools**: concurrent `ThreadPoolExecutor` for read-only, serial for mutating
+- **Verification-first**: Boris Cherny 2–3x quality improvement via mandatory verify step
+
+## Tests
+- 39 new unit tests in `tests/test_harness.py`
+- Full suite: **253 passed, 6 skipped, 0 failed**
 ## Release
 
 <p align="center">
