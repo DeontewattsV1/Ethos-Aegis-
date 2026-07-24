@@ -24,6 +24,11 @@ const red = (s: string) => isColor ? `\x1b[31m${s}\x1b[39m` : s;
 const magenta = (s: string) => isColor ? `\x1b[35m${s}\x1b[39m` : s;
 const dim = (s: string) => isColor ? `\x1b[2m${s}\x1b[22m` : s;
 
+const getTime = (ts?: string) => {
+  const d = ts ? new Date(ts) : new Date();
+  return d.toISOString().split("T")[1]?.split(".")[0] ?? "--:--:--";
+};
+
 // ─── State ──────────────────────────────────────────────────────────────────
 type DemoEvents = {
   hello: [name: string];
@@ -58,7 +63,9 @@ function makeEmitter(): EventEmitter<DemoEvents> {
       history.push({ ts: new Date().toISOString(), event: String(event), args: rest, count });
       if (history.length > HISTORY_LIMIT) history.shift();
       if (tapEnabled) {
-        console.log(`${magenta("[tap]")} ${String(event)} (n=${count})`, ...rest);
+        const time = dim(getTime());
+        const n = count > 0 ? green(`[n=${count}]`) : dim(`[n=${count}]`);
+        console.log(`${magenta("[tap]")} ${time}  ${cyan(String(event))} ${n}`, ...rest);
       }
       return count;
     },
@@ -177,6 +184,7 @@ session.defineCommand("demo", {
     this.clearBufferedCommand();
     console.log("Running .demo on the current `emitter`:");
     scenarios.subscribe.run(emitter);
+    console.log(green("  ✓ demo complete"));
     this.displayPrompt();
   },
 });
@@ -262,8 +270,8 @@ session.defineCommand("history", {
     } else {
       console.log(bold("\nRecent Emits:"));
       for (const entry of history) {
-        const time = entry.ts.split("T")[1]?.split(".")[0] ?? "--:--:--";
-        const n = entry.count > 0 ? green(`[n=${entry.count}]`) : dim("[n=0]");
+        const time = getTime(entry.ts);
+        const n = entry.count > 0 ? green(`[n=${entry.count}]`) : dim(`[n=${entry.count}]`);
         console.log(`  ${dim(time)}  ${cyan(entry.event)} ${n}`, ...entry.args);
         console.log(`  ${dim(time)}  ${cyan(entry.event.padEnd(10))} ${JSON.stringify(entry.args)}`);
       }
@@ -280,7 +288,7 @@ session.defineCommand("reset", {
     emitter = makeEmitter();
     history.length = 0;
     refreshContext(session);
-    console.log("emitter and history reset.");
+    console.log(`${green("✓")} emitter and history reset.`);
     this.displayPrompt();
   },
 });
