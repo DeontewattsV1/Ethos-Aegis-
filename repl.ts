@@ -21,6 +21,7 @@ const bold = (s: string) => isColor ? `\x1b[1m${s}\x1b[22m` : s;
 const cyan = (s: string) => isColor ? `\x1b[36m${s}\x1b[39m` : s;
 const green = (s: string) => isColor ? `\x1b[32m${s}\x1b[39m` : s;
 const red = (s: string) => isColor ? `\x1b[31m${s}\x1b[39m` : s;
+const magenta = (s: string) => isColor ? `\x1b[35m${s}\x1b[39m` : s;
 const dim = (s: string) => isColor ? `\x1b[2m${s}\x1b[22m` : s;
 
 // ─── State ──────────────────────────────────────────────────────────────────
@@ -134,6 +135,9 @@ const allScenarios: Record<string, Scenario> = {
 };
 
 // ─── REPL bootstrap ─────────────────────────────────────────────────────────
+console.log(bold(cyan("Living Docs REPL")));
+console.log(dim("────────────────"));
+console.log(`Pre-loaded: ${green("`EventEmitter`")}, ${green("`emitter`")}`);
 console.log(bold(cyan("ETHOS AEGIS REPL")));
 console.log(dim("========================="));
 console.log(`Pre-loaded: ${green("`EventEmitter`")}, ${green("`emitter`")}, ${green("`scenarios`")}`);
@@ -149,6 +153,23 @@ function refreshContext(srv: REPLServer): void {
   srv.context.history = history;
   srv.context.scenarios = allScenarios;
 }
+
+session.defineCommand("about", {
+  help: "Display template mission and design tokens.",
+  action() {
+    this.clearBufferedCommand();
+    console.log(`\n${STEEL_BLUE}LIVING DOCS TEMPLATE${RESET}`);
+    console.log("--------------------------------------------------");
+    console.log("Mission: Self-demonstrating, always-current documentation scaffold.");
+    console.log("Core: Typed EventEmitter with living snapshot verification.");
+    console.log(`\n${STEEL_BLUE}Design Palette (Institutional):${RESET}`);
+    console.log("  Obsidian:   #050607");
+    console.log("  Steel Blue: #5E89A8 (Primary Accent)");
+    console.log("  Bone White: #F2F5F7 (Primary Text)");
+    console.log("\nAligned by design.");
+    this.displayPrompt();
+  },
+});
 
 session.defineCommand("demo", {
   help: "Run a short subscribe → emit → log demo on the preloaded emitter.",
@@ -191,6 +212,11 @@ session.defineCommand("scenario", {
       resolve(scenario.run(new EventEmitter<DemoEvents>()));
     })
       .then(() => {
+        console.log(green("  ✓ scenario complete"));
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(red(`  ✗ scenario "${key}" failed: ${msg}`));
         console.log(green("✔ Scenario completed successfully."));
       })
       .catch((err: unknown) => {
@@ -221,6 +247,7 @@ session.defineCommand("tap", {
   action() {
     this.clearBufferedCommand();
     tapEnabled = !tapEnabled;
+    console.log(`tap is now ${tapEnabled ? green("ON") : red("OFF")}`);
     console.log(`tap is now ${tapEnabled ? bold(green("ON")) : bold("OFF")}`);
     this.displayPrompt();
   },
@@ -236,6 +263,8 @@ session.defineCommand("history", {
       console.log(bold("\nRecent Emits:"));
       for (const entry of history) {
         const time = entry.ts.split("T")[1]?.split(".")[0] ?? "--:--:--";
+        const n = entry.count > 0 ? green(`[n=${entry.count}]`) : dim("[n=0]");
+        console.log(`  ${dim(time)}  ${cyan(entry.event)} ${n}`, ...entry.args);
         console.log(`  ${dim(time)}  ${cyan(entry.event.padEnd(10))} ${JSON.stringify(entry.args)}`);
       }
       console.log("");
