@@ -34,6 +34,7 @@ type HistoryEntry = {
   ts: string;
   event: string;
   args: unknown[];
+  count: number;
 };
 
 const HISTORY_LIMIT = 20;
@@ -50,12 +51,15 @@ function makeEmitter(): EventEmitter<DemoEvents> {
   instance.emit = new Proxy(originalEmit, {
     apply(target, thisArg, argArray) {
       const [event, ...rest] = argArray as [keyof DemoEvents, ...unknown[]];
-      history.push({ ts: new Date().toISOString(), event: String(event), args: rest });
+      // Note: This custom EventEmitter implementation's emit() returns the
+      // number of listeners notified (number), unlike Node.js's (boolean).
+      const count = Reflect.apply(target, thisArg, argArray);
+      history.push({ ts: new Date().toISOString(), event: String(event), args: rest, count });
       if (history.length > HISTORY_LIMIT) history.shift();
       if (tapEnabled) {
-        console.log(`[tap] ${String(event)}`, ...rest);
+        console.log(`${magenta("[tap]")} ${String(event)} (n=${count})`, ...rest);
       }
-      return Reflect.apply(target, thisArg, argArray);
+      return count;
     },
   });
   return instance;
