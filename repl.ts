@@ -145,10 +145,13 @@ const allScenarios: Record<string, Scenario> = {
 console.log(bold(cyan("Living Docs REPL")));
 console.log(dim("────────────────"));
 console.log(`Pre-loaded: ${green("`EventEmitter`")}, ${green("`emitter`")}`);
-console.log(`Type ${bold(".help")} for command list. Try ${bold(".tap")} or ${bold(".scenario")}.`);
+console.log(bold(cyan("ETHOS AEGIS REPL")));
+console.log(dim("========================="));
+console.log(`Pre-loaded: ${green("`EventEmitter`")}, ${green("`emitter`")}, ${green("`scenarios`")}`);
+console.log(`Type ${bold(".help")} for the full command list.`);
 console.log("");
 
-const session: REPLServer = repl.start({ prompt: "ldt> ", useColors: true });
+const session: REPLServer = repl.start({ prompt: cyan("aegis> "), useColors: true });
 refreshContext(session);
 
 function refreshContext(srv: REPLServer): void {
@@ -157,6 +160,23 @@ function refreshContext(srv: REPLServer): void {
   srv.context.history = history;
   srv.context.scenarios = allScenarios;
 }
+
+session.defineCommand("about", {
+  help: "Display template mission and design tokens.",
+  action() {
+    this.clearBufferedCommand();
+    console.log(`\n${STEEL_BLUE}LIVING DOCS TEMPLATE${RESET}`);
+    console.log("--------------------------------------------------");
+    console.log("Mission: Self-demonstrating, always-current documentation scaffold.");
+    console.log("Core: Typed EventEmitter with living snapshot verification.");
+    console.log(`\n${STEEL_BLUE}Design Palette (Institutional):${RESET}`);
+    console.log("  Obsidian:   #050607");
+    console.log("  Steel Blue: #5E89A8 (Primary Accent)");
+    console.log("  Bone White: #F2F5F7 (Primary Text)");
+    console.log("\nAligned by design.");
+    this.displayPrompt();
+  },
+});
 
 session.defineCommand("demo", {
   help: "Run a short subscribe → emit → log demo on the preloaded emitter.",
@@ -191,7 +211,7 @@ session.defineCommand("scenario", {
       this.displayPrompt();
       return;
     }
-    console.log(`\nRunning scenario "${key}": ${scenario.description}`);
+    console.log(`\n${bold("Running scenario")} ${cyan(`"${key}"`)}: ${dim(scenario.description)}`);
     // Wrap in `new Promise(resolve => resolve(...))` so a synchronous throw
     // inside `scenario.run()` is converted into a rejected Promise. With a
     // plain `Promise.resolve(scenario.run(...))`, a sync throw would escape
@@ -205,6 +225,11 @@ session.defineCommand("scenario", {
       .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
         console.log(red(`  ✗ scenario "${key}" failed: ${msg}`));
+        console.log(green("✔ Scenario completed successfully."));
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(red(`✘ Scenario "${key}" failed: ${msg}`));
       })
       .finally(() => {
         this.displayPrompt();
@@ -216,10 +241,11 @@ session.defineCommand("scenarios", {
   help: "List all available scenarios.",
   action() {
     this.clearBufferedCommand();
-    console.log("Available scenarios:");
+    console.log(bold("\nAvailable scenarios:"));
     for (const [name, scenario] of Object.entries(allScenarios)) {
-      console.log(`  ${name.padEnd(10)} ${scenario.description}`);
+      console.log(`  ${cyan(name.padEnd(10))} ${dim(scenario.description)}`);
     }
+    console.log("");
     this.displayPrompt();
   },
 });
@@ -229,8 +255,8 @@ session.defineCommand("tap", {
   action() {
     this.clearBufferedCommand();
     tapEnabled = !tapEnabled;
-    const state = tapEnabled ? green("ON") : red("OFF");
-    console.log(`${green("✓")} tap is now ${state}${tapEnabled ? dim(" (type .tap again to disable)") : ""}`);
+    console.log(`tap is now ${tapEnabled ? green("ON") : red("OFF")}`);
+    console.log(`tap is now ${tapEnabled ? bold(green("ON")) : bold("OFF")}`);
     this.displayPrompt();
   },
 });
@@ -241,14 +267,15 @@ session.defineCommand("history", {
     this.clearBufferedCommand();
     if (history.length === 0) {
       console.log(dim("(no emits recorded yet)"));
-      console.log(`Try emitting an event: ${green("emitter.emit('hello', 'world')")}`);
     } else {
-      console.log(bold("Recent events:"));
+      console.log(bold("\nRecent Emits:"));
       for (const entry of history) {
         const time = getTime(entry.ts);
         const n = entry.count > 0 ? green(`[n=${entry.count}]`) : dim(`[n=${entry.count}]`);
         console.log(`  ${dim(time)}  ${cyan(entry.event)} ${n}`, ...entry.args);
+        console.log(`  ${dim(time)}  ${cyan(entry.event.padEnd(10))} ${JSON.stringify(entry.args)}`);
       }
+      console.log("");
     }
     this.displayPrompt();
   },
