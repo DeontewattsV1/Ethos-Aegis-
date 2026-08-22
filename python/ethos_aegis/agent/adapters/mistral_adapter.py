@@ -1,43 +1,16 @@
 """
-MistralAdapter — Ethos Aegis adapter for the Mistral AI API.
-
-Supports all Mistral chat-completion models via the official SDK or raw HTTP.
-Compatible with: Mistral AI Cloud, Mistral self-hosted, La Plateforme.
+MistralAdapter -- Ethos Aegis adapter for the Mistral AI API.
 
 pip install mistralai>=1.0
 """
-
 from __future__ import annotations
-from typing import Any, Dict, Iterator, List, Optional
+
+from typing import Dict, Iterator, List, Optional
 from .base_adapter import BaseAdapter
 
 
 class MistralAdapter(BaseAdapter):
-    """
-    Wraps the Mistral AI ChatCompletion API.
-
-    Args:
-        api_key:   Mistral API key (or set MISTRAL_API_KEY env var).
-        model:     Mistral model ID. Default: "mistral-large-latest".
-        server_url: Override base URL for self-hosted / La Plateforme endpoints.
-        temperature: Sampling temperature. Default: 0.7.
-        max_tokens:  Max tokens to generate. Default: 1024.
-        system_prompt: Optional system message prepended to every conversation.
-        **kwargs:  Forwarded to the Mistral client constructor.
-
-    Examples::
-
-        from ethos_aegis.agent.adapters import MistralAdapter
-        from ethos_aegis.agent import UniversalGuard
-
-        guard = UniversalGuard(
-            adapter=MistralAdapter(
-                api_key="...",
-                model="mistral-large-latest",
-            )
-        )
-        response = guard.chat("user message")
-    """
+    """Wraps the Mistral AI ChatCompletion API."""
 
     DEFAULT_MODEL = "mistral-large-latest"
 
@@ -56,7 +29,7 @@ class MistralAdapter(BaseAdapter):
             from mistralai import Mistral
         except ImportError as exc:
             raise ImportError(
-                "MistralAdapter requires the mistralai package: pip install mistralai>=1.0"
+                "MistralAdapter requires: pip install mistralai>=1.0"
             ) from exc
 
         client_kwargs: dict = {}
@@ -66,13 +39,13 @@ class MistralAdapter(BaseAdapter):
             client_kwargs["server_url"] = server_url
         client_kwargs.update(kwargs)
 
-        self._client = Mistral(**client_kwargs)
+        self._client        = Mistral(**client_kwargs)
         self._model         = model
         self._temperature   = temperature
         self._max_tokens    = max_tokens
         self._system_prompt = system_prompt
 
-    # ── BaseAdapter interface ─────────────────────────────────────────────
+    # -- BaseAdapter interface ------------------------------------------------
 
     @property
     def provider_name(self) -> str:
@@ -88,12 +61,12 @@ class MistralAdapter(BaseAdapter):
         self,
         messages: List[Dict[str, str]],
         system: Optional[str] = None,
-        **kwargs: Any,
+        **kwargs,
     ) -> str:
-        full_messages = self._compose_messages(messages, system)
+        built = self._compose_messages(messages, system)
         response = self._client.chat.complete(
             model=self._model,
-            messages=full_messages,
+            messages=built,
             temperature=kwargs.get("temperature", self._temperature),
             max_tokens=kwargs.get("max_tokens", self._max_tokens),
         )
@@ -103,12 +76,12 @@ class MistralAdapter(BaseAdapter):
         self,
         messages: List[Dict[str, str]],
         system: Optional[str] = None,
-        **kwargs: Any,
+        **kwargs,
     ) -> Iterator[str]:
-        full_messages = self._compose_messages(messages, system)
+        built = self._compose_messages(messages, system)
         with self._client.chat.stream(
             model=self._model,
-            messages=full_messages,
+            messages=built,
             temperature=kwargs.get("temperature", self._temperature),
             max_tokens=kwargs.get("max_tokens", self._max_tokens),
         ) as event_stream:
@@ -117,22 +90,21 @@ class MistralAdapter(BaseAdapter):
                 if delta:
                     yield delta
 
-    # ── Helpers ───────────────────────────────────────────────────────────
+    # -- Helpers -------------------------------------------------------------
 
     def _compose_messages(
         self,
         messages: List[Dict[str, str]],
         system: Optional[str],
-    ) -> List[Dict[str, str]]:
+    ) -> list[dict]:
+        """Build the Mistral message list, resolving system instruction priority.
+
+        Call-time ``system`` takes precedence over ``_system_prompt`` set at
+        construction, so both are never applied simultaneously.
         """
-        Build the request messages. An explicit ``system`` argument overrides
-        the adapter-level ``system_prompt`` set at construction time. Caller-
-        supplied messages are appended verbatim and may include their own
-        ``role=system`` entries if needed.
-        """
-        effective_system = system if system is not None else self._system_prompt
-        full: List[Dict[str, str]] = []
-        if effective_system:
-            full.append({"role": "system", "content": effective_system})
-        full.extend(messages)
-        return full
+        result: list[dict] = []
+        effective = system if system is not None else self._system_prompt
+        if effective:
+            result.append({"role": "system", "content": effective})
+        result.extend(messages)
+        return result

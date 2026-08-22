@@ -16,6 +16,14 @@
 import repl, { type REPLServer } from "node:repl";
 import { EventEmitter } from "./src/index.js";
 
+const isColor = process.stdout.isTTY && !process.env.NO_COLOR;
+const bold = (s: string) => isColor ? `\x1b[1m${s}\x1b[22m` : s;
+const cyan = (s: string) => isColor ? `\x1b[36m${s}\x1b[39m` : s;
+const green = (s: string) => isColor ? `\x1b[32m${s}\x1b[39m` : s;
+const red = (s: string) => isColor ? `\x1b[31m${s}\x1b[39m` : s;
+const magenta = (s: string) => isColor ? `\x1b[35m${s}\x1b[39m` : s;
+const dim = (s: string) => isColor ? `\x1b[2m${s}\x1b[22m` : s;
+
 // ─── State ──────────────────────────────────────────────────────────────────
 type DemoEvents = {
   hello: [name: string];
@@ -27,6 +35,7 @@ type HistoryEntry = {
   ts: string;
   event: string;
   args: unknown[];
+  count: number;
 };
 
 const HISTORY_LIMIT = 20;
@@ -43,12 +52,15 @@ function makeEmitter(): EventEmitter<DemoEvents> {
   instance.emit = new Proxy(originalEmit, {
     apply(target, thisArg, argArray) {
       const [event, ...rest] = argArray as [keyof DemoEvents, ...unknown[]];
-      history.push({ ts: new Date().toISOString(), event: String(event), args: rest });
+      // Note: This custom EventEmitter implementation's emit() returns the
+      // number of listeners notified (number), unlike Node.js's (boolean).
+      const count = Reflect.apply(target, thisArg, argArray);
+      history.push({ ts: new Date().toISOString(), event: String(event), args: rest, count });
       if (history.length > HISTORY_LIMIT) history.shift();
       if (tapEnabled) {
-        console.log(`[tap] ${String(event)}`, ...rest);
+        console.log(`${magenta("[tap]")} ${String(event)} (n=${count})`, ...rest);
       }
-      return Reflect.apply(target, thisArg, argArray);
+      return count;
     },
   });
   return instance;
@@ -123,10 +135,10 @@ const allScenarios: Record<string, Scenario> = {
 };
 
 // ─── REPL bootstrap ─────────────────────────────────────────────────────────
-console.log("living-docs-template REPL");
-console.log("=========================");
-console.log("Pre-loaded: `EventEmitter`, `emitter`");
-console.log("Type `.help` for the full command list.");
+console.log(bold(cyan("Living Docs REPL")));
+console.log(dim("────────────────"));
+console.log(`Pre-loaded: ${green("`EventEmitter`")}, ${green("`emitter`")}`);
+console.log(`Type ${bold(".help")} for the full command list.`);
 console.log("");
 
 const session: REPLServer = repl.start({ prompt: "ldt> ", useColors: true });
@@ -145,6 +157,15 @@ session.defineCommand("demo", {
     this.clearBufferedCommand();
     console.log("Running .demo on the current `emitter`:");
     scenarios.subscribe.run(emitter);
+    this.displayPrompt();
+  },
+});
+
+session.defineCommand("cls", {
+  help: "Clear the terminal screen.",
+  action() {
+    this.clearBufferedCommand();
+    console.clear();
     this.displayPrompt();
   },
 });
@@ -170,9 +191,12 @@ session.defineCommand("scenario", {
     new Promise<void>((resolve) => {
       resolve(scenario.run(new EventEmitter<DemoEvents>()));
     })
+      .then(() => {
+        console.log(green("  ✓ scenario complete"));
+      })
       .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
-        console.log(`scenario "${key}" threw: ${msg}`);
+        console.log(red(`  ✗ scenario "${key}" failed: ${msg}`));
       })
       .finally(() => {
         this.displayPrompt();
@@ -197,7 +221,7 @@ session.defineCommand("tap", {
   action() {
     this.clearBufferedCommand();
     tapEnabled = !tapEnabled;
-    console.log(`tap is now ${tapEnabled ? "ON" : "OFF"}`);
+    console.log(`tap is now ${tapEnabled ? green("ON") : red("OFF")}`);
     this.displayPrompt();
   },
 });
@@ -210,7 +234,9 @@ session.defineCommand("history", {
       console.log("(no emits recorded yet)");
     } else {
       for (const entry of history) {
-        console.log(`  ${entry.ts}  ${entry.event}`, ...entry.args);
+        const time = entry.ts.split("T")[1]?.split(".")[0] ?? "--:--:--";
+        const n = entry.count > 0 ? green(`[n=${entry.count}]`) : dim("[n=0]");
+        console.log(`  ${dim(time)}  ${cyan(entry.event)} ${n}`, ...entry.args);
       }
     }
     this.displayPrompt();
