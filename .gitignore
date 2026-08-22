@@ -8,3 +8,5 @@ docs/api/
 .env.local
 .vscode/
 .idea/
+logs/
+Thumbs.db
