@@ -54,8 +54,14 @@ secrets.*.json
 *.bak
 *.swp
 __MACOSX/
+
+# --- Python build/test caches ---
 .venv/
 venv/
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
 build/
