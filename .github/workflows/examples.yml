@@ -48,8 +48,14 @@ jobs:
 
           const replPath = 'repl.ts';
           if (fs.existsSync(replPath)) {
-            const before = fs.readFileSync(replPath, 'utf8');
-            fs.writeFileSync(replPath, before.replace('Run with: `pnpm repl`', 'Run with: `npm run repl`'));
+            let source = fs.readFileSync(replPath, 'utf8');
+            source = source.replace('Run with: `pnpm repl`', 'Run with: `npm run repl`');
+            if (!source.includes('const STEEL_BLUE =')) {
+              const anchor = 'const dim = (s: string) => isColor ? `\\x1b[2m${s}\\x1b[22m` : s;';
+              const additions = `${anchor}\nconst STEEL_BLUE = isColor ? "\\x1b[38;2;94;137;168m" : "";\nconst RESET = isColor ? "\\x1b[0m" : "";`;
+              source = source.replace(anchor, additions);
+            }
+            fs.writeFileSync(replPath, source);
           }
           NODE
 
