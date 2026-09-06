@@ -3,7 +3,7 @@
  * plus a small set of `.dot` commands that turn the REPL into a quick
  * exploration sandbox: `.demo`, `.scenario`, `.tap`, `.history`, `.reset`.
  *
- * Run with: `pnpm repl`
+ * Run with: `npm run repl`
  *
  * Quick start:
  *   ldt> .help                    # list commands
@@ -23,6 +23,8 @@ const green = (s: string) => isColor ? `\x1b[32m${s}\x1b[39m` : s;
 const red = (s: string) => isColor ? `\x1b[31m${s}\x1b[39m` : s;
 const magenta = (s: string) => isColor ? `\x1b[35m${s}\x1b[39m` : s;
 const dim = (s: string) => isColor ? `\x1b[2m${s}\x1b[22m` : s;
+const STEEL_BLUE = isColor ? "\x1b[38;2;94;137;168m" : "";
+const RESET = isColor ? "\x1b[0m" : "";
 
 const getTime = (ts?: string) => {
   const d = ts ? new Date(ts) : new Date();
