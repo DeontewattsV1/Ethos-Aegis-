@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.12.0"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -36,12 +36,12 @@
     "upgrade:dry": "tsx scripts/upgrade.ts --dry-run"
   },
   "devDependencies": {
-    "@types/node": "^20.19.41",
-    "@vitest/coverage-v8": "^4.1.7",
+    "@types/node": "^26.5.1",
+    "@vitest/coverage-v8": "^5.0.1",
     "tsx": "^4.22.3",
-    "typedoc": "^0.28.19",
-    "typescript": "^5.6.3",
-    "vitest": "^4.1.7"
+    "typedoc": "^0.28.20",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
   },
   "keywords": [
     "living-docs",
@@ -49,5 +49,12 @@
     "typescript",
     "observable",
     "event-emitter"
-  ]
+  ],
+  "overrides": {
+    "vite": "8.0.16",
+    "nanoid": "3.3.18",
+    "brace-expansion": "5.0.9",
+    "linkify-it": "5.0.2",
+    "postcss": "8.5.23"
+  }
 }
