@@ -218,3 +218,112 @@ def test_mcp_executes_only_inside_agent_tool_project_intersection() -> None:
     receipt = result.authorization.receipt
     assert receipt.input_hash != "AEGIS test PR"
     assert receipt.output_hash != repr(result.output)
+
+
+def test_mcp_adapter_can_consume_opaque_secret_lease_without_agent_possession() -> None:
+    shield = PrivateShield(signing_key=SIGNING_KEY)
+    broker = SecretBroker(shield)
+    mediator = MCPMediator(shield)
+
+    raw_secret = "github-production-token-value"
+    secret_ref = "secret://github/production"
+    broker.register(secret_ref, raw_secret)
+
+    secret_policy = ProjectPolicy(
+        resource=secret_ref,
+        actions=frozenset({"secret.use"}),
+        scopes=("*",),
+    )
+    secret_grant = _grant(
+        "cap-github-secret",
+        subject="agent://coder-17",
+        resource=secret_ref,
+        action="secret.use",
+    )
+    lease_result = broker.request_lease(
+        subject="agent://coder-17",
+        secret_ref=secret_ref,
+        purpose="github.pull_request.create",
+        identity_verified=True,
+        project_policy=secret_policy,
+        agent_grants=[secret_grant],
+        now=NOW,
+        ttl_seconds=30,
+        max_uses=1,
+    )
+    lease = lease_result.lease
+    assert lease is not None
+    assert raw_secret not in repr(lease)
+
+    mcp_resource = "mcp://github/pull-request-create"
+
+    def github_adapter(arguments):
+        # The agent supplies only the opaque lease identifier. Secret material is
+        # resolved inside the trusted adapter/broker boundary.
+        return broker.execute(
+            str(arguments["credential_lease"]),
+            lambda credential: {
+                "number": 279,
+                "credential_fingerprint": hashlib.sha256(credential).hexdigest()[:12],
+            },
+            now=NOW + timedelta(seconds=2),
+        )
+
+    mediator.register_tool(
+        name="github.create_pr",
+        resource=mcp_resource,
+        tool_subject="tool://github",
+        handler=github_adapter,
+    )
+    mcp_policy = ProjectPolicy(
+        resource=mcp_resource,
+        actions=frozenset({"mcp.invoke"}),
+        scopes=("github.create_pr",),
+    )
+    agent_mcp_grant = _grant(
+        "cap-agent-github-mcp",
+        subject="agent://coder-17",
+        resource=mcp_resource,
+        action="mcp.invoke",
+        scopes=("github.create_pr",),
+    )
+    tool_mcp_grant = _grant(
+        "cap-tool-github-mcp",
+        subject="tool://github",
+        resource=mcp_resource,
+        action="mcp.invoke",
+        scopes=("github.create_pr",),
+    )
+
+    result = mediator.invoke(
+        "github.create_pr",
+        subject="agent://coder-17",
+        arguments={
+            "title": "Opaque credential integration",
+            "credential_lease": lease.lease_id,
+        },
+        identity_verified=True,
+        project_policy=mcp_policy,
+        agent_grants=[agent_mcp_grant],
+        tool_grants=[tool_mcp_grant],
+        now=NOW + timedelta(seconds=1),
+    )
+
+    assert result.authorization.decision.decision is Decision.ALLOW
+    assert result.executed is True
+    assert result.execution_error is None
+    assert result.output == {
+        "number": 279,
+        "credential_fingerprint": hashlib.sha256(raw_secret.encode()).hexdigest()[:12],
+    }
+    assert raw_secret not in repr(result.output)
+    assert raw_secret not in repr(result.authorization.receipt)
+    assert shield.audit.verify()
+    assert [receipt.action for receipt in shield.audit.receipts] == [
+        "secret.use",
+        "secret.use",
+        "mcp.invoke",
+    ]
+
+    with pytest.raises(SecretLeaseError):
+        broker.execute(lease.lease_id, lambda secret: "replay", now=NOW + timedelta(seconds=3))
