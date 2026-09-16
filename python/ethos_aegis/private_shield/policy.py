@@ -13,11 +13,16 @@ from .models import (
     ProjectPolicy,
     RiskVector,
 )
+from .paths import PathPolicyError, canonicalize_resource_path, canonicalize_scope_pattern
 
 
 def _scope_allows(path: str, scopes: Sequence[str]) -> bool:
-    candidate = path or ""
-    return any(scope == "*" or fnmatchcase(candidate, scope) for scope in scopes)
+    try:
+        candidate = canonicalize_resource_path(path or "")
+        normalized_scopes = tuple(canonicalize_scope_pattern(scope) for scope in scopes)
+    except PathPolicyError:
+        return False
+    return any(scope == "*" or fnmatchcase(candidate, scope) for scope in normalized_scopes)
 
 
 def _destination_allows(destination: str | None, allowed: frozenset[str]) -> bool:
@@ -34,7 +39,7 @@ class PolicyEngine:
         Permit(a) = I ∧ P ∧ R ∧ C ∧ E ∧ T
 
     plus data-flow mediation, confused-deputy prevention, explicit approval gates,
-    and risk-adaptive capability contraction.
+    risk-adaptive capability contraction, and architecture-neutral path matching.
     """
 
     def evaluate(
@@ -92,8 +97,6 @@ class PolicyEngine:
 
         selected: list[CapabilityGrant] = agent_flow_matches
 
-        # No confused deputy: when a tool is involved, the action must be inside
-        # the intersection of caller, tool, and project authority.
         if request.tool_subject:
             matching_tool = self._matching_grants(
                 request=request,
@@ -184,7 +187,6 @@ class PolicyEngine:
                 continue
             if not grant.is_active(now):
                 continue
-            # Core contraction invariant: increasing risk can only remove grants.
             if risk > grant.max_risk:
                 continue
             matched.append(grant)
