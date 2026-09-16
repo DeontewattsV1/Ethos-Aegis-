@@ -177,7 +177,8 @@ class TestEthosAegisPipeline(unittest.TestCase):
         self.assertIsNotNone(verdict.sentinel_chronicle)
         self.assertIsNotNone(verdict.axiological_report)
         self.assertIsInstance(verdict.adjudication_time, float)
-        self.assertGreater(verdict.adjudication_time, 0)
+        # The public metric is rounded to 4 decimals; very fast runs may be 0.0.
+        self.assertGreaterEqual(verdict.adjudication_time, 0.0)
 
     def test_adjudication_time_is_sub_second(self):
         """Each adjudication must complete in under 1 second."""
