@@ -37,12 +37,21 @@ def _grant(
     )
 
 
-def test_secret_broker_returns_opaque_lease_and_consumes_it_once() -> None:
+def test_secret_broker_returns_opaque_purpose_bound_lease_and_consumes_it_once() -> None:
     shield = PrivateShield(signing_key=SIGNING_KEY)
     broker = SecretBroker(shield)
     secret_ref = "secret://github/production"
     raw_secret = "ghp_example_super_secret_value"
+    purpose = "github.pull_request.create"
     broker.register(secret_ref, raw_secret)
+    broker.register_adapter(
+        purpose,
+        lambda secret, arguments: {
+            "credential_fingerprint": hashlib.sha256(secret).hexdigest()[:12],
+            "repo": arguments.get("repo"),
+        },
+    )
+    broker.register_adapter("database.healthcheck", lambda secret, arguments: {"ok": True})
 
     policy = ProjectPolicy(resource=secret_ref, actions=frozenset({"secret.use"}), scopes=("*",))
     grant = _grant(
@@ -54,7 +63,7 @@ def test_secret_broker_returns_opaque_lease_and_consumes_it_once() -> None:
     result = broker.request_lease(
         subject="agent://coder-17",
         secret_ref=secret_ref,
-        purpose="github.pull_request.create",
+        purpose=purpose,
         identity_verified=True,
         project_policy=policy,
         agent_grants=[grant],
@@ -67,31 +76,66 @@ def test_secret_broker_returns_opaque_lease_and_consumes_it_once() -> None:
     assert result.lease is not None
     assert raw_secret not in repr(result.lease)
 
+    # A lease cannot be redirected to another trusted adapter, and the failed
+    # purpose check must not consume the valid one-use lease.
+    with pytest.raises(SecretLeaseError):
+        broker.execute(
+            result.lease.lease_id,
+            "database.healthcheck",
+            now=NOW + timedelta(milliseconds=500),
+        )
+
     output = broker.execute(
         result.lease.lease_id,
-        lambda secret: {"credential_fingerprint": hashlib.sha256(secret).hexdigest()[:12]},
+        purpose,
+        arguments={"repo": "goodshyt/project"},
         now=NOW + timedelta(seconds=1),
     )
-    assert output["credential_fingerprint"] == hashlib.sha256(raw_secret.encode()).hexdigest()[:12]
+    assert output == {
+        "credential_fingerprint": hashlib.sha256(raw_secret.encode()).hexdigest()[:12],
+        "repo": "goodshyt/project",
+    }
     assert raw_secret not in repr(output)
     assert shield.audit.verify()
     assert len(shield.audit.receipts) == 2
 
     with pytest.raises(SecretLeaseError):
-        broker.execute(result.lease.lease_id, lambda secret: "should-not-run", now=NOW + timedelta(seconds=2))
+        broker.execute(result.lease.lease_id, purpose, now=NOW + timedelta(seconds=2))
+
+
+def test_secret_broker_requires_pre_registered_adapter() -> None:
+    shield = PrivateShield(signing_key=SIGNING_KEY)
+    broker = SecretBroker(shield)
+    secret_ref = "secret://github/production"
+    broker.register(secret_ref, "token")
+    policy = ProjectPolicy(resource=secret_ref, actions=frozenset({"secret.use"}), scopes=("*",))
+    grant = _grant("cap-secret", subject="agent://coder-17", resource=secret_ref, action="secret.use")
+
+    with pytest.raises(SecretLeaseError, match="registered trusted adapter"):
+        broker.request_lease(
+            subject="agent://coder-17",
+            secret_ref=secret_ref,
+            purpose="caller.supplied.callback",
+            identity_verified=True,
+            project_policy=policy,
+            agent_grants=[grant],
+            now=NOW,
+        )
 
 
 def test_secret_broker_blocks_direct_secret_reflection() -> None:
     shield = PrivateShield(signing_key=SIGNING_KEY)
     broker = SecretBroker(shield)
     secret_ref = "secret://database/production"
+    purpose = "database.healthcheck"
     broker.register(secret_ref, "database-password-value")
+    broker.register_adapter(purpose, lambda secret, arguments: secret.decode())
     policy = ProjectPolicy(resource=secret_ref, actions=frozenset({"secret.use"}), scopes=("*",))
     grant = _grant("cap-db-use", subject="agent://coder-17", resource=secret_ref, action="secret.use")
     lease = broker.request_lease(
         subject="agent://coder-17",
         secret_ref=secret_ref,
-        purpose="database.healthcheck",
+        purpose=purpose,
         identity_verified=True,
         project_policy=policy,
         agent_grants=[grant],
@@ -100,7 +144,7 @@ def test_secret_broker_blocks_direct_secret_reflection() -> None:
     assert lease is not None
 
     with pytest.raises(SecretExfiltrationError):
-        broker.execute(lease.lease_id, lambda secret: secret.decode(), now=NOW + timedelta(seconds=1))
+        broker.execute(lease.lease_id, purpose, now=NOW + timedelta(seconds=1))
 
     assert shield.audit.verify()
     assert shield.audit.receipts[-1].decision == Decision.DENY.value
@@ -217,7 +261,16 @@ def test_mcp_adapter_can_consume_opaque_secret_lease_without_agent_possession() 
 
     raw_secret = "github-production-token-value"
     secret_ref = "secret://github/production"
+    purpose = "github.pull_request.create"
     broker.register(secret_ref, raw_secret)
+    broker.register_adapter(
+        purpose,
+        lambda credential, arguments: {
+            "number": 279,
+            "title": arguments["title"],
+            "credential_fingerprint": hashlib.sha256(credential).hexdigest()[:12],
+        },
+    )
 
     secret_policy = ProjectPolicy(resource=secret_ref, actions=frozenset({"secret.use"}), scopes=("*",))
     secret_grant = _grant(
@@ -229,7 +282,7 @@ def test_mcp_adapter_can_consume_opaque_secret_lease_without_agent_possession() 
     lease = broker.request_lease(
         subject="agent://coder-17",
         secret_ref=secret_ref,
-        purpose="github.pull_request.create",
+        purpose=purpose,
         identity_verified=True,
         project_policy=secret_policy,
         agent_grants=[secret_grant],
@@ -245,10 +298,8 @@ def test_mcp_adapter_can_consume_opaque_secret_lease_without_agent_possession() 
     def github_adapter(arguments):
         return broker.execute(
             str(arguments["credential_lease"]),
-            lambda credential: {
-                "number": 279,
-                "credential_fingerprint": hashlib.sha256(credential).hexdigest()[:12],
-            },
+            purpose,
+            arguments={"title": str(arguments["title"])},
             now=NOW + timedelta(seconds=2),
         )
 
@@ -297,6 +348,7 @@ def test_mcp_adapter_can_consume_opaque_secret_lease_without_agent_possession() 
     assert result.execution_error is None
     assert result.output == {
         "number": 279,
+        "title": "Opaque credential integration",
         "credential_fingerprint": hashlib.sha256(raw_secret.encode()).hexdigest()[:12],
     }
     assert raw_secret not in repr(result.output)
@@ -309,4 +361,4 @@ def test_mcp_adapter_can_consume_opaque_secret_lease_without_agent_possession() 
     ]
 
     with pytest.raises(SecretLeaseError):
-        broker.execute(lease.lease_id, lambda secret: "replay", now=NOW + timedelta(seconds=3))
+        broker.execute(lease.lease_id, purpose, now=NOW + timedelta(seconds=3))
