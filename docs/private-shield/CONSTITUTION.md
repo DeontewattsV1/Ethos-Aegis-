@@ -26,6 +26,9 @@ The system therefore trusts the boundary rather than the intelligence inside the
 16. **Sandboxed execution.** Untrusted execution belongs in constrained environments rather than the host.
 17. **Artifact quarantine.** Untrusted artifacts remain untrusted until policy and scanner acceptance.
 18. **Communication-channel control.** Isolation must account for shared writable/readable state, not only explicit chat channels.
+19. **Path semantic invariance.** A resource path must have one policy meaning regardless of Linux, macOS, or Windows host semantics.
+20. **Opaque credential delegation.** Agent-visible authority to use a secret is a short-lived opaque lease, never the secret material itself.
+21. **Tool execution mediation.** A registered MCP/tool handler must not execute until caller, tool, project, environment, risk, and flow authority intersect.
 
 ## Core authorization equation
 
@@ -46,7 +49,7 @@ E = permitted execution environment
 T = valid time-bounded authority
 ```
 
-AEGIS v0.1 also evaluates data flow:
+AEGIS also evaluates data flow:
 
 ```text
 Permit(a, flow)
@@ -74,22 +77,58 @@ R(t+1) > R(t)  =>  C(t+1) ⊆ C(t)
 
 unless a trusted policy/human action explicitly grants new authority.
 
-This is stronger than scaling a single numeric privilege score because indivisible dangerous powers are removed as discrete capabilities.
+## Cross-platform path boundary
 
-## What v0.1 makes testable
+AEGIS policy matching uses a canonical POSIX-like virtual namespace even when execution occurs on Windows or macOS. Backslashes are normalized to `/`, while host-specific or ambiguous path forms fail closed before authorization.
 
-The Python reference implementation under `python/ethos_aegis/private_shield/` verifies these properties:
+The reference implementation rejects parent traversal, absolute paths, Windows drive paths, UNC paths, NTFS alternate-data-stream syntax, Windows reserved device names, trailing-dot/space aliases, NUL bytes, and untrusted glob syntax in requested resource paths.
 
-- unverified identities are denied;
-- expired grants are denied;
-- higher risk removes high-impact capabilities before lower-risk read capabilities;
-- a high-authority tool cannot be used as a confused deputy by a lower-authority agent;
-- private source read access does not imply export permission;
-- explicit approval gates produce `REQUIRE_APPROVAL` instead of silently executing;
-- denied attempts still generate evidence receipts;
-- alteration of a receipt or its chain is detected.
+```text
+PolicyMeaning(path, Linux)
+  = PolicyMeaning(path, macOS)
+  = PolicyMeaning(path, Windows)
+```
 
-## v0.1 evidence model
+for paths admitted into the AEGIS virtual namespace.
+
+## Secret non-possession boundary
+
+`SecretBroker` is the only reference component that stores raw secret material. An authorized agent receives a short-lived `SecretLease` containing an opaque lease identifier, secret reference, purpose, expiration, and use limit. It does not contain credential bytes.
+
+```text
+agent
+  -> secret.use authorization
+  -> opaque lease_id
+  -> trusted adapter
+  -> broker resolves credential internally
+  -> operation
+  -> lease consumed/revoked
+  -> evidence receipt
+```
+
+The reference broker constrains lease TTL and use count, supports explicit revocation, consumes uses even when the trusted adapter fails, and blocks direct reflection of raw credential material in an adapter result. The reflection check is a narrow reference containment check, not a replacement for the future full DLP/egress layer.
+
+## MCP mediation boundary
+
+`MCPMediator` registers trusted handlers behind a `mcp://` resource and `tool://` identity. A handler is not invoked until policy evaluation succeeds for the caller and tool together.
+
+```text
+MCPExecute
+  => AgentAuthority
+   ∩ ToolAuthority
+   ∩ ProjectPolicy
+   ∩ Session/RiskEnvelope
+```
+
+Denied calls produce an evidence receipt but never call the handler. Allowed calls hash arguments and results into the receipt rather than storing their raw contents.
+
+The integration suite also composes both boundaries: an agent passes only an opaque secret lease ID into an authorized MCP call, and the trusted MCP adapter resolves the credential through the broker. Model-facing input and output never contain the raw secret.
+
+## Cross-platform CI evidence
+
+The focused Private Shield suite runs as dedicated GitHub Actions compatibility gates on `macos-latest` and `windows-latest`, while the existing Linux Python matrix remains authoritative for the full package. Each non-Linux gate uploads a JUnit artifact so cross-platform conformance is inspectable from workflow history.
+
+## Evidence model
 
 The reference implementation uses SHA-256 hashes and HMAC-SHA256 signatures because the package currently has zero mandatory third-party dependencies. Production deployments should move the signing key behind KMS/HSM and may use asymmetric signatures such as Ed25519 for externally verifiable receipts.
 
@@ -97,4 +136,4 @@ No raw prompt, secret, source payload, or tool output needs to be placed in the 
 
 ## Next hardening layers
 
-The reference monitor is intentionally narrow. Subsequent layers should add opaque secret references and leased credentials, source classification/redaction, malware quarantine, sandbox/network/filesystem policies, DLP/secret detection, capability revocation, workload identity, MCP/tool mediation, and production-grade append-only evidence storage.
+The next boundary should replace the in-memory secret backend with pluggable Vault/cloud secret-manager/KMS adapters, add capability revocation propagation and workload identity, mediate real MCP transports rather than in-process handlers, add source classification/redaction and DLP, and bind sandbox/network/filesystem enforcement to the same signed evidence stream.
