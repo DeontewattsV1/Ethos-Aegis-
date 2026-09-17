@@ -36,11 +36,11 @@
     "upgrade:dry": "tsx scripts/upgrade.ts --dry-run"
   },
   "devDependencies": {
-    "@types/node": "^26.5.1",
+    "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^5.0.1",
     "tsx": "^4.22.3",
-    "typedoc": "^0.28.20",
-    "typescript": "^7.0.2",
+    "typedoc": "^0.28.19",
+    "typescript": "^5.6.3",
     "vitest": "^5.0.1"
   },
   "keywords": [
