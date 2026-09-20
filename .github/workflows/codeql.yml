@@ -1,0 +1,95 @@
+# CodeQL advanced setup for the public Ethos-Aegis repository.
+#
+# Rate-limit resilience:
+# - cancel superseded runs for the same ref/PR
+# - serialize language analyses to avoid bursty installation API traffic
+# - skip PR/push scans when only non-code/non-workflow assets change
+# - keep scheduled and manual full scans available
+name: "CodeQL Advanced"
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - ".github/workflows/**"
+      - "agents/**"
+      - "graph/**"
+      - "python/**"
+      - "simulation/**"
+      - "src/**"
+      - "test/**"
+      - "tests/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "pyproject.toml"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - ".github/workflows/**"
+      - "agents/**"
+      - "graph/**"
+      - "python/**"
+      - "simulation/**"
+      - "src/**"
+      - "test/**"
+      - "tests/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "pyproject.toml"
+  schedule:
+    - cron: '37 2 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    if: github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
+          - language: python
+            build-mode: none
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Run manual build steps
+        if: matrix.build-mode == 'manual'
+        shell: bash
+        run: |
+          echo 'Manual CodeQL build mode is selected but no build command is configured.' >&2
+          exit 1
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
