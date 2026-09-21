@@ -41,6 +41,60 @@ jobs:
         run: mypy ethos_aegis/ --ignore-missing-imports --no-strict-optional --no-error-summary 2>&1 | tail -5 || true
 
   # ───────────────────────────────────────────────────────────────────────────
+  # WINDOWS PATH COMPATIBILITY GATE
+  # Prevent Linux/macOS-valid filenames from breaking Windows checkout.
+  # ───────────────────────────────────────────────────────────────────────────
+  windows-paths:
+    name: Windows Path Compatibility
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject Windows-invalid tracked paths
+        shell: python
+        run: |
+          import re
+          import subprocess
+          import sys
+
+          invalid_chars = set('<>:"\\|?*')
+          reserved = {
+              "CON", "PRN", "AUX", "NUL",
+              *(f"COM{i}" for i in range(1, 10)),
+              *(f"LPT{i}" for i in range(1, 10)),
+          }
+
+          raw = subprocess.check_output(["git", "ls-files", "-z"])
+          paths = [p.decode("utf-8", "surrogateescape") for p in raw.split(b"\0") if p]
+          violations = []
+
+          for path in paths:
+              for component in path.split("/"):
+                  normalized = component.rstrip(" .")
+                  stem = normalized.split(".", 1)[0].upper()
+
+                  reasons = []
+                  if any(ord(ch) < 32 for ch in component):
+                      reasons.append("control character")
+                  if any(ch in invalid_chars for ch in component):
+                      reasons.append("Windows-invalid character")
+                  if component.endswith((" ", ".")):
+                      reasons.append("trailing space/dot")
+                  if stem in reserved:
+                      reasons.append("reserved Windows device name")
+
+                  if reasons:
+                      violations.append((path, component, ", ".join(reasons)))
+
+          if violations:
+              print("Windows-incompatible tracked paths detected:", file=sys.stderr)
+              for path, component, reasons in violations:
+                  print(f"  {path!r} (component {component!r}: {reasons})", file=sys.stderr)
+              sys.exit(1)
+
+          print(f"Windows path compatibility OK: {len(paths)} tracked paths checked.")
+
+  # ───────────────────────────────────────────────────────────────────────────
   # JOB 2 — PYTHON MATRIX (3.10 / 3.11 / 3.12)
   # ───────────────────────────────────────────────────────────────────────────
   python:
@@ -120,7 +174,7 @@ jobs:
   # ───────────────────────────────────────────────────────────────────────────
   windows:
     name: Windows Private Shield (Python 3.11)
-    needs: lint
+    needs: [lint, windows-paths]
     runs-on: windows-latest
     permissions:
       contents: read
@@ -229,7 +283,7 @@ jobs:
   # ───────────────────────────────────────────────────────────────────────────
   report:
     name: Pipeline Report
-    needs: [python, macos, windows, security, sandbox]
+    needs: [python, macos, windows-paths, windows, security, sandbox]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -246,6 +300,7 @@ jobs:
             echo "|-----|--------|"
             echo "| Python 3.10/3.11/3.12 | ${{ needs.python.result }} |"
             echo "| macOS Private Shield | ${{ needs.macos.result }} |"
+            echo "| Windows Path Compatibility | ${{ needs.windows-paths.result }} |"
             echo "| Windows Private Shield | ${{ needs.windows.result }} |"
             echo "| Security Scan | ${{ needs.security.result }} |"
             echo "| Sandbox Isolation | ${{ needs.sandbox.result }} |"
@@ -255,7 +310,7 @@ jobs:
             echo "**Triggered by:** ${{ github.event_name }}"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Fail if critical jobs failed
-        if: needs.python.result == 'failure' || needs.macos.result == 'failure' || needs.windows.result == 'failure' || needs.sandbox.result == 'failure'
+        if: needs.python.result == 'failure' || needs.macos.result == 'failure' || needs.windows-paths.result == 'failure' || needs.windows.result == 'failure' || needs.sandbox.result == 'failure'
         run: |
           echo "Critical jobs failed."
           exit 1
