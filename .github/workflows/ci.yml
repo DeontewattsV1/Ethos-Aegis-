@@ -44,7 +44,7 @@ jobs:
   # WINDOWS PATH COMPATIBILITY GATE
   # Prevent Linux/macOS-valid filenames from breaking Windows checkout.
   # ───────────────────────────────────────────────────────────────────────────
-  windows-paths:
+  windows_paths:
     name: Windows Path Compatibility
     needs: lint
     runs-on: ubuntu-latest
@@ -174,7 +174,7 @@ jobs:
   # ───────────────────────────────────────────────────────────────────────────
   windows:
     name: Windows Private Shield (Python 3.11)
-    needs: [lint, windows-paths]
+    needs: [lint, windows_paths]
     runs-on: windows-latest
     permissions:
       contents: read
@@ -283,7 +283,7 @@ jobs:
   # ───────────────────────────────────────────────────────────────────────────
   report:
     name: Pipeline Report
-    needs: [python, macos, windows-paths, windows, security, sandbox]
+    needs: [python, macos, windows_paths, windows, security, sandbox]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -300,7 +300,7 @@ jobs:
             echo "|-----|--------|"
             echo "| Python 3.10/3.11/3.12 | ${{ needs.python.result }} |"
             echo "| macOS Private Shield | ${{ needs.macos.result }} |"
-            echo "| Windows Path Compatibility | ${{ needs.windows-paths.result }} |"
+            echo "| Windows Path Compatibility | ${{ needs.windows_paths.result }} |"
             echo "| Windows Private Shield | ${{ needs.windows.result }} |"
             echo "| Security Scan | ${{ needs.security.result }} |"
             echo "| Sandbox Isolation | ${{ needs.sandbox.result }} |"
@@ -310,7 +310,7 @@ jobs:
             echo "**Triggered by:** ${{ github.event_name }}"
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Fail if critical jobs failed
-        if: needs.python.result == 'failure' || needs.macos.result == 'failure' || needs.windows-paths.result == 'failure' || needs.windows.result == 'failure' || needs.sandbox.result == 'failure'
+        if: needs.python.result == 'failure' || needs.macos.result == 'failure' || needs.windows_paths.result == 'failure' || needs.windows.result == 'failure' || needs.sandbox.result == 'failure'
         run: |
           echo "Critical jobs failed."
           exit 1
