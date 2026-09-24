@@ -189,18 +189,11 @@ class VeriflowImmuneSystem:
 
         existing = self._cache.get(resource_id)
 
-        # Always probe upstream fingerprint first (cheap metadata or row sample).
-        # If the probe returns "" (client lacks resource_show/datastore_search),
-        # fall back to the stored upstream_fingerprint as a digest-based guard.
+        # Always probe upstream fingerprint first (cheap metadata or row sample)
         if existing is not None:
             probe_fingerprint = self._probe_upstream_fingerprint(resource_id)
-            effective_fp = probe_fingerprint or existing.upstream_fingerprint
-            if effective_fp and effective_fp == existing.upstream_fingerprint:
-                # Only skip when the probe explicitly confirmed no change,
-                # OR when probe is unavailable but digest guard will catch changes below.
-                if probe_fingerprint:
-                    return existing
-                # probe unavailable: fall through to ingest but use digest guard below
+            if probe_fingerprint and probe_fingerprint == existing.upstream_fingerprint:
+                return existing
 
         # Full ingest
         result: CKANIngestionResult = self.ckan.ingest_resource(resource_id)
@@ -208,12 +201,7 @@ class VeriflowImmuneSystem:
         fields = result.fields
 
         # Compute fingerprint and digest
-        # Probe again post-ingest so stored fingerprint matches future probe results;
-        # fall back to row digest so clients without resource_show still cache correctly.
-        fingerprint = (
-            self._probe_upstream_fingerprint(resource_id)
-            or self._compute_fingerprint(resource_id, rows)
-        )
+        fingerprint = self._probe_upstream_fingerprint(resource_id) or self._compute_fingerprint(resource_id, rows)
         digest = hashlib.sha256(
             json.dumps(rows, sort_keys=True).encode("utf-8")
         ).hexdigest()

@@ -38,25 +38,27 @@ This safeguard would only ever fail if the commit-back step were switched
 to push using a PAT, which is unusual and should be considered a red flag
 in code review.
 
-### Safeguard 2 — Commit-message guard
+### Safeguard 2 — Commit-message prefix guard
 
 The workflow's `regenerate` job has a top-level `if:` guard:
 
 ```yaml
-if: "${{ !contains(github.event.head_commit.message, 'docs refresh README snippets') }}"
+if: "${{ !startsWith(github.event.head_commit.message, 'docs refresh README snippets') }}"
 ```
 
-If for any reason a push reaches this workflow whose head commit's
-message contains the sentinel `docs refresh README snippets`, the
+If for any reason a push reaches this workflow whose head commit's first
+line is exactly the sentinel `docs refresh README snippets …`, the
 regenerate job is skipped. The commit-back step itself uses that exact
-sentinel in its commit message:
+sentinel as the first line of its commit message:
 
 ```yaml
 git commit -m "docs refresh README snippets + output snapshots"
 ```
 
-`contains` is used to ensure that even if the sentinel appears mid-message
-(e.g. in a squash merge or automated prefixing), the loop is still blocked.
+`startsWith` is used instead of `contains` so that an unrelated human
+commit which merely *quotes* the sentinel in its body (e.g. when a PR
+description gets copied into the merge commit) still triggers the
+workflow normally.
 
 ## Verification
 
@@ -84,7 +86,7 @@ and produced the bot commits in the table above.
 
 | Change | Risk | Mitigation |
 |---|---|---|
-| Rewriting the `Commit back to main` step's commit message | Breaks safeguard 2. | Keep the literal phrase `docs refresh README snippets` in the commit message. The guard uses `contains`. |
-| Switching the commit-back from `secrets.GITHUB_TOKEN` to a PAT | Bypasses safeguard 1; safeguard 2 becomes load-bearing. | Make sure safeguard 2's `if:` guard is still keyed on the same commit-message sentinel as the new commit step. |
+| Rewriting the `Commit back to main` step's commit message | Breaks safeguard 2. | Keep the literal phrase `docs refresh README snippets` as the **first line** of the commit message. The guard uses `startsWith`. |
+| Switching the commit-back from `secrets.GITHUB_TOKEN` to a PAT | Bypasses safeguard 1; safeguard 2 becomes load-bearing. | Make sure safeguard 2's `if:` guard is still keyed on the same commit-message prefix as the new commit step. |
 | Removing the `LDT_FORCE_STAMP=1` re-sync on main | Eliminates the timestamp drift, so the commit-back may rarely fire — but the workflow still does its real job of catching content drift. | Acceptable trade-off if you decide a moving timestamp isn't worth the bot commits in history. |
-| Adding a different commit-back step (e.g. for `examples.yml`) | Could re-trigger `docs.yml` if its commit message doesn't match the guard. | Either keep `examples.yml` from pushing to `main` at all, or extend the guard's `contains` check to accept the new sentinel too. |
+| Adding a different commit-back step (e.g. for `examples.yml`) | Could re-trigger `docs.yml` if its commit message doesn't match the guard. | Either keep `examples.yml` from pushing to `main` at all, or extend the guard's `startsWith` to accept the new prefix too. |
