@@ -23,6 +23,13 @@ const green = (s: string) => isColor ? `\x1b[32m${s}\x1b[39m` : s;
 const red = (s: string) => isColor ? `\x1b[31m${s}\x1b[39m` : s;
 const magenta = (s: string) => isColor ? `\x1b[35m${s}\x1b[39m` : s;
 const dim = (s: string) => isColor ? `\x1b[2m${s}\x1b[22m` : s;
+const STEEL_BLUE = isColor ? "\x1b[38;2;94;137;168m" : "";
+const RESET = isColor ? "\x1b[0m" : "";
+
+const getTime = (ts?: string) => {
+  const d = ts ? new Date(ts) : new Date();
+  return d.toISOString().split("T")[1]?.split(".")[0] ?? "--:--:--";
+};
 
 // ─── State ──────────────────────────────────────────────────────────────────
 type DemoEvents = {
@@ -40,11 +47,32 @@ type HistoryEntry = {
 
 const HISTORY_LIMIT = 20;
 const history: HistoryEntry[] = [];
+const knownEvents = new Set<string>();
 let tapEnabled = false;
 let emitter = makeEmitter();
 
 function makeEmitter(): EventEmitter<DemoEvents> {
   const instance = new EventEmitter<DemoEvents>();
+
+  // Track event names on subscribe too
+  const originalOn = instance.on.bind(instance);
+  instance.on = new Proxy(originalOn, {
+    apply(target, thisArg, argArray) {
+      const [event] = argArray as [keyof DemoEvents, unknown];
+      knownEvents.add(String(event));
+      return Reflect.apply(target, thisArg, argArray);
+    },
+  });
+
+  const originalOnce = instance.once.bind(instance);
+  instance.once = new Proxy(originalOnce, {
+    apply(target, thisArg, argArray) {
+      const [event] = argArray as [keyof DemoEvents, unknown];
+      knownEvents.add(String(event));
+      return Reflect.apply(target, thisArg, argArray);
+    },
+  });
+
   // Wrap `emit` so every event is recorded; tap can additionally log live.
   // We use a Proxy so the wrapped function keeps the original method's full
   // generic signature without needing a `as` cast.
@@ -52,13 +80,16 @@ function makeEmitter(): EventEmitter<DemoEvents> {
   instance.emit = new Proxy(originalEmit, {
     apply(target, thisArg, argArray) {
       const [event, ...rest] = argArray as [keyof DemoEvents, ...unknown[]];
+      knownEvents.add(String(event));
       // Note: This custom EventEmitter implementation's emit() returns the
       // number of listeners notified (number), unlike Node.js's (boolean).
       const count = Reflect.apply(target, thisArg, argArray);
       history.push({ ts: new Date().toISOString(), event: String(event), args: rest, count });
       if (history.length > HISTORY_LIMIT) history.shift();
       if (tapEnabled) {
-        console.log(`${magenta("[tap]")} ${String(event)} (n=${count})`, ...rest);
+        const time = dim(getTime());
+        const n = count > 0 ? green(`[n=${count}]`) : dim(`[n=${count}]`);
+        console.log(`${magenta("[tap]")} ${time}  ${cyan(String(event))} ${n}`, ...rest);
       }
       return count;
     },
@@ -123,7 +154,8 @@ const allScenarios: Record<string, Scenario> = {
     description: "Run every named scenario in order on a fresh emitter each time.",
     async run() {
       for (const [name, scenario] of Object.entries(scenarios)) {
-        console.log(`\n— ${name}: ${scenario.description}`);
+        console.log(`\n${bold(cyan(`=== SCENARIO: ${name} ===`))}`);
+        console.log(`${dim(scenario.description)}`);
         const fresh = new EventEmitter<DemoEvents>();
         // `run()` may be sync (`void`) or async (`Promise<void>`); normalize
         // both so the loop awaits sequentially without misusing `await` on
@@ -177,6 +209,27 @@ session.defineCommand("demo", {
     this.clearBufferedCommand();
     console.log("Running .demo on the current `emitter`:");
     scenarios.subscribe.run(emitter);
+    console.log(green("  ✓ demo complete"));
+    this.displayPrompt();
+  },
+});
+
+session.defineCommand("status", {
+  help: "Show the current REPL status (tap, history, active listeners).",
+  action() {
+    this.clearBufferedCommand();
+    console.log(bold("REPL Status:"));
+    console.log(`  tap:     ${tapEnabled ? green("ON") : red("OFF")}`);
+    console.log(`  history: ${history.length} / ${HISTORY_LIMIT} entries`);
+    console.log(`  events:  ${knownEvents.size === 0 ? dim("(none)") : [...knownEvents].join(", ")}`);
+
+    const active = [...knownEvents].filter(ev => emitter.listenerCount(ev as keyof DemoEvents) > 0);
+    if (active.length > 0) {
+      console.log(bold("\nActive Listeners:"));
+      for (const ev of active) {
+        console.log(`  ${cyan(ev.padEnd(12))} ${green(String(emitter.listenerCount(ev as keyof DemoEvents)))}`);
+      }
+    }
     this.displayPrompt();
   },
 });
@@ -262,8 +315,8 @@ session.defineCommand("history", {
     } else {
       console.log(bold("\nRecent Emits:"));
       for (const entry of history) {
-        const time = entry.ts.split("T")[1]?.split(".")[0] ?? "--:--:--";
-        const n = entry.count > 0 ? green(`[n=${entry.count}]`) : dim("[n=0]");
+        const time = getTime(entry.ts);
+        const n = entry.count > 0 ? green(`[n=${entry.count}]`) : dim(`[n=${entry.count}]`);
         console.log(`  ${dim(time)}  ${cyan(entry.event)} ${n}`, ...entry.args);
         console.log(`  ${dim(time)}  ${cyan(entry.event.padEnd(10))} ${JSON.stringify(entry.args)}`);
       }
@@ -280,7 +333,7 @@ session.defineCommand("reset", {
     emitter = makeEmitter();
     history.length = 0;
     refreshContext(session);
-    console.log("emitter and history reset.");
+    console.log(`${green("✓")} emitter and history reset.`);
     this.displayPrompt();
   },
 });
