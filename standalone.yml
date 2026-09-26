@@ -1,0 +1,769 @@
+name: PR Conductor — Standalone
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+      - converted_to_draft
+      - labeled
+      - unlabeled
+      - edited
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Run without mutating PRs or branches
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: pr-conductor-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  conductor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      EVENT_NAME: ${{ github.event_name }}
+      TARGET_PR: ${{ github.event.pull_request.number || 0 }}
+
+      # Policy defaults
+      AUTO_MERGE_MODE: same-repo
+      AUTO_REBASE: "true"
+      STACK_SYNC: "true"
+      NORMALIZE_TITLES: "true"
+      COMMENT_ENABLED: "true"
+      DRY_RUN: ${{ inputs.dry_run || false }}
+      DEFAULT_SINGLE_STRATEGY: rebase
+      DEFAULT_MULTI_STRATEGY: squash
+      RELEASE_STRATEGY: merge
+      DEFAULT_STACK_STRATEGY: squash
+
+    steps:
+      # Security boundary: checkout the repository's trusted default branch,
+      # never the pull request head/merge commit.
+      - name: Check out trusted default branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Conduct pull requests
+        shell: bash
+        run: |
+          #!/usr/bin/env bash
+          set -Eeuo pipefail
+
+          # PR Conductor v2
+          # Metadata-first PR automation with ordinary + GitHub Stacked PR support.
+          # This script intentionally never executes pull-request code.
+
+          API_VERSION="${PRC_API_VERSION:-2026-03-10}"
+          MARKER="<!-- pr-conductor:v2 -->"
+
+          GH_REPO="${GH_REPO:?GH_REPO is required}"
+          EVENT_NAME="${EVENT_NAME:-workflow_dispatch}"
+          TARGET_PR="${TARGET_PR:-0}"
+          AUTO_MERGE_MODE="${AUTO_MERGE_MODE:-same-repo}"
+          AUTO_REBASE="${AUTO_REBASE:-true}"
+          STACK_SYNC="${STACK_SYNC:-true}"
+          NORMALIZE_TITLES="${NORMALIZE_TITLES:-true}"
+          COMMENT_ENABLED="${COMMENT_ENABLED:-true}"
+          DRY_RUN="${DRY_RUN:-false}"
+          DEFAULT_SINGLE_STRATEGY="${DEFAULT_SINGLE_STRATEGY:-rebase}"
+          DEFAULT_MULTI_STRATEGY="${DEFAULT_MULTI_STRATEGY:-squash}"
+          RELEASE_STRATEGY="${RELEASE_STRATEGY:-merge}"
+          DEFAULT_STACK_STRATEGY="${DEFAULT_STACK_STRATEGY:-squash}"
+
+          # State populated per PR.
+          declare -a LABELS=()
+          declare -A SEEN_STACKS=()
+          STACK_EXTENSION_READY=false
+
+          log() {
+            printf '[pr-conductor] %s\n' "$*"
+          }
+
+          warn() {
+            printf '::warning::%s\n' "$*"
+          }
+
+          api() {
+            gh api \
+              -H 'Accept: application/vnd.github+json' \
+              -H "X-GitHub-Api-Version: ${API_VERSION}" \
+              "$@"
+          }
+
+          bool_true() {
+            [[ "${1,,}" == "true" || "$1" == "1" || "${1,,}" == "yes" ]]
+          }
+
+          has_label() {
+            local wanted="$1"
+            local label
+            for label in "${LABELS[@]:-}"; do
+              [[ "$label" == "$wanted" ]] && return 0
+            done
+            return 1
+          }
+
+          load_labels() {
+            local json="$1"
+            mapfile -t LABELS < <(jq -r '.labels[]?.name' <<<"$json")
+          }
+
+          upsert_comment() {
+            local pr="$1"
+            local body="$2"
+
+            bool_true "$COMMENT_ENABLED" || return 0
+
+            if bool_true "$DRY_RUN"; then
+              log "DRY RUN comment for PR #${pr}: ${body//$'\n'/ | }"
+              return 0
+            fi
+
+            local comment_id=""
+            comment_id="$(
+              api --paginate "repos/${GH_REPO}/issues/${pr}/comments" \
+                --jq '.[] | select(.body | contains("<!-- pr-conductor:v2 -->")) | .id' \
+                2>/dev/null | head -n 1 || true
+            )"
+
+            if [[ -n "$comment_id" ]]; then
+              if ! api --method PATCH "repos/${GH_REPO}/issues/comments/${comment_id}" \
+                -f body="$body" >/dev/null 2>&1; then
+                warn "Could not update PR Conductor comment on PR #${pr}."
+              fi
+            else
+              if ! api --method POST "repos/${GH_REPO}/issues/${pr}/comments" \
+                -f body="$body" >/dev/null 2>&1; then
+                warn "Could not create PR Conductor comment on PR #${pr}."
+              fi
+            fi
+          }
+
+          infer_type_from_branch() {
+            local branch="$1"
+            case "$branch" in
+              feat/*|feature/*) printf 'feat' ;;
+              fix/*|bugfix/*|bug/*) printf 'fix' ;;
+              docs/*) printf 'docs' ;;
+              refactor/*) printf 'refactor' ;;
+              perf/*) printf 'perf' ;;
+              test/*|tests/*) printf 'test' ;;
+              ci/*) printf 'ci' ;;
+              build/*) printf 'build' ;;
+              chore/*|deps/*|dependency/*) printf 'chore' ;;
+              *) printf 'chore' ;;
+            esac
+          }
+
+          make_title() {
+            local current="$1"
+            local branch="$2"
+
+            if ! bool_true "$NORMALIZE_TITLES" || has_label 'title:keep'; then
+              printf '%s' "$current"
+              return
+            fi
+
+            # Preserve an already-valid Conventional Commit style title unless a type/scope
+            # label explicitly asks PR Conductor to rewrite it.
+            local has_type_override=false
+            local has_scope_override=false
+            local label
+            for label in "${LABELS[@]:-}"; do
+              [[ "$label" == type:* ]] && has_type_override=true
+              [[ "$label" == scope:* ]] && has_scope_override=true
+            done
+
+            if [[ "$current" =~ ^(feat|fix|docs|refactor|perf|test|build|ci|chore)(\([^\)]+\))?!?:[[:space:]].+ ]] \
+              && [[ "$has_type_override" == false && "$has_scope_override" == false ]]; then
+              printf '%s' "$current"
+              return
+            fi
+
+            local kind=""
+            local scope=""
+            local clean="$current"
+
+            for label in "${LABELS[@]:-}"; do
+              case "$label" in
+                type:feat|type:feature) kind='feat' ;;
+                type:fix|type:bug) kind='fix' ;;
+                type:docs) kind='docs' ;;
+                type:refactor) kind='refactor' ;;
+                type:perf) kind='perf' ;;
+                type:test) kind='test' ;;
+                type:build) kind='build' ;;
+                type:ci) kind='ci' ;;
+                type:chore) kind='chore' ;;
+                scope:*) scope="${label#scope:}" ;;
+              esac
+            done
+
+            [[ -n "$kind" ]] || kind="$(infer_type_from_branch "$branch")"
+
+            clean="$(
+              printf '%s' "$clean" |
+                sed -E 's/^(feat|fix|docs|refactor|perf|test|build|ci|chore)(\([^)]*\))?!?:[[:space:]]*//'
+            )"
+
+            # Trim leading/trailing whitespace without changing intentional inner spacing.
+            clean="$(printf '%s' "$clean" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+            [[ -n "$clean" ]] || clean="$(printf '%s' "$branch" | tr '/_-' '   ' | sed -E 's/[[:space:]]+/ /g')"
+
+            if [[ -n "$scope" ]]; then
+              scope="$(
+                printf '%s' "$scope" |
+                  tr '[:upper:] ' '[:lower:]-' |
+                  tr -cd 'a-z0-9._/-'
+              )"
+            fi
+
+            if [[ -n "$scope" ]]; then
+              printf '%s(%s): %s' "$kind" "$scope" "$clean"
+            else
+              printf '%s: %s' "$kind" "$clean"
+            fi
+          }
+
+          explicit_strategy_from_labels() {
+            local count=0
+            local selected=""
+
+            if has_label 'merge:squash'; then
+              count=$((count + 1)); selected='squash'
+            fi
+            if has_label 'merge:rebase'; then
+              count=$((count + 1)); selected='rebase'
+            fi
+            if has_label 'merge:commit'; then
+              count=$((count + 1)); selected='merge'
+            fi
+
+            if (( count > 1 )); then
+              printf 'conflict'
+            elif (( count == 1 )); then
+              printf '%s' "$selected"
+            else
+              printf ''
+            fi
+          }
+
+          choose_strategy() {
+            local head_ref="$1"
+            local commits="$2"
+
+            local explicit
+            explicit="$(explicit_strategy_from_labels)"
+            if [[ -n "$explicit" ]]; then
+              printf '%s' "$explicit"
+              return
+            fi
+
+            if [[ "$head_ref" =~ ^(release|hotfix)/ ]]; then
+              printf '%s' "$RELEASE_STRATEGY"
+            elif (( commits <= 1 )); then
+              printf '%s' "$DEFAULT_SINGLE_STRATEGY"
+            else
+              printf '%s' "$DEFAULT_MULTI_STRATEGY"
+            fi
+          }
+
+          should_auto_merge() {
+            local head_repo="$1"
+
+            has_label 'merge:hold' && return 1
+            has_label 'merge:manual' && return 1
+            has_label 'conductor:off' && return 1
+            has_label 'merge:auto' && return 0
+
+            case "${AUTO_MERGE_MODE,,}" in
+              all) return 0 ;;
+              same-repo|same_repo|same_repo_only)
+                [[ "$head_repo" == "$GH_REPO" ]]
+                ;;
+              labeled|labelled|label-only|label_only) return 1 ;;
+              off|false|none) return 1 ;;
+              *)
+                warn "Unknown AUTO_MERGE_MODE=${AUTO_MERGE_MODE}; falling back to same-repo."
+                [[ "$head_repo" == "$GH_REPO" ]]
+                ;;
+            esac
+          }
+
+          ensure_stack_extension() {
+            [[ "$STACK_EXTENSION_READY" == true ]] && return 0
+
+            if gh stack --help >/dev/null 2>&1; then
+              STACK_EXTENSION_READY=true
+              return 0
+            fi
+
+            log 'Installing official github/gh-stack extension.'
+            if ! gh extension install github/gh-stack; then
+              warn 'Unable to install github/gh-stack.'
+              return 1
+            fi
+
+            STACK_EXTENSION_READY=true
+          }
+
+          reset_worktree() {
+            local default_branch="$1"
+
+            # Runner is ephemeral. This only resets the automation checkout, never a user's
+            # local clone. Local gh-stack tracking is also discarded after each stack.
+            gh stack unstack --local >/dev/null 2>&1 || true
+            git rebase --abort >/dev/null 2>&1 || true
+            git checkout -f "$default_branch" >/dev/null 2>&1 || true
+            git fetch origin "$default_branch" --quiet >/dev/null 2>&1 || true
+            git reset --hard "origin/${default_branch}" >/dev/null 2>&1 || true
+          }
+
+          normalize_pr_title() {
+            local pr="$1"
+            local current="$2"
+            local head_ref="$3"
+
+            local next
+            next="$(make_title "$current" "$head_ref")"
+
+            if [[ "$next" == "$current" ]]; then
+              printf '%s' "$current"
+              return
+            fi
+
+            if bool_true "$DRY_RUN"; then
+              log "DRY RUN title PR #${pr}: ${current} -> ${next}"
+              printf '%s' "$next"
+              return
+            fi
+
+            if api --method PATCH "repos/${GH_REPO}/pulls/${pr}" -f title="$next" >/dev/null 2>&1; then
+              log "Normalized title for PR #${pr}: ${next}"
+              printf '%s' "$next"
+            else
+              warn "Could not update title for PR #${pr}; keeping current title."
+              printf '%s' "$current"
+            fi
+          }
+
+          get_stack_object() {
+            local pr="$1"
+            api "repos/${GH_REPO}/stacks?pull_request=${pr}&per_page=1" 2>/dev/null | jq '.[0] // empty'
+          }
+
+          stack_top_open_pr() {
+            local stack_json="$1"
+            jq -r '[.pull_requests[] | select(.state == "open")] | last | .number // empty' <<<"$stack_json"
+          }
+
+          stack_strategy_and_guards() {
+            local stack_json="$1"
+            local fallback_strategy="$2"
+
+            local -a members=()
+            mapfile -t members < <(
+              jq -r '.pull_requests[] | select(.state == "open") | .number' <<<"$stack_json"
+            )
+
+            if (( ${#members[@]} == 0 )); then
+              printf 'error|stack has no open pull requests'
+              return
+            fi
+
+            local selected=""
+            local member member_json member_state member_draft member_strategy
+            local -a member_labels=()
+
+            for member in "${members[@]}"; do
+              member_json="$(api "repos/${GH_REPO}/pulls/${member}")"
+              member_state="$(jq -r '.state' <<<"$member_json")"
+              member_draft="$(jq -r '.draft // false' <<<"$member_json")"
+
+              if [[ "$member_state" != 'open' ]]; then
+                continue
+              fi
+              if [[ "$member_draft" == 'true' ]]; then
+                printf 'blocked|PR #%s is still a draft' "$member"
+                return
+              fi
+
+              mapfile -t member_labels < <(jq -r '.labels[]?.name' <<<"$member_json")
+              LABELS=("${member_labels[@]:-}")
+
+              if has_label 'conductor:off'; then
+                printf 'blocked|PR #%s has conductor:off' "$member"
+                return
+              fi
+              if has_label 'merge:hold'; then
+                printf 'blocked|PR #%s has merge:hold' "$member"
+                return
+              fi
+              if has_label 'merge:manual'; then
+                printf 'blocked|PR #%s has merge:manual' "$member"
+                return
+              fi
+
+              member_strategy="$(explicit_strategy_from_labels)"
+              if [[ "$member_strategy" == 'conflict' ]]; then
+                printf 'blocked|PR #%s has conflicting merge strategy labels' "$member"
+                return
+              fi
+
+              if [[ -n "$member_strategy" ]]; then
+                if [[ -n "$selected" && "$selected" != "$member_strategy" ]]; then
+                  printf 'blocked|stack members request different merge strategies'
+                  return
+                fi
+                selected="$member_strategy"
+              fi
+            done
+
+            [[ -n "$selected" ]] || selected="$fallback_strategy"
+            printf 'ok|%s' "$selected"
+          }
+
+          process_standalone() {
+            local pr="$1"
+            local data="$2"
+            local title="$3"
+            local strategy="$4"
+
+            local head_repo head_ref base_ref mergeable_state
+            head_repo="$(jq -r '.head.repo.full_name // ""' <<<"$data")"
+            head_ref="$(jq -r '.head.ref' <<<"$data")"
+            base_ref="$(jq -r '.base.ref' <<<"$data")"
+            mergeable_state="$(jq -r '.mergeable_state // "unknown"' <<<"$data")"
+
+            if [[ "$strategy" == 'conflict' ]]; then
+              upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** paused — multiple merge strategy labels are present. Keep exactly one of \`merge:squash\`, \`merge:rebase\`, or \`merge:commit\`."
+              return 0
+            fi
+
+            if [[ "$mergeable_state" == 'dirty' ]]; then
+              upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** conflict detected · strategy \`${strategy}\` · automatic merge paused until conflicts are resolved."
+              return 0
+            fi
+
+            if bool_true "$AUTO_REBASE" \
+              && [[ "$head_repo" == "$GH_REPO" ]] \
+              && ! has_label 'rebase:off' \
+              && [[ "$mergeable_state" == 'behind' ]]; then
+
+              if bool_true "$DRY_RUN"; then
+                upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** dry run · would rebase \`${head_ref}\` onto \`${base_ref}\` · strategy \`${strategy}\`."
+                return 0
+              fi
+
+              if gh pr update-branch "$pr" --repo "$GH_REPO" --rebase >/dev/null 2>&1; then
+                upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** rebased \`${head_ref}\` onto \`${base_ref}\` · CI will rerun · planned merge \`${strategy}\`."
+                return 0
+              else
+                upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** rebase could not be completed automatically · strategy \`${strategy}\` · waiting for manual conflict resolution."
+                return 0
+              fi
+            fi
+
+            if ! should_auto_merge "$head_repo"; then
+              upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** ready · mode \`standalone\` · strategy \`${strategy}\` · automatic merge is not enabled for this PR."
+              return 0
+            fi
+
+            if bool_true "$DRY_RUN"; then
+              upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** dry run · would enable auto-merge · mode \`standalone\` · strategy \`${strategy}\`."
+              return 0
+            fi
+
+            local -a args=()
+            case "$strategy" in
+              squash) args+=(--squash) ;;
+              rebase) args+=(--rebase) ;;
+              merge) args+=(--merge) ;;
+              *)
+                upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** paused · unsupported strategy \`${strategy}\`."
+                return 0
+                ;;
+            esac
+
+            local status='waiting for repository requirements'
+
+            # First try the selected strategy. If the base uses a merge queue, retry
+            # without a method because the queue chooses the method.
+            if gh pr merge "$pr" --repo "$GH_REPO" --auto "${args[@]}" --subject "$title" >/dev/null 2>&1; then
+              status='auto-merge enabled'
+            elif gh pr merge "$pr" --repo "$GH_REPO" --auto >/dev/null 2>&1; then
+              status='merge queue / auto-merge enabled'
+            fi
+
+            upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** ${status} · mode \`standalone\` · strategy \`${strategy}\`."
+          }
+
+          process_stack() {
+            local pr="$1"
+            local data="$2"
+            local title="$3"
+            local fallback_strategy="$4"
+            local default_branch="$5"
+            local sweep_mode="$6"
+
+            local stack_json stack_number top_pr guard guard_state strategy
+            stack_json="$(get_stack_object "$pr" || true)"
+
+            if [[ -z "$stack_json" ]]; then
+              upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** GitHub reports stack metadata on this PR, but the stack object could not be loaded. No stack mutation was attempted."
+              return 0
+            fi
+
+            stack_number="$(jq -r '.number' <<<"$stack_json")"
+
+            # Scheduled/manual sweeps process one representative PR per stack. Event runs
+            # can originate from any member, but the merge action still targets the stack.
+            if [[ "$sweep_mode" == 'true' ]]; then
+              top_pr="$(stack_top_open_pr "$stack_json")"
+              if [[ -n "$top_pr" && "$pr" != "$top_pr" ]]; then
+                log "Skipping PR #${pr}; scheduled sweep will conduct stack #${stack_number} from top PR #${top_pr}."
+                return 0
+              fi
+
+              if [[ -n "${SEEN_STACKS[$stack_number]:-}" ]]; then
+                log "Stack #${stack_number} already processed in this sweep."
+                return 0
+              fi
+              SEEN_STACKS[$stack_number]=1
+            fi
+
+            guard="$(stack_strategy_and_guards "$stack_json" "$DEFAULT_STACK_STRATEGY")"
+            guard_state="${guard%%|*}"
+            strategy="${guard#*|}"
+
+            # Reload labels for the event/sweep PR because the guard inspects every member.
+            load_labels "$data"
+
+            if [[ "$guard_state" != 'ok' ]]; then
+              upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** stack #${stack_number} paused · ${strategy}."
+              return 0
+            fi
+
+            if ! should_auto_merge "$(jq -r '.head.repo.full_name // ""' <<<"$data")"; then
+              upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** stack #${stack_number} recognized · strategy \`${strategy}\` · automatic stack merge is not enabled for this PR."
+              return 0
+            fi
+
+            if ! ensure_stack_extension; then
+              upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** stack #${stack_number} recognized, but the official \`github/gh-stack\` extension could not be installed."
+              return 0
+            fi
+
+            local before_fingerprint after_fingerprint refreshed_stack
+            before_fingerprint="$(jq -r '[.pull_requests[] | select(.state == "open") | .head.sha] | join(":")' <<<"$stack_json")"
+
+            if bool_true "$STACK_SYNC" && ! has_label 'rebase:off'; then
+              if bool_true "$DRY_RUN"; then
+                log "DRY RUN stack #${stack_number}: would checkout + gh stack sync."
+              else
+                reset_worktree "$default_branch"
+                git config rerere.enabled true
+                git config user.name 'github-actions[bot]'
+                git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+                # Passing the stack number is intentional and avoids PR/stack numeric
+                # ambiguity in gh stack checkout.
+                if ! gh stack checkout "$stack_number" >/dev/null 2>&1; then
+                  upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** stack #${stack_number} checkout failed · no branches were rewritten."
+                  reset_worktree "$default_branch"
+                  return 0
+                fi
+
+                if ! gh stack sync >/dev/null 2>&1; then
+                  upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** stack #${stack_number} needs manual rebase/conflict resolution · automatic merge paused."
+                  reset_worktree "$default_branch"
+                  return 0
+                fi
+
+                reset_worktree "$default_branch"
+
+                refreshed_stack="$(get_stack_object "$pr" || true)"
+                if [[ -n "$refreshed_stack" ]]; then
+                  after_fingerprint="$(jq -r '[.pull_requests[] | select(.state == "open") | .head.sha] | join(":")' <<<"$refreshed_stack")"
+                else
+                  after_fingerprint="$before_fingerprint"
+                fi
+
+                if [[ "$after_fingerprint" != "$before_fingerprint" ]]; then
+                  upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** stack #${stack_number} cascade-rebased and pushed with lease protection · CI will rerun · planned merge \`${strategy}\`."
+                  return 0
+                fi
+              fi
+            fi
+
+            if bool_true "$DRY_RUN"; then
+              upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** dry run · would merge all currently open PRs in stack #${stack_number} · strategy \`${strategy}\`."
+              return 0
+            fi
+
+            local -a merge_args=("$stack_number" --yes)
+            case "$strategy" in
+              squash) merge_args+=(--squash) ;;
+              rebase) merge_args+=(--rebase) ;;
+              merge) merge_args+=(--merge) ;;
+              *)
+                upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** stack #${stack_number} paused · unsupported strategy \`${strategy}\`."
+                return 0
+                ;;
+            esac
+
+            if gh stack merge "${merge_args[@]}" >/dev/null 2>&1; then
+              upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** stack #${stack_number} merge submitted · strategy \`${strategy}\` · GitHub rules/queue remain authoritative."
+            else
+              upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** stack #${stack_number} is waiting on checks, reviews, queue eligibility, or another GitHub merge requirement · strategy \`${strategy}\`."
+            fi
+          }
+
+          process_pr() {
+            local pr="$1"
+            local sweep_mode="$2"
+
+            [[ -n "$pr" && "$pr" != 'null' ]] || return 0
+
+            echo "::group::PR #${pr}"
+
+            local data state draft title head_ref head_repo commits stack_present strategy normalized_title default_branch
+            data="$(api "repos/${GH_REPO}/pulls/${pr}" 2>/dev/null || true)"
+
+            if [[ -z "$data" ]]; then
+              warn "Unable to read PR #${pr}."
+              echo '::endgroup::'
+              return 0
+            fi
+
+            state="$(jq -r '.state' <<<"$data")"
+            if [[ "$state" != 'open' ]]; then
+              log "PR #${pr} is not open."
+              echo '::endgroup::'
+              return 0
+            fi
+
+            draft="$(jq -r '.draft // false' <<<"$data")"
+            title="$(jq -r '.title' <<<"$data")"
+            head_ref="$(jq -r '.head.ref' <<<"$data")"
+            head_repo="$(jq -r '.head.repo.full_name // ""' <<<"$data")"
+            commits="$(jq -r '.commits // 1' <<<"$data")"
+            stack_present="$(jq -r 'if .stack == null then "false" else "true" end' <<<"$data")"
+            default_branch="$(api "repos/${GH_REPO}" --jq '.default_branch')"
+
+            load_labels "$data"
+
+            if has_label 'conductor:off'; then
+              log "PR #${pr} has conductor:off."
+              echo '::endgroup::'
+              return 0
+            fi
+
+            # pull_request runs originating from forks have a restricted token. Do not
+            # attempt writes there; the trusted scheduled sweep can later add metadata,
+            # and fork auto-merge still requires merge:auto unless AUTO_MERGE_MODE=all.
+            if [[ "$EVENT_NAME" == 'pull_request' && "$head_repo" != "$GH_REPO" ]]; then
+              log "Fork PR #${pr}: deferring write operations to trusted sweep."
+              echo '::endgroup::'
+              return 0
+            fi
+
+            normalized_title="$(normalize_pr_title "$pr" "$title" "$head_ref")"
+
+            if [[ "$draft" == 'true' ]]; then
+              strategy="$(choose_strategy "$head_ref" "$commits")"
+              upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** draft detected · planned strategy \`${strategy}\` · merge paused until the PR is ready for review."
+              echo '::endgroup::'
+              return 0
+            fi
+
+            if has_label 'merge:hold'; then
+              upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** \`merge:hold\` is active · no merge action taken."
+              echo '::endgroup::'
+              return 0
+            fi
+
+            if has_label 'merge:manual'; then
+              strategy="$(choose_strategy "$head_ref" "$commits")"
+              upsert_comment "$pr" "${MARKER}
+          **PR Conductor:** manual merge requested · strategy \`${strategy}\` · automation will not merge this PR."
+              echo '::endgroup::'
+              return 0
+            fi
+
+            strategy="$(choose_strategy "$head_ref" "$commits")"
+
+            if [[ "$stack_present" == 'true' ]]; then
+              process_stack "$pr" "$data" "$normalized_title" "$strategy" "$default_branch" "$sweep_mode"
+            else
+              process_standalone "$pr" "$data" "$normalized_title" "$strategy"
+            fi
+
+            echo '::endgroup::'
+          }
+
+          main() {
+            case "${AUTO_MERGE_MODE,,}" in
+              all|same-repo|same_repo|same_repo_only|labeled|labelled|label-only|label_only|off|false|none) ;;
+              *) warn "AUTO_MERGE_MODE '${AUTO_MERGE_MODE}' is not recognized." ;;
+            esac
+
+            if [[ "$TARGET_PR" =~ ^[0-9]+$ ]] && (( TARGET_PR > 0 )); then
+              process_pr "$TARGET_PR" false
+              return
+            fi
+
+            local -a open_prs=()
+            mapfile -t open_prs < <(
+              gh pr list --repo "$GH_REPO" --state open --limit 100 --json number --jq '.[].number'
+            )
+
+            local pr
+            for pr in "${open_prs[@]:-}"; do
+              process_pr "$pr" true
+            done
+          }
+
+          main "$@"

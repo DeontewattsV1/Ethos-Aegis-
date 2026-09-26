@@ -33,8 +33,7 @@
     "build": "tsc -p tsconfig.build.json",
     "ci": "npm ci && npm run lint && npm test && npm run verify && npm run build",
     "upgrade": "tsx scripts/upgrade.ts",
-    "upgrade:dry": "tsx scripts/upgrade.ts --dry-run"
-  },
+    "upgrade:dry": "tsx scripts/upgrade.ts --dry-  },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^5.0.1",
