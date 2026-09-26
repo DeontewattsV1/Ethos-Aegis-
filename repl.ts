@@ -20,6 +20,16 @@ const isColor = process.stdout.isTTY && !process.env.NO_COLOR;
 const bold = (s: string) => isColor ? `\x1b[1m${s}\x1b[22m` : s;
 const cyan = (s: string) => isColor ? `\x1b[36m${s}\x1b[39m` : s;
 const green = (s: string) => isColor ? `\x1b[32m${s}\x1b[39m` : s;
+const red = (s: string) => isColor ? `\x1b[31m${s}\x1b[39m` : s;
+const magenta = (s: string) => isColor ? `\x1b[35m${s}\x1b[39m` : s;
+const dim = (s: string) => isColor ? `\x1b[2m${s}\x1b[22m` : s;
+const STEEL_BLUE = isColor ? "\x1b[38;2;94;137;168m" : "";
+const RESET = isColor ? "\x1b[0m" : "";
+
+const getTime = (ts?: string) => {
+  const d = ts ? new Date(ts) : new Date();
+  return d.toISOString().split("T")[1]?.split(".")[0] ?? "--:--:--";
+};
 
 // ─── State ──────────────────────────────────────────────────────────────────
 type DemoEvents = {
@@ -32,15 +42,37 @@ type HistoryEntry = {
   ts: string;
   event: string;
   args: unknown[];
+  count: number;
 };
 
 const HISTORY_LIMIT = 20;
 const history: HistoryEntry[] = [];
+const knownEvents = new Set<string>();
 let tapEnabled = false;
 let emitter = makeEmitter();
 
 function makeEmitter(): EventEmitter<DemoEvents> {
   const instance = new EventEmitter<DemoEvents>();
+
+  // Track event names on subscribe too
+  const originalOn = instance.on.bind(instance);
+  instance.on = new Proxy(originalOn, {
+    apply(target, thisArg, argArray) {
+      const [event] = argArray as [keyof DemoEvents, unknown];
+      knownEvents.add(String(event));
+      return Reflect.apply(target, thisArg, argArray);
+    },
+  });
+
+  const originalOnce = instance.once.bind(instance);
+  instance.once = new Proxy(originalOnce, {
+    apply(target, thisArg, argArray) {
+      const [event] = argArray as [keyof DemoEvents, unknown];
+      knownEvents.add(String(event));
+      return Reflect.apply(target, thisArg, argArray);
+    },
+  });
+
   // Wrap `emit` so every event is recorded; tap can additionally log live.
   // We use a Proxy so the wrapped function keeps the original method's full
   // generic signature without needing a `as` cast.
@@ -48,12 +80,18 @@ function makeEmitter(): EventEmitter<DemoEvents> {
   instance.emit = new Proxy(originalEmit, {
     apply(target, thisArg, argArray) {
       const [event, ...rest] = argArray as [keyof DemoEvents, ...unknown[]];
-      history.push({ ts: new Date().toISOString(), event: String(event), args: rest });
+      knownEvents.add(String(event));
+      // Note: This custom EventEmitter implementation's emit() returns the
+      // number of listeners notified (number), unlike Node.js's (boolean).
+      const count = Reflect.apply(target, thisArg, argArray);
+      history.push({ ts: new Date().toISOString(), event: String(event), args: rest, count });
       if (history.length > HISTORY_LIMIT) history.shift();
       if (tapEnabled) {
-        console.log(`[tap] ${String(event)}`, ...rest);
+        const time = dim(getTime());
+        const n = count > 0 ? green(`[n=${count}]`) : dim(`[n=${count}]`);
+        console.log(`${magenta("[tap]")} ${time}  ${cyan(String(event))} ${n}`, ...rest);
       }
-      return Reflect.apply(target, thisArg, argArray);
+      return count;
     },
   });
   return instance;
@@ -116,7 +154,8 @@ const allScenarios: Record<string, Scenario> = {
     description: "Run every named scenario in order on a fresh emitter each time.",
     async run() {
       for (const [name, scenario] of Object.entries(scenarios)) {
-        console.log(`\n— ${name}: ${scenario.description}`);
+        console.log(`\n${bold(cyan(`=== SCENARIO: ${name} ===`))}`);
+        console.log(`${dim(scenario.description)}`);
         const fresh = new EventEmitter<DemoEvents>();
         // `run()` may be sync (`void`) or async (`Promise<void>`); normalize
         // both so the loop awaits sequentially without misusing `await` on
@@ -128,13 +167,16 @@ const allScenarios: Record<string, Scenario> = {
 };
 
 // ─── REPL bootstrap ─────────────────────────────────────────────────────────
-console.log(bold(cyan("living-docs-template REPL")));
-console.log("=========================");
+console.log(bold(cyan("Living Docs REPL")));
+console.log(dim("────────────────"));
 console.log(`Pre-loaded: ${green("`EventEmitter`")}, ${green("`emitter`")}`);
+console.log(bold(cyan("ETHOS AEGIS REPL")));
+console.log(dim("========================="));
+console.log(`Pre-loaded: ${green("`EventEmitter`")}, ${green("`emitter`")}, ${green("`scenarios`")}`);
 console.log(`Type ${bold(".help")} for the full command list.`);
 console.log("");
 
-const session: REPLServer = repl.start({ prompt: "ldt> ", useColors: true });
+const session: REPLServer = repl.start({ prompt: cyan("aegis> "), useColors: true });
 refreshContext(session);
 
 function refreshContext(srv: REPLServer): void {
@@ -144,12 +186,50 @@ function refreshContext(srv: REPLServer): void {
   srv.context.scenarios = allScenarios;
 }
 
+session.defineCommand("about", {
+  help: "Display template mission and design tokens.",
+  action() {
+    this.clearBufferedCommand();
+    console.log(`\n${STEEL_BLUE}LIVING DOCS TEMPLATE${RESET}`);
+    console.log("--------------------------------------------------");
+    console.log("Mission: Self-demonstrating, always-current documentation scaffold.");
+    console.log("Core: Typed EventEmitter with living snapshot verification.");
+    console.log(`\n${STEEL_BLUE}Design Palette (Institutional):${RESET}`);
+    console.log("  Obsidian:   #050607");
+    console.log("  Steel Blue: #5E89A8 (Primary Accent)");
+    console.log("  Bone White: #F2F5F7 (Primary Text)");
+    console.log("\nAligned by design.");
+    this.displayPrompt();
+  },
+});
+
 session.defineCommand("demo", {
   help: "Run a short subscribe → emit → log demo on the preloaded emitter.",
   action() {
     this.clearBufferedCommand();
     console.log("Running .demo on the current `emitter`:");
     scenarios.subscribe.run(emitter);
+    console.log(green("  ✓ demo complete"));
+    this.displayPrompt();
+  },
+});
+
+session.defineCommand("status", {
+  help: "Show the current REPL status (tap, history, active listeners).",
+  action() {
+    this.clearBufferedCommand();
+    console.log(bold("REPL Status:"));
+    console.log(`  tap:     ${tapEnabled ? green("ON") : red("OFF")}`);
+    console.log(`  history: ${history.length} / ${HISTORY_LIMIT} entries`);
+    console.log(`  events:  ${knownEvents.size === 0 ? dim("(none)") : [...knownEvents].join(", ")}`);
+
+    const active = [...knownEvents].filter(ev => emitter.listenerCount(ev as keyof DemoEvents) > 0);
+    if (active.length > 0) {
+      console.log(bold("\nActive Listeners:"));
+      for (const ev of active) {
+        console.log(`  ${cyan(ev.padEnd(12))} ${green(String(emitter.listenerCount(ev as keyof DemoEvents)))}`);
+      }
+    }
     this.displayPrompt();
   },
 });
@@ -176,7 +256,7 @@ session.defineCommand("scenario", {
       this.displayPrompt();
       return;
     }
-    console.log(`\nRunning scenario "${key}": ${scenario.description}`);
+    console.log(`\n${bold("Running scenario")} ${cyan(`"${key}"`)}: ${dim(scenario.description)}`);
     // Wrap in `new Promise(resolve => resolve(...))` so a synchronous throw
     // inside `scenario.run()` is converted into a rejected Promise. With a
     // plain `Promise.resolve(scenario.run(...))`, a sync throw would escape
@@ -184,9 +264,17 @@ session.defineCommand("scenario", {
     new Promise<void>((resolve) => {
       resolve(scenario.run(new EventEmitter<DemoEvents>()));
     })
+      .then(() => {
+        console.log(green("  ✓ scenario complete"));
+      })
       .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
-        console.log(`scenario "${key}" threw: ${msg}`);
+        console.log(red(`  ✗ scenario "${key}" failed: ${msg}`));
+        console.log(green("✔ Scenario completed successfully."));
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(red(`✘ Scenario "${key}" failed: ${msg}`));
       })
       .finally(() => {
         this.displayPrompt();
@@ -198,10 +286,11 @@ session.defineCommand("scenarios", {
   help: "List all available scenarios.",
   action() {
     this.clearBufferedCommand();
-    console.log("Available scenarios:");
+    console.log(bold("\nAvailable scenarios:"));
     for (const [name, scenario] of Object.entries(allScenarios)) {
-      console.log(`  ${name.padEnd(10)} ${scenario.description}`);
+      console.log(`  ${cyan(name.padEnd(10))} ${dim(scenario.description)}`);
     }
+    console.log("");
     this.displayPrompt();
   },
 });
@@ -211,7 +300,8 @@ session.defineCommand("tap", {
   action() {
     this.clearBufferedCommand();
     tapEnabled = !tapEnabled;
-    console.log(`tap is now ${tapEnabled ? green("ON") : "OFF"}`);
+    console.log(`tap is now ${tapEnabled ? green("ON") : red("OFF")}`);
+    console.log(`tap is now ${tapEnabled ? bold(green("ON")) : bold("OFF")}`);
     this.displayPrompt();
   },
 });
@@ -221,12 +311,16 @@ session.defineCommand("history", {
   action() {
     this.clearBufferedCommand();
     if (history.length === 0) {
-      console.log("(no emits recorded yet)");
+      console.log(dim("(no emits recorded yet)"));
     } else {
+      console.log(bold("\nRecent Emits:"));
       for (const entry of history) {
-        const time = entry.ts.split("T")[1]?.split(".")[0] ?? "--:--:--";
-        console.log(`  ${time}  ${cyan(entry.event)}`, ...entry.args);
+        const time = getTime(entry.ts);
+        const n = entry.count > 0 ? green(`[n=${entry.count}]`) : dim(`[n=${entry.count}]`);
+        console.log(`  ${dim(time)}  ${cyan(entry.event)} ${n}`, ...entry.args);
+        console.log(`  ${dim(time)}  ${cyan(entry.event.padEnd(10))} ${JSON.stringify(entry.args)}`);
       }
+      console.log("");
     }
     this.displayPrompt();
   },
@@ -239,7 +333,7 @@ session.defineCommand("reset", {
     emitter = makeEmitter();
     history.length = 0;
     refreshContext(session);
-    console.log("emitter and history reset.");
+    console.log(`${green("✓")} emitter and history reset.`);
     this.displayPrompt();
   },
 });
