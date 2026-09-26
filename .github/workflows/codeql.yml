@@ -1,23 +1,59 @@
-# CodeQL code scanning is available automatically for public repositories.
-# This repository remains private until its independent publication gate passes,
-# and private-repository CodeQL uploads require GitHub Code Security. Keep the
-# workflow installed so it activates automatically after publication without
-# making unavailable product entitlement a failing PR check while private.
+# CodeQL advanced setup for the public Ethos-Aegis repository.
+#
+# Rate-limit resilience:
+# - cancel superseded runs for the same ref/PR
+# - serialize language analyses to avoid bursty installation API traffic
+# - skip PR/push scans when only non-code/non-workflow assets change
+# - keep scheduled and manual full scans available
 name: "CodeQL Advanced"
 
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - ".github/workflows/**"
+      - "agents/**"
+      - "graph/**"
+      - "python/**"
+      - "simulation/**"
+      - "src/**"
+      - "test/**"
+      - "tests/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "pyproject.toml"
   pull_request:
     branches: [ "main" ]
+    paths:
+      - ".github/workflows/**"
+      - "agents/**"
+      - "graph/**"
+      - "python/**"
+      - "simulation/**"
+      - "src/**"
+      - "test/**"
+      - "tests/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "pyproject.toml"
   schedule:
     - cron: '37 2 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     if: github.event.repository.private == false
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       security-events: write
       packages: read
@@ -26,6 +62,7 @@ jobs:
 
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         include:
           - language: actions
