@@ -1,5 +1,4 @@
-name: 4D Visual Test Suite env:
-  
+name: 4D Visual Test Suite
 
 on:
   push:

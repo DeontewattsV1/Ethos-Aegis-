@@ -1252,7 +1252,6 @@ class EthosAegis:
     def __init__(self):
         import time as _time
         self._time            = _time
-        self._perf_counter    = _time.perf_counter
         self.cytokine_command = CytokineCommand()
         self._finality_forge  = self.cytokine_command.retrieve("finality_forge")
         self._sanitas_swarm   = self.cytokine_command.retrieve("sanitas_swarm")
@@ -1277,7 +1276,7 @@ class EthosAegis:
         if applicable, and the axiological report.
         """
         context       = context or {}
-        start         = self._perf_counter()
+        start         = self._time.time()
         all_maligna:  List[Malignum] = []
         chronicle_log: List[str]     = []
         self._adjudications += 1
@@ -1371,7 +1370,7 @@ class EthosAegis:
                 self._quarantines += 1
 
         # ── Construct and Return AegisVerdict ─────────────────────────────────
-        elapsed = self._perf_counter() - start
+        elapsed = round(self._time.time() - start, 4)
         report  = self._compose_axiological_report(all_maligna, sovereignty_depth, chronicle_log)
 
         verdict = AegisVerdict(
