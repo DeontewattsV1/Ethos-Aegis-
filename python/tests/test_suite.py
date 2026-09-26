@@ -756,3 +756,35 @@ if __name__ == "__main__":
     print(f"  {passed}/{total} tests passed", "✓ ALL PASSING" if not result.failures and not result.errors else "✗ FAILURES DETECTED")
     print(f"{'═'*60}")
     sys.exit(0 if result.wasSuccessful() else 1)
+
+
++4
+-4
+Lines changed: 4 additions & 4 deletions
+
+
+Original file line number	Diff line number	Diff line change
+@@ -4,8 +4,8 @@
+  "description": "Self-demonstrating, always-current documentation scaffold for the Ethos Aegis codebase.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+@@ -36,12 +36,12 @@
+    "upgrade:dry": "tsx scripts/upgrade.ts --dry-run"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.41",
+    "@vitest/coverage-v8": "^4.1.7",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^5.0.1",
+    "tsx": "^4.22.3",
+    "typedoc": "^0.28.19",
+    "vitest": "^4.1.7"
+    "
+  },
+  "keywords": [
+    "living-docs",
