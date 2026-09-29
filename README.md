@@ -59,6 +59,74 @@ Every biological defense mechanism is mapped into rigorous computational infrast
 
 ---
 
+
+## Engineering Cell System — Proposed Design
+
+The defense cells below define a proposed engineering work system built around the existing Aegis components and agent harness. This is a design contract, not a claim that these controls are deployed or that this project is an Anthropic product.
+
+Each work order carries an objective, repository revision, permitted capabilities, path scopes, trusted execution environment, approved secret purposes, output destination, deadline, resource budget, and required verification evidence. A thin orchestrator dispatches bounded tasks and checkpoints progress. Read-only analysis can run concurrently; mutations require explicit authorization and verification.
+
+### Visual Cell Atlas
+
+```mermaid
+flowchart TD
+    W["Bounded work order"] --> C["CytokineCommand"]
+    C --> D["Detection and analysis cells"]
+    D --> E["Evidence and proposed action"]
+    E --> P["Independent policy authorization"]
+    P -->|Allow| X["Scoped tool execution"]
+    P -->|Deny or approval required| H["Hold and report"]
+    X --> V["Verification and audit"]
+    V -->|Verified evidence| M["MnemosyneCache"]
+    V -->|Failed or over budget| F["FinalityForge: cancel scoped action"]
+```
+
+| Cell | Engineering responsibility | Required evidence or limit |
+|:---|:---|:---|
+| **VanguardProbe** | Validate incoming work orders and scan entry payloads | Reject malformed requests; bound input size and scan cost |
+| **LogosScythe** | Examine semantic threats and conflicting instructions | Report reasons and uncertainty; detection cannot grant authority |
+| **MnemosyneCache** | Retain verified signatures and selected durable facts | Record provenance, access controls, versions, expiration, and deletion tombstones |
+| **SanitasSwarm** | Normalize Unicode and inspect ambiguous identifiers | Preserve original evidence; normalization cannot expand authorized paths |
+| **EntropicWatch** | Enforce time, token, iteration, and resource budgets | Stop runaway work; spawning stays within the original work order |
+| **TaintBeacon** | Broadcast classified risk and audit signals | Redact secrets; constrain event consumers and destinations |
+| **FinalityForge** | Cancel or deny the affected operation | Use scoped enforcement; retain verification and audit evidence |
+| **CytokineCommand** | Dispatch tasks, checkpoint state, and collect verification | Cannot mint capabilities or bypass independent policy decisions |
+
+Cell consensus, model confidence, and vitality scores never authorize a tool call. Authorization must evaluate the actual capability, canonical path, trusted environment, secret purpose, and destination. A Python thread pool does not establish operating-system or network isolation.
+
+### Memory Engineering Contract
+
+Memory is separate from the prompt context. Every stage below is required by the proposed system.
+
+| Stage | Responsibility | Integrity rule |
+|:---|:---|:---|
+| **Capture** | Select durable or explicitly expiring facts | Keep provenance and consent; exclude credentials and transient session noise |
+| **Consolidate** | Merge duplicates and related evidence | Preserve source history; similarity alone cannot resolve contradictions |
+| **Retrieve** | Surface a small set relevant to the current task | Apply access, validity, and expiration checks before ranking; access is not corroboration |
+| **Reconcile** | Handle changed facts and conflicts | Source authority and explicit supersession matter; a newer timestamp alone does not win |
+| **Decay** | Reduce stale relevance and archive expired entries | Record the last decay operation; durable deletion tombstones prevent resurrection |
+
+Vitality subsystems support maintenance, stress tests, circuit breaking, and telemetry. A health label must be derived from measured checks; it is not a security proof. Emergency cell proliferation must preserve capability limits and resource budgets.
+
+### PR #360 Remediation and Merge Gates
+
+The Codex review of [PR #360](https://github.com/DeontewattsV1/Ethos-Aegis-/pull/360) at commit `8072c6a048239adf8f81e3b5bfeda4399d5db647` requires remediation before that revision is merge-ready. This documentation does not resolve its findings.
+
+| Order | Must-fix repair | Acceptance evidence |
+|:---:|:---|:---|
+| 1 | Limit the npm publish credential to the publish step | Dependency installation and build steps receive no publish token |
+| 2 | Restore Python test collection and Windows-compatible tracked paths | Full test collection succeeds; Windows path check passes |
+| 3 | Repair the authorization boundary: segment-aware path globs, explicit secret-purpose checks, trusted environment selection, and raw secret-output checks before serialization | Negative tests deny nested paths, unapproved purposes, production effects under sandbox grants, and reflected secrets |
+| 4 | Cover root `repl.ts` and `scripts/**` in CodeQL; enforce security scan failures in the final CI result | Scans run for relevant changes; failed or unexpectedly skipped required gates block merge |
+| 5 | Resolve conflicts with `main` and validate the resulting merge candidate | Required CI, platform checks, and a fresh review pass on the exact candidate revision |
+
+Lower-priority cleanup includes the Dependabot configuration location, REPL failure reporting, safe history serialization, and redundant gated-grant selection. The missing Pages entry point becomes a release blocker if Pages deployment is part of the release.
+
+**Go/no-go:** no-go for the reviewed PR #360 revision until the must-fix repairs and merge-candidate checks pass.
+
+
+---
+
 ## Quickstart
 
 ```bash
