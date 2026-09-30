@@ -36,8 +36,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: '.'
+          # Artifact root is this folder, so the site opens on index.html
+          path: docs/aegis-brief
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
