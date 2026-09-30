@@ -33,6 +33,20 @@
 
 Every biological defense mechanism is mapped into rigorous computational infrastructure. The immune system does not merely react to pathogens -- it **learns, remembers, and anticipates**. So too must the machines we build acquire the architecture of moral resilience.
 
+### Cell Navigation
+
+<p align="center">
+  <a href="./assets/brand/cells-navigation.mp4">
+    <img src="./assets/brand/cells-navigation.jpg" alt="Defense cells navigate the central servers and strike crystalline viruses" width="100%" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="./assets/brand/cells-navigation.mp4"><strong>Play the MP4</strong></a>
+  — twenty seconds. The lance, marrow lattice, and iris vault move through the central server aisle. The flare and the seal then strike the viruses on the core.
+  <a href="https://deontewattsv1.github.io/Ethos-Aegis-/cells-navigation.mp4">Pages copy</a>
+</p>
+
 ### Defense Cell Registry
 
 | Biological Cell | Aegis Component | Function |
