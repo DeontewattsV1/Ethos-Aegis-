@@ -36,15 +36,12 @@ Every biological defense mechanism is mapped into rigorous computational infrast
 ### Cell Navigation
 
 <p align="center">
-  <a href="./assets/brand/cells-navigation.mp4">
-    <img src="./assets/brand/cells-navigation.jpg" alt="Defense cells navigate the central servers and strike crystalline viruses" width="100%" />
-  </a>
+  <img src="./assets/brand/cells-navigation.gif" alt="Defense cells navigate the central servers and strike crystalline viruses" width="100%" />
 </p>
 
 <p align="center">
-  <a href="./assets/brand/cells-navigation.mp4"><strong>Play the MP4</strong></a>
-  — twenty seconds. The lance, marrow lattice, and iris vault move through the central server aisle. The flare and the seal then strike the viruses on the core.
-  <a href="https://deontewattsv1.github.io/Ethos-Aegis-/cells-navigation.mp4">Pages copy</a>
+  This plays on its own when you scroll to it.
+  <a href="./assets/brand/cells-navigation.mp4">Full MP4</a>
 </p>
 
 ### Defense Cell Registry
