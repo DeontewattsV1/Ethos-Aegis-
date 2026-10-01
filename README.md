@@ -46,6 +46,12 @@ Every biological defense mechanism is mapped into rigorous computational infrast
 
 ### 4D Video Board
 
+<p align="center">
+  <img src="./assets/brand/aegis-4d-video-board.svg" alt="4D Immersive Mode -- defense cells hunt, engulf, and neutralize viruses and malware" width="100%" />
+</p>
+
+<p align="center"><em>The board animates itself: hunter cells engage threats across the full pipeline -- signature scan, heuristic, behavior, sandbox, quarantine, neutralize.</em></p>
+
 Pick a threat and open its run. The board uses the same manifold as `ethos_4d`: **X** node, **Y** task state, **Z** ethical weight, **T** tick. Scans are signature, heuristic, behavior, cloud, and sandbox. Answers are quarantine, deletion, remediation, and blocking execution. This is a visualization of the model. It does not scan your machine.
 
 | Threat | What it is | Scan | Answer | Open |
@@ -59,7 +65,7 @@ Pick a threat and open its run. The board uses the same manifold as `ethos_4d`: 
 
 <p align="center"><a href="https://deontewattsv1.github.io/Ethos-Aegis-/board.html"><strong>Open the 4D video board</strong></a></p>
 
-GitHub cannot run the scene inside this README. Each link opens the live board with that threat already loaded. Create another mix there, or record the run.
+GitHub cannot run the scene inside this README. Each link opens the live board with that threat already loaded. Create another mix there, or record the run. The board page is `board.html` at the repository root -- serve the repo over GitHub Pages (Settings, Pages, deploy from `main` / root) or open `docs/4d-immersive/index.html` locally.
 
 ### Defense Cell Registry
 
