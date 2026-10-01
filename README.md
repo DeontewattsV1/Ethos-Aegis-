@@ -355,8 +355,8 @@ See [CHANGELOG.md](./CHANGELOG.md) for full history. Latest: **v1.0.0** -- Produ
 |:---|:---|
 | [Linguistic-Encryption-System-Celestial-](https://github.com/DeontewattsV1/Linguistic-Encryption-System-Celestial-) | Evidence-bounded sovereign AI runtime with policy encryption |
 | [self-improving-agent](https://github.com/DeontewattsV1/self-improving-agent) | Continuous learning agent with skill capture and evolution |
-| [mise-pr](https://github.com/DeontewattsV1/mise-pr) | PR quality gate tooling |
-| [MCDS Hypothesis](https://github.com/DeontewattsV1/MCDS-Hypothesis) | Physics & dark sector research |
+| `mise-pr` *(private)* | PR quality gate tooling |
+| `Mirror-Coupling-Dark-Sector-MCDS-Hypothesis` *(private)* | Physics & dark sector research |
 
 ---
 
