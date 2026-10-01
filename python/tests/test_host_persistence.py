@@ -165,6 +165,48 @@ def test_refresh_resource_skips_ingestion_until_upstream_fingerprint_changes(tmp
     assert third.upstream_fingerprint != first_fingerprint
     assert client.ingest_calls == 2
 
+
+def test_refresh_resource_restores_valid_persisted_cache_across_instances(
+    tmp_path: Path,
+) -> None:
+    resource = {"id": "res-1", "package_id": "pkg-1", "last_modified": "2026-04-08T10:00:00"}
+    package = {"id": "pkg-1", "metadata_modified": "2026-04-08T10:00:00"}
+
+    client1 = PersistentFakeCKANClient(
+        resource=resource,
+        package=package,
+        ingestion=make_ingestion(),
+        matrix=make_matrix(),
+    )
+    immune1 = VeriflowImmuneSystem(
+        client1,
+        verifier=FakeVerifier(),
+        probe_on_startup=False,
+        state_dir=tmp_path,
+    )
+    first = immune1.refresh_resource("res-1")
+
+    client2 = PersistentFakeCKANClient(
+        resource=resource,
+        package=package,
+        ingestion=make_ingestion(),
+        matrix=make_matrix(),
+    )
+    immune2 = VeriflowImmuneSystem(
+        client2,
+        verifier=FakeVerifier(),
+        probe_on_startup=False,
+        state_dir=tmp_path,
+    )
+    restored = immune2.refresh_resource("res-1")
+
+    assert client2.probe_calls == 0
+    assert client2.ingest_calls == 0
+    assert restored.digest == first.digest
+    assert restored.rows == first.rows
+    assert restored.upstream_fingerprint == first.upstream_fingerprint
+
+
 def test_persisted_cache_tampering_forces_reingestion(tmp_path: Path) -> None:
     resource = {"id": "res-1", "package_id": "pkg-1", "last_modified": "2026-04-08T10:00:00"}
     package = {"id": "pkg-1", "metadata_modified": "2026-04-08T10:00:00"}
