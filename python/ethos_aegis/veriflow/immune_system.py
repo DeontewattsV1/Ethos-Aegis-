@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping, Optional
@@ -203,16 +204,26 @@ class VeriflowImmuneSystem:
             return
         self._state_dir.mkdir(parents=True, exist_ok=True)
         payload = json.dumps(self._state, indent=2, sort_keys=True, default=str)
-        temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+        temporary: Path | None = None
         try:
-            with temporary.open("w", encoding="utf-8") as handle:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=path.parent,
+                prefix=f".{path.name}.",
+                suffix=".tmp",
+                delete=False,
+            ) as handle:
+                temporary = Path(handle.name)
                 handle.write(payload)
                 handle.write("\n")
                 handle.flush()
                 os.fsync(handle.fileno())
             os.replace(temporary, path)
+            temporary = None
         finally:
-            temporary.unlink(missing_ok=True)
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
 
     def _matrix_from_dict(self, payload: Mapping[str, Any]) -> CKANCapabilityMatrix:
         version_payload = payload.get("version")
