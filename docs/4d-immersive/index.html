@@ -158,6 +158,26 @@ for (let i=0;i<CELL_N;i++) { const c = makeCell();
   c.position.set((Math.random()-0.5)*BOUNDS,(Math.random()-0.5)*12,(Math.random()-0.5)*BOUNDS);
   scene.add(c); cells.push(c); }
 
+// ---------- query params: ?threat=moral&scan=heuristic&response=block ----------
+const THREATS = {
+  moral:     { name:'MoralMaligna',     desc:'Injection / jailbreak text',      color:0xc2458f },
+  narcissis: { name:'NarcissisMaligna', desc:'Virus rewriting the instruction', color:0xb04fd8 },
+  parasitic: { name:'ParasiticMaligna', desc:'Resource drain loop',             color:0xd8693e },
+  systemic:  { name:'SystemicMaligna',  desc:'Cross-layer mutation',            color:0xd83e5e },
+  symbolic:  { name:'SymbolicMaligna',  desc:'Homoglyph / bad signature',       color:0x8f3ec2 },
+  meta:      { name:'MetaMaligna',      desc:'Quiet until isolated',            color:0x6a4fd8 },
+};
+const q = new URLSearchParams(location.search);
+const threatCfg = THREATS[(q.get('threat')||'').toLowerCase()] || null;
+const scanCfg = q.get('scan'), respCfg = q.get('response');
+if (threatCfg) {
+  virusMat.color.setHex(threatCfg.color);
+  virusMat.emissive.setHex(new THREE.Color(threatCfg.color).multiplyScalar(0.35).getHex());
+  const line = `THREAT ${threatCfg.name} · SCAN ${(scanCfg||'heuristic').toUpperCase()} · RESPONSE ${(respCfg||'block').toUpperCase()}`;
+  document.querySelector('#title p').textContent = line;
+  document.title = `Aegis 4D Board — ${threatCfg.name}`;
+}
+
 let kills = 0, paused = false;
 const $ = id => document.getElementById(id);
 $('cells').textContent = cells.length;
@@ -259,6 +279,7 @@ addEventListener('resize', () => {
 
 // ---------- main loop ----------
 $('threats').textContent = viruses.length;
+if (threatCfg) setTimeout(()=>toast(`ENGAGEMENT LOADED — ${threatCfg.name}: ${threatCfg.desc.toUpperCase()}`), 800);
 const clock = new THREE.Clock();
 let fpsF=0, fpsA=0;
 renderer.setAnimationLoop(() => {
