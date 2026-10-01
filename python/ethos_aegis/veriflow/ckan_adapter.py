@@ -128,6 +128,7 @@ class CKANCapabilityMatrix:
                             "source": item.source,
                             "detail": item.detail,
                             "status_code": item.status_code,
+                            "payload": dict(item.payload) if item.payload is not None else None,
                         }
                         for item in record.evidence
                     ],
