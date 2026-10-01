@@ -44,6 +44,23 @@ Every biological defense mechanism is mapped into rigorous computational infrast
   <a href="./assets/brand/cells-navigation.mp4">Full MP4</a>
 </p>
 
+### 4D Video Board
+
+Pick a threat and open its run. The board uses the same manifold as `ethos_4d`: **X** node, **Y** task state, **Z** ethical weight, **T** tick. Scans are signature, heuristic, behavior, cloud, and sandbox. Answers are quarantine, deletion, remediation, and blocking execution. This is a visualization of the model. It does not scan your machine.
+
+| Threat | What it is | Scan | Answer | Open |
+|:---|:---|:---|:---|:---|
+| **MoralMaligna** | Injection / jailbreak text | Heuristic | Block | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=moral&scan=heuristic&response=block) |
+| **NarcissisMaligna** | Virus that rewrites the instruction | Behavioral | Quarantine | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=narcissis&scan=behavioral&response=quarantine) |
+| **ParasiticMaligna** | Drain loop | Behavioral | Block | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=parasitic&scan=behavioral&response=block) |
+| **SystemicMaligna** | Cross-layer mutation | Cloud | Remediation | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=systemic&scan=cloud&response=remediation) |
+| **SymbolicMaligna** | Homoglyph / bad signature | Signature | Deletion | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=symbolic&scan=signature&response=deletion) |
+| **MetaMaligna** | Quiet until isolated | Sandbox | Quarantine | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=meta&scan=sandbox&response=quarantine) |
+
+<p align="center"><a href="https://deontewattsv1.github.io/Ethos-Aegis-/board.html"><strong>Open the 4D video board</strong></a></p>
+
+GitHub cannot run the scene inside this README. Each link opens the live board with that threat already loaded. Create another mix there, or record the run.
+
 ### Defense Cell Registry
 
 | Biological Cell | Aegis Component | Function |
@@ -280,6 +297,8 @@ The `ethos_4d` package maps every task lifecycle into a **four-dimensional ethic
 python -m ethos_4d.test_harness
 pytest tests/test_4d_visual.py -v
 ```
+
+The same axes drive the [4D video board](https://deontewattsv1.github.io/Ethos-Aegis-/board.html).
 
 ---
 ## Summary
