@@ -273,7 +273,8 @@ python/
     vitality/protocol.py     # 11 health subsystems
     security/vault.py        # SecureVault + AuditLedger + ThreatArchive
     veriflow/
-      immune_system.py       # Host-scoped Veriflow immune system + verified cache
+      immune_system.py       # VeriflowImmuneSystem v1
+      immune_system4.py      # VeriflowImmuneSystem v4 (full ingestion)
       ckan_adapter.py        # CKAN data integration
       formula_forge.py       # Deterministic formula verification
     agent/
