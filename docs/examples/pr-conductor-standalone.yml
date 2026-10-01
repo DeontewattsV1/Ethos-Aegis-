@@ -1,3 +1,7 @@
+# Example only: this file is intentionally stored outside .github/workflows/.
+# Moving it into .github/workflows/ activates write permissions, scheduled runs,
+# and PR automation; review that security boundary before enabling it.
+
 name: PR Conductor — Standalone
 
 on:
