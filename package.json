@@ -36,12 +36,12 @@
     "upgrade:dry": "tsx scripts/upgrade.ts --dry-run"
   },
   "devDependencies": {
-    "@types/node": "^26.6.3",
+    "@types/node": "^26.6.4",
     "@vitest/coverage-v8": "^5.0.1",
     "tsx": "^4.23.15",
     "typedoc": "^0.28.20",
     "typescript": "^5.6.3",
-    "vitest": "^5.0.2"
+    "vitest": "^5.0.3"
   },
   "keywords": [
     "living-docs",
