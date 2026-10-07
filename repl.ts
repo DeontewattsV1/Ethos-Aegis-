@@ -88,7 +88,7 @@ function makeEmitter(): EventEmitter<DemoEvents> {
       if (tapEnabled) {
         const time = dim(getTime());
         const n = count > 0 ? green(`[n=${count}]`) : dim(`[n=${count}]`);
-        console.log(`${magenta("[tap]")} ${time}  ${cyan(String(event))} ${n}`, ...rest);
+        console.log(`${cyan("[tap]")} ${time}  ${cyan(String(event))} ${n}`, ...rest);
       }
       return count;
     },
