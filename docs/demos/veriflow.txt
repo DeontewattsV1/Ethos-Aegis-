@@ -1,0 +1,11 @@
+ETHOS AEGIS | Sovereign AI Immune Architecture
+LOCAL DEMO | Synthetic inputs | No external scanners or services
+
+[BOOLEAN RULE] ¬(¬((owned ∧ allowed))) -> (owned ∧ allowed)
+
+[FORMULA] safe_div(clicks, impressions)
+  fit=1.000 | coverage=1.000
+  score=0.732 | target=ctr
+
+[AGGREGATE] total clicks=60
+A fitted candidate is a local data relationship, not a scientific law.
