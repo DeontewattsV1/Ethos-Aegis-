@@ -19,7 +19,7 @@ long_description = (Path(__file__).parent / "README.md").read_text(encoding="utf
 setup(
     name="ethos-aegis",
     version="1.0.0",
-    author="The Ethos Aegis Project",
+    author="Deonte Watts",
     description=(
         "A sovereign digital immune system: a living, adaptive framework that maps "
         "every biological defense mechanism into a rigorous computational architecture "
@@ -27,7 +27,7 @@ setup(
     ),
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/ethos-aegis/ethos-aegis",
+    url="https://github.com/DeontewattsV1/Ethos-Aegis-",
     packages=find_packages(exclude=["tests*", "scripts*", "docs*"]),
     python_requires=">=3.10",
     install_requires=[],          # zero external dependencies
