@@ -34,7 +34,7 @@
 
 <div class="hud" id="title">
   <h1>ETHOS AEGIS // 4D IMMERSIVE DEFENSE MODE</h1>
-  <p>LEUKOCYTE DEFENSE FRAMEWORK — LIVE ENGAGEMENT SIMULATION</p>
+  <p>LEUKOCYTE DEFENSE FRAMEWORK — INTERACTIVE ENGAGEMENT SIMULATION</p>
 </div>
 <div class="hud" id="stats">
   <div>THREATS NEUTRALIZED <b class="k" id="kills">0</b></div>
@@ -43,9 +43,9 @@
   <div>FPS <b id="fps">—</b></div>
 </div>
 <div class="hud" id="legend">
-  <div><span class="dot" style="background:#2fd8e6"></span>VanguardProbe / SanitasSwarm — hunter cells</div>
+  <div><span class="dot" style="background:#2fd8e6"></span>VanguardProbe / SanitasSwarm — leukocyte sentinels</div>
   <div><span class="dot" style="background:#c2458f"></span>MoralMaligna / NarcissisMaligna — active threats</div>
-  <div><span class="dot" style="background:#e8b93e"></span>Neutralization burst — FinalityForge</div>
+  <div><span class="dot" style="background:#e8b93e"></span>FinalityForge — gold adjudicator cells</div>
 </div>
 <div class="hud" id="controls">
   <div>DRAG — orbit &nbsp;·&nbsp; WHEEL — zoom</div>
@@ -118,8 +118,29 @@ const virusGeo  = new THREE.IcosahedronGeometry(1.15, 1);
 const spikeGeo  = new THREE.ConeGeometry(0.16, 0.85, 6);
 const virusMat  = new THREE.MeshStandardMaterial({ color:0xc2458f, roughness:0.45, emissive:0x4a1038, emissiveIntensity:0.7 });
 const spikeMat  = new THREE.MeshStandardMaterial({ color:0xe067ae, roughness:0.4, emissive:0x711b4f, emissiveIntensity:0.6 });
-const cellCore  = new THREE.MeshStandardMaterial({ color:0x2fd8e6, roughness:0.25, emissive:0x0e6b78, emissiveIntensity:1.2 });
-const cellShell = new THREE.MeshStandardMaterial({ color:0x7ff3ff, transparent:true, opacity:0.22, roughness:0.1 });
+// Reused low-poly biologically-inspired shapes for each leukocyte; visual simulation only.
+const membraneGeo = new THREE.SphereGeometry(1.35, 28, 20);
+const cytoplasmGeo = new THREE.SphereGeometry(1.04, 24, 18);
+const nucleusGeo = new THREE.SphereGeometry(0.48, 16, 12);
+const granuleGeo = new THREE.IcosahedronGeometry(0.075, 0);
+const pseudopodGeo = new THREE.ConeGeometry(0.19, 0.62, 7);
+const nucleusMat = new THREE.MeshStandardMaterial({color:0x243255, roughness:0.58, emissive:0x11152e, emissiveIntensity:0.28});
+const leukocytePalette = {
+  sentinel: {
+    core:new THREE.MeshStandardMaterial({color:0x51d3cc, transparent:true, opacity:0.67, roughness:0.38, depthWrite:false}),
+    shell:new THREE.MeshPhysicalMaterial({color:0x8cf5ed, transparent:true, opacity:0.25, roughness:0.25, depthWrite:false, side:THREE.FrontSide}),
+    pod:new THREE.MeshStandardMaterial({color:0x5dded4, roughness:0.4}),
+    grain:new THREE.MeshStandardMaterial({color:0xd3ffd7, emissive:0x2a9f98, emissiveIntensity:0.35}),
+    light:0x57d9d2
+  },
+  finality: {
+    core:new THREE.MeshStandardMaterial({color:0xe8be66, transparent:true, opacity:0.70, roughness:0.4, depthWrite:false}),
+    shell:new THREE.MeshPhysicalMaterial({color:0xffdfa0, transparent:true, opacity:0.24, roughness:0.22, depthWrite:false, side:THREE.FrontSide}),
+    pod:new THREE.MeshStandardMaterial({color:0xe0b85e, roughness:0.45}),
+    grain:new THREE.MeshStandardMaterial({color:0xfff3c8, emissive:0xa87824, emissiveIntensity:0.36}),
+    light:0xe3b65b
+  }
+};
 const burstMat  = new THREE.PointsMaterial({ color:0xe8b93e, size:0.3, transparent:true, opacity:1, depthWrite:false, blending:THREE.AdditiveBlending });
 
 function makeVirus() {
@@ -137,12 +158,40 @@ function makeVirus() {
                  alive:true, scale:1, spin:(Math.random()-0.5)*0.8 };
   return g;
 }
-function makeCell() {
-  const g = new THREE.Group();
-  g.add(new THREE.Mesh(new THREE.SphereGeometry(1.0, 24, 18), cellCore));
-  g.add(new THREE.Mesh(new THREE.SphereGeometry(1.45, 24, 18), cellShell));
-  const halo = new THREE.PointLight(0x2fd8e6, 8, 12); g.add(halo);
-  g.userData = { vel:new THREE.Vector3(), wobble:Math.random()*Math.PI*2, retarget:0 };
+function makeCell(role = 'sentinel') {
+  const palette = leukocytePalette[role], g = new THREE.Group();
+  const north = new THREE.Vector3(0, 1, 0);
+  // Short pseudopods and membrane extensions form a recognizable immune-cell silhouette.
+  for (let i=0; i<9; i++) {
+    const y = 1 - 2*(i+0.5)/9, r = Math.sqrt(Math.max(0,1-y*y));
+    const theta = i*Math.PI*(3-Math.sqrt(5));
+    const dir = new THREE.Vector3(Math.cos(theta)*r,y,Math.sin(theta)*r);
+    const pod = new THREE.Mesh(pseudopodGeo, palette.pod);
+    pod.position.copy(dir).multiplyScalar(1.36);
+    pod.quaternion.setFromUnitVectors(north,dir);
+    pod.scale.set(0.85,0.63+0.15*(i%3),0.85);
+    g.add(pod);
+  }
+  g.add(new THREE.Mesh(cytoplasmGeo, palette.core));
+  const nucleus = new THREE.Group();
+  for (const [x,y,z,size] of [
+    [-0.34,0.20,0.52,0.90],[0.29,0.05,0.55,1.04],[-0.09,-0.33,0.58,0.95]
+  ]) {
+    const lobe = new THREE.Mesh(nucleusGeo,nucleusMat);
+    lobe.position.set(x,y,z); lobe.scale.setScalar(size); nucleus.add(lobe);
+  }
+  g.add(nucleus);
+  for(let i=0; i<22; i++) {
+    const y=1-2*(i+0.5)/22, r=Math.sqrt(Math.max(0,1-y*y));
+    const theta=i*Math.PI*(3-Math.sqrt(5));
+    const granule=new THREE.Mesh(granuleGeo,palette.grain);
+    granule.position.set(Math.cos(theta)*r*0.91,y*0.91,Math.sin(theta)*r*0.91);
+    g.add(granule);
+  }
+  const shell=new THREE.Mesh(membraneGeo,palette.shell);
+  shell.scale.set(1.035,0.97,1.025); g.add(shell);
+  g.add(new THREE.PointLight(palette.light,4,7));
+  g.userData={vel:new THREE.Vector3(),wobble:Math.random()*Math.PI*2,retarget:0,role,nucleus};
   return g;
 }
 
@@ -154,7 +203,7 @@ const spawnV = () => { const v = makeVirus();
   v.position.set((Math.random()-0.5)*BOUNDS*1.6,(Math.random()-0.5)*16,(Math.random()-0.5)*BOUNDS*1.6);
   scene.add(v); viruses.push(v); };
 for (let i=0;i<VIRUS_N;i++) spawnV();
-for (let i=0;i<CELL_N;i++) { const c = makeCell();
+for (let i=0;i<CELL_N;i++) { const c = makeCell(i % 3 === 0 ? 'finality' : 'sentinel');
   c.position.set((Math.random()-0.5)*BOUNDS,(Math.random()-0.5)*12,(Math.random()-0.5)*BOUNDS);
   scene.add(c); cells.push(c); }
 
@@ -240,6 +289,7 @@ function step(dt, t) {
     c.position.addScaledVector(c.userData.vel, dt);
     c.userData.wobble += dt*3;
     c.scale.setScalar(1 + Math.sin(c.userData.wobble)*0.07);
+    c.userData.nucleus.rotation.y += dt*0.18;
   }
   // bursts
   for (let i=bursts.length-1;i>=0;i--) {
