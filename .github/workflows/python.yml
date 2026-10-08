@@ -73,7 +73,7 @@ jobs:
         run: |
           python -m build --wheel --sdist --outdir dist-governance .
           python -m build --wheel --sdist --outdir dist-immune ./python
-          python -m twine check dist-governance/* dist-immune/*
+          python -m twine check --strict dist-governance/* dist-immune/*
 
       - name: Assert wheel identities, module isolation, licenses and scripts
         shell: python
