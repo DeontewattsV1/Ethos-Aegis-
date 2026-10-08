@@ -12,7 +12,8 @@ Usage::
 
     from ethos_aegis_sdk import AegisClient
 
-    client = AegisClient()
+    # HTTP mode works without the embedded core when a server is available.
+    client = AegisClient(transport="http", server_url="https://example.test/v1/adjudicate")
     verdict = client.adjudicate("user message")
 
     if verdict.is_condemned:
@@ -21,16 +22,34 @@ Usage::
         forward_to_llm(verdict.purified_payload or original)
 """
 
-from .adapters import (
-    AnthropicAdapter,
-    BaseAdapter,
-    GeminiAdapter,
-    GeminiVertexAdapter,
-    GenericAdapter,
-    MistralAdapter,
-    OpenAIAdapter,
-)
+from importlib import import_module
+
 from .client import AegisClient, AegisClientError, GuardedResponse
+
+# Explicit adapter access remains compatible, but importing AegisClient for
+# HTTP transport must never import the optional, locally installed core.
+_ADAPTER_EXPORTS = frozenset(
+    {
+        "AnthropicAdapter",
+        "BaseAdapter",
+        "GeminiAdapter",
+        "GeminiVertexAdapter",
+        "GenericAdapter",
+        "MistralAdapter",
+        "OpenAIAdapter",
+    }
+)
+
+
+def __getattr__(name: str):
+    if name not in _ADAPTER_EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    # Only user-requested adapters load the separate ethos_aegis core.
+    return getattr(import_module(".adapters", __name__), name)
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | _ADAPTER_EXPORTS)
 
 __version__ = "1.0.0"
 __all__ = [
