@@ -5,10 +5,14 @@ import json
 import os
 import tempfile
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
 from ethos_aegis.agent.scaffolds.task_verifier_mesh import DeterministicVerifier
+from ethos_aegis.mythos_runtime.authority import ExecutionGrant
+from ethos_aegis.mythos_runtime.assurance import StateIntegrityError
+from ethos_aegis.mythos_runtime.veriflow_runtime import MythosVeriflowRuntime
 
 from .ckan_adapter import (
     CKANCapabilityMatrix,
@@ -84,10 +88,14 @@ class VeriflowImmuneSystem:
         probe_on_startup:      Run capability probe at construction time.
         sample_resource_id:    Resource to probe on startup.
         state_dir:             Optional path for persisting cache state.
-        fingerprint_mode:      ``"digest"`` (default) or
-                               ``"datastore_lightweight"`` -- lightweight mode
-                               re-ingests when row content changes even if
-                               CKAN metadata timestamps are unchanged.
+        fingerprint_mode:      ``"auto"`` (default) selects a lightweight row
+                               signature when CKAN Datastore is available and
+                               otherwise uses metadata fingerprints.
+        mythos_runtime:        Optional production assurance bridge. When set,
+                               probe/refresh/answer execution is grant-gated,
+                               state is authenticated, and evidence is retained.
+        execution_grant:       Short-lived operator-issued grant consumed by the
+                               configured Mythos/VeriFlow runtime.
         row_signature_limit:   How many rows to include in lightweight
                                fingerprint (default: 100).
     """
@@ -101,8 +109,10 @@ class VeriflowImmuneSystem:
         probe_on_startup: bool = True,
         sample_resource_id: str | None = None,
         state_dir: Path | str | None = None,
-        fingerprint_mode: str = "digest",
+        fingerprint_mode: str = "auto",
         row_signature_limit: int = 100,
+        mythos_runtime: MythosVeriflowRuntime | None = None,
+        execution_grant: str | None = None,
     ) -> None:
         self.ckan = ckan
         self.verifier = verifier or DeterministicVerifier()
@@ -110,7 +120,16 @@ class VeriflowImmuneSystem:
         self._cache: dict[str, DatasetCacheEntry] = {}
         self._capability_matrix: CKANCapabilityMatrix | None = None
         self._probe_sample_resource_id = sample_resource_id
-        self._state_dir = Path(state_dir) if state_dir else None
+        self._mythos_runtime = mythos_runtime
+        self._execution_grant = execution_grant
+        if mythos_runtime is not None and mythos_runtime.environment.ckan_base_url != self.ckan.base_url:
+            raise ValueError("Mythos trusted CKAN host must match the VeriFlow CKAN client")
+        if state_dir is not None:
+            self._state_dir = Path(state_dir)
+        elif mythos_runtime is not None:
+            self._state_dir = mythos_runtime.state_dir / "veriflow-state"
+        else:
+            self._state_dir = None
         self._fingerprint_mode = fingerprint_mode
         self._row_signature_limit = row_signature_limit
         self._state: dict[str, Any] = self._load_host_state()
@@ -126,6 +145,43 @@ class VeriflowImmuneSystem:
     @property
     def capability_matrix(self) -> CKANCapabilityMatrix | None:
         return self._capability_matrix
+
+    @property
+    def mythos_runtime(self) -> MythosVeriflowRuntime | None:
+        return self._mythos_runtime
+
+    def set_execution_grant(self, token: str | None) -> None:
+        """Rotate the short-lived execution grant supplied by the trusted host."""
+        self._execution_grant = token
+
+    def _authorize_mythos(self, action: str, resource_id: str, purpose: str) -> ExecutionGrant | None:
+        if self._mythos_runtime is None:
+            return None
+        return self._mythos_runtime.authorize(
+            self._execution_grant,
+            action=action,
+            resource_id=resource_id,
+            purpose=purpose,
+        )
+
+    def _record_mythos(
+        self,
+        grant: ExecutionGrant | None,
+        *,
+        event_type: str,
+        action: str,
+        resource_id: str,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> None:
+        if self._mythos_runtime is None or grant is None:
+            return
+        self._mythos_runtime.record(
+            event_type=event_type,
+            action=action,
+            resource_id=resource_id,
+            subject=grant.subject,
+            metadata=metadata,
+        )
 
     @property
     def state_file(self) -> Optional[Path]:
@@ -161,6 +217,38 @@ class VeriflowImmuneSystem:
         expected = f"{self.ckan.base_url}/api/3/action"
         return str(api_base).rstrip("/") == expected.rstrip("/")
 
+    def _prune_resource_state(self, payload: dict[str, Any]) -> dict[str, Any]:
+        if self._mythos_runtime is None:
+            return payload
+        resources = payload.get("resources")
+        if not isinstance(resources, Mapping):
+            payload["resources"] = {}
+            return payload
+
+        cutoff = datetime.now(timezone.utc) - timedelta(
+            seconds=self._mythos_runtime.retention.resource_state_ttl_seconds
+        )
+        retained: list[tuple[str, Mapping[str, Any], datetime]] = []
+        for resource_id, raw in resources.items():
+            if not isinstance(raw, Mapping):
+                continue
+            saved_at = raw.get("saved_at")
+            if not isinstance(saved_at, str):
+                continue
+            try:
+                saved = datetime.fromisoformat(saved_at.replace("Z", "+00:00")).astimezone(timezone.utc)
+            except ValueError:
+                continue
+            if saved >= cutoff:
+                retained.append((str(resource_id), raw, saved))
+
+        retained.sort(key=lambda item: item[2], reverse=True)
+        payload["resources"] = {
+            resource_id: dict(raw)
+            for resource_id, raw, _ in retained[: self._mythos_runtime.retention.max_resources]
+        }
+        return payload
+
     def _load_host_state(self) -> dict[str, Any]:
         if self._state_dir is None:
             return self._empty_state()
@@ -169,15 +257,31 @@ class VeriflowImmuneSystem:
         for path in candidates:
             if path is None or not path.exists():
                 continue
+            if self._mythos_runtime is not None:
+                if path.is_symlink() or path.parent.is_symlink():
+                    raise StateIntegrityError("VeriFlow state symlinks are forbidden in production mode")
+                if path.stat().st_size > self._mythos_runtime.retention.max_state_bytes:
+                    raise StateIntegrityError("VeriFlow state exceeds configured size limit")
             try:
-                payload = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
+                loaded = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                if self._mythos_runtime is not None:
+                    raise StateIntegrityError("VeriFlow production state is unreadable") from exc
                 continue
-            if not isinstance(payload, dict):
+            if not isinstance(loaded, dict):
+                if self._mythos_runtime is not None:
+                    raise StateIntegrityError("VeriFlow production state schema is invalid")
                 continue
+
+            if self._mythos_runtime is not None:
+                payload = self._mythos_runtime.unprotect_state(loaded)
+            else:
+                payload = loaded
 
             is_legacy = path == self._legacy_state_file
             if is_legacy and not self._legacy_payload_matches_host(payload):
+                if self._mythos_runtime is not None:
+                    raise StateIntegrityError("legacy state does not match the trusted CKAN host")
                 continue
 
             if "capability_matrix" not in payload and "api_base" in payload and "capabilities" in payload:
@@ -190,37 +294,67 @@ class VeriflowImmuneSystem:
 
             host = payload.get("host")
             if host is not None and str(host).rstrip("/") != self.ckan.base_url:
+                if self._mythos_runtime is not None:
+                    raise StateIntegrityError("persisted state belongs to another CKAN host")
                 continue
             payload.setdefault("schema_version", 2)
             payload.setdefault("host", self.ckan.base_url)
             payload.setdefault("resources", {})
-            return payload
+            return self._prune_resource_state(payload)
 
         return self._empty_state()
 
     def _save_host_state(self) -> None:
         path = self.state_file
-        if path is None:
+        if path is None or self._state_dir is None:
             return
-        self._state_dir.mkdir(parents=True, exist_ok=True)
-        payload = json.dumps(self._state, indent=2, sort_keys=True, default=str)
+        if self._state_dir.is_symlink():
+            raise StateIntegrityError("VeriFlow state directory symlink is forbidden")
+        self._state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if os.name == "posix":
+            self._state_dir.chmod(0o700)
+        if path.is_symlink() or path.parent.is_symlink():
+            raise StateIntegrityError("VeriFlow state file symlink is forbidden")
+
+        self._state = self._prune_resource_state(self._state)
+        stored: Mapping[str, Any]
+        if self._mythos_runtime is not None:
+            stored = self._mythos_runtime.protect_state(self._state)
+        else:
+            stored = self._state
+        payload = json.dumps(stored, indent=2, sort_keys=True, default=str).encode("utf-8") + b"\n"
+        if self._mythos_runtime is not None and len(payload) > self._mythos_runtime.retention.max_state_bytes:
+            raise StateIntegrityError("VeriFlow state would exceed configured size limit")
+
+        lock = self._mythos_runtime.state_write_lock(path) if self._mythos_runtime is not None else None
         temporary: Path | None = None
-        try:
+
+        def write_state() -> None:
+            nonlocal temporary
             with tempfile.NamedTemporaryFile(
-                mode="w",
-                encoding="utf-8",
+                mode="wb",
                 dir=path.parent,
                 prefix=f".{path.name}.",
                 suffix=".tmp",
                 delete=False,
             ) as handle:
                 temporary = Path(handle.name)
+                if os.name == "posix":
+                    os.fchmod(handle.fileno(), 0o600)
                 handle.write(payload)
-                handle.write("\n")
                 handle.flush()
                 os.fsync(handle.fileno())
             os.replace(temporary, path)
             temporary = None
+            if os.name == "posix":
+                path.chmod(0o600)
+
+        try:
+            if lock is None:
+                write_state()
+            else:
+                with lock:
+                    write_state()
         finally:
             if temporary is not None:
                 temporary.unlink(missing_ok=True)
@@ -335,6 +469,8 @@ class VeriflowImmuneSystem:
         cache_payload = persisted.get("cache_entry")
         if not isinstance(cache_payload, Mapping):
             return None
+        if cache_payload.get("rows_persisted") is False:
+            return None
 
         try:
             entry = self._dataset_entry_from_dict(cache_payload)
@@ -367,13 +503,20 @@ class VeriflowImmuneSystem:
         if self._state_dir is None:
             return
         resources = self._state.setdefault("resources", {})
+        cache_entry = entry.to_dict()
+        persist_rows = self._mythos_runtime is None or self._mythos_runtime.retention.persist_rows
+        cache_entry["rows_persisted"] = persist_rows
+        cache_entry["row_count"] = len(entry.rows)
+        if not persist_rows:
+            cache_entry["rows"] = []
         resources[entry.resource_id] = {
             "upstream_fingerprint": entry.upstream_fingerprint,
             "ingestion_digest": entry.digest,
             "package_id": entry.package_id,
             "ingestion_path": entry.ingestion_path,
             "ingestion_metadata": dict(entry.ingestion_metadata),
-            "cache_entry": entry.to_dict(),
+            "saved_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "cache_entry": cache_entry,
         }
         self._save_host_state()
 
@@ -404,10 +547,19 @@ class VeriflowImmuneSystem:
                 except (TypeError, ValueError, KeyError):
                     pass
 
+        probe_resource = sample or "__host__"
+        grant = self._authorize_mythos("veriflow.probe", probe_resource, "capability_probe")
         matrix = self.ckan.probe_capabilities(sample_resource_id=sample)
         self._capability_matrix = matrix
         self._probe_sample_resource_id = sample
         self._persist_capability_matrix(matrix)
+        self._record_mythos(
+            grant,
+            event_type="capability_probe",
+            action="veriflow.probe",
+            resource_id=probe_resource,
+            metadata={"version": matrix.version.raw, "capability_count": len(matrix.capabilities)},
+        )
         return matrix
 
     # -- Core ingestion ------------------------------------------------------
@@ -415,6 +567,7 @@ class VeriflowImmuneSystem:
     def refresh_resource(self, resource_id: str) -> DatasetCacheEntry:
         """Refresh a CKAN resource while preserving host-scoped verified cache state."""
 
+        grant = self._authorize_mythos("veriflow.refresh", resource_id, "dataset_refresh")
         matrix = self.bootstrap(sample_resource_id=resource_id)
 
         fingerprint_ready = False
@@ -446,6 +599,13 @@ class VeriflowImmuneSystem:
             and existing is not None
             and existing.upstream_fingerprint == upstream_fingerprint
         ):
+            self._record_mythos(
+                grant,
+                event_type="refresh_cache_hit",
+                action="veriflow.refresh",
+                resource_id=resource_id,
+                metadata={"digest": existing.digest, "upstream_fingerprint": existing.upstream_fingerprint},
+            )
             return existing
 
         persisted = self._state.get("resources", {}).get(resource_id, {})
@@ -463,6 +623,13 @@ class VeriflowImmuneSystem:
             )
             if restored is not None:
                 self._cache[resource_id] = restored
+                self._record_mythos(
+                    grant,
+                    event_type="refresh_state_restore",
+                    action="veriflow.refresh",
+                    resource_id=resource_id,
+                    metadata={"digest": restored.digest, "upstream_fingerprint": restored.upstream_fingerprint},
+                )
                 return restored
 
         result = self.ckan.ingest_resource(
@@ -492,6 +659,13 @@ class VeriflowImmuneSystem:
             existing.upstream_fingerprint = upstream_fingerprint
             existing.upstream_fingerprint_payload = dict(fingerprint_payload)
             self._persist_dataset_entry(existing)
+            self._record_mythos(
+                grant,
+                event_type="refresh_metadata_update",
+                action="veriflow.refresh",
+                resource_id=resource_id,
+                metadata={"digest": existing.digest, "upstream_fingerprint": existing.upstream_fingerprint},
+            )
             return existing
 
         verification = self.verifier.verify_source_snapshot(
@@ -518,6 +692,18 @@ class VeriflowImmuneSystem:
         )
         self._cache[resource_id] = entry
         self._persist_dataset_entry(entry)
+        self._record_mythos(
+            grant,
+            event_type="refresh_ingest",
+            action="veriflow.refresh",
+            resource_id=resource_id,
+            metadata={
+                "digest": entry.digest,
+                "upstream_fingerprint": entry.upstream_fingerprint,
+                "ingestion_path": entry.ingestion_path,
+                "row_count": len(entry.rows),
+            },
+        )
         return entry
 
     # -- Question answering --------------------------------------------------
@@ -533,6 +719,7 @@ class VeriflowImmuneSystem:
 
         Auto-refreshes the resource if it is not yet in cache.
         """
+        grant = self._authorize_mythos("veriflow.answer", resource_id, "question_answer")
         if resource_id not in self._cache:
             self.refresh_resource(resource_id)
 
@@ -557,4 +744,15 @@ class VeriflowImmuneSystem:
             ),
         })
         entry.last_answer = answer
+        self._record_mythos(
+            grant,
+            event_type="answer",
+            action="veriflow.answer",
+            resource_id=resource_id,
+            metadata={
+                "question_sha256": hashlib.sha256(question.encode("utf-8")).hexdigest(),
+                "answer_type": answer.answer_type,
+                "ingestion_digest": entry.digest,
+            },
+        )
         return answer

@@ -24,3 +24,9 @@ The repository's existing main branch is canonical. The user-supplied archives w
 - See [Mythos runtime](../mythos-runtime.md), [defensive scaffolds](../defensive-scaffolds.md), and [repository contribution contract](../../AGENTS.md).
 
 **Source control rule:** archival source remains contextual evidence; it does not override current tests, authorization policy, or repository-specific security gates.
+
+## Follow-up production integration
+
+- Duplicate `Ethos-Aegis-Claude-Mythos-Scaffolds(20261008-024200/024201).zip` uploads were treated as one source snapshot.
+- Mythos is wired into VeriFlow through an independent execution-grant verifier, trusted execution/target environment binding, authenticated state, bounded HMAC-chained evidence retention, and raw-row persistence disabled by default.
+- The uploaded scientific manuscript, fine-structure notes, and Mesopotamian measurement reference were not promoted into the security runtime; they remain separate research inputs.
