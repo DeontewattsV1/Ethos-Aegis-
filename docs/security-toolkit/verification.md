@@ -31,5 +31,6 @@ proxy/radio captures, Go/Rust builds and hosted authentication/isolation validat
 were not performed. The local tool recordings exercise actual normalization and
 scope logic with synthetic evidence. Go/Rust remain reference SDKs.
 
-Cubic CLI/MCP was unavailable; no Cubic result is claimed. Existing repository CI
-and remote reviews must be evaluated before merge. No merge was performed.
+External review tooling was unavailable; no third-party review result is claimed.
+Existing repository CI and independent reviews must be evaluated before merge.
+No merge was performed.
