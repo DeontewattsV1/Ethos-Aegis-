@@ -98,9 +98,11 @@ type Verdict struct {
 	RequestID string `json:"requestId"`
 }
 
-// Safe returns true when the payload may be forwarded to the LLM.
-// A payload is safe when it is not condemned (CAUTION/VOID are safe).
-func (v *Verdict) Safe() bool { return !v.Condemned }
+// Safe is fail-closed: forwarding requires explicit sanctification, no
+// condemnation, and a usable replacement when sanitization was required.
+func (v *Verdict) Safe() bool {
+	return v != nil && v.Sanctified && !v.Condemned && (!v.Sanitized || v.PurifiedPayload != nil)
+}
 
 // ─── Errors ──────────────────────────────────────────────────────────────────
 
