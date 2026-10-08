@@ -59,7 +59,7 @@ any CI environment without modification.
 
 | Surface | TypeScript side | Python side |
 |---|---|---|
-| CI workflow | `.github/workflows/examples.yml` runs `examples/*.ts` and diffs snapshots | `.github/workflows/python.yml` runs `pytest` |
+| CI workflow | `.github/workflows/examples.yml` runs `npm test`, executes `examples/*.ts`, and checks snapshot drift | `.github/workflows/python.yml` runs `pytest` |
 | Test command | `npm test` (vitest) | `cd python && python -m pytest` |
 | Lint command | `npm run lint` (tsc --noEmit) | `cd python && ruff check .` |
 | README contract | README region markers refer to `examples/*.ts` files | This README's commands are exercised by `python.yml` on every push |

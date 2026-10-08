@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ethos Aegis — 4D Immersive Defense Mode</title>
+<style>
+  :root { --gold:#e8b93e; --teal:#2fd8e6; --red:#ff4f5e; --ink:#9db4cc; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#05080f;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+  #scene { position:fixed; inset:0; display:block; }
+  .hud { position:fixed; z-index:10; color:var(--ink); pointer-events:none; }
+  #title { top:22px; left:26px; }
+  #title h1 { font-size:17px; letter-spacing:4px; color:var(--gold); font-weight:600; }
+  #title p  { font-size:11px; letter-spacing:2px; margin-top:5px; opacity:.75; }
+  #stats { top:22px; right:26px; text-align:right; font-size:12px; line-height:1.9; letter-spacing:1px; }
+  #stats b { color:var(--teal); font-weight:600; }
+  #stats .k  { color:var(--gold); }
+  #legend { bottom:22px; left:26px; font-size:11px; line-height:1.9; letter-spacing:1px; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:8px; }
+  #controls { bottom:22px; right:26px; text-align:right; font-size:11px; line-height:1.9; letter-spacing:1px; }
+  #banner { top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; display:none; }
+  #banner h2 { color:var(--gold); letter-spacing:6px; font-size:22px; }
+  #banner p  { margin-top:10px; font-size:12px; letter-spacing:2px; }
+  #toast { bottom:70px; left:50%; transform:translateX(-50%); font-size:12px; letter-spacing:2px;
+    color:var(--teal); opacity:0; transition:opacity .4s; }
+  #fallback { position:fixed; inset:0; display:none; place-items:center; color:var(--ink);
+    text-align:center; font-size:13px; line-height:2; padding:24px; }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div class="hud" id="title">
+  <h1>ETHOS AEGIS // 4D IMMERSIVE DEFENSE MODE</h1>
+  <p>LEUKOCYTE DEFENSE FRAMEWORK — LIVE ENGAGEMENT SIMULATION</p>
+</div>
+<div class="hud" id="stats">
+  <div>THREATS NEUTRALIZED <b class="k" id="kills">0</b></div>
+  <div>ACTIVE THREATS <b id="threats">0</b></div>
+  <div>DEFENSE CELLS <b id="cells">0</b></div>
+  <div>FPS <b id="fps">—</b></div>
+</div>
+<div class="hud" id="legend">
+  <div><span class="dot" style="background:#2fd8e6"></span>VanguardProbe / SanitasSwarm — hunter cells</div>
+  <div><span class="dot" style="background:#c2458f"></span>MoralMaligna / NarcissisMaligna — active threats</div>
+  <div><span class="dot" style="background:#e8b93e"></span>Neutralization burst — FinalityForge</div>
+</div>
+<div class="hud" id="controls">
+  <div>DRAG — orbit &nbsp;·&nbsp; WHEEL — zoom</div>
+  <div>SPACE — pause &nbsp;·&nbsp; R — reset camera</div>
+</div>
+<div class="hud" id="banner"><h2>PAUSED</h2><p>PRESS SPACE TO RESUME</p></div>
+<div class="hud" id="toast"></div>
+<div id="fallback"><div>WebGL is unavailable in this browser.<br/>The 4D Immersive Mode needs a desktop browser with WebGL enabled.</div></div>
+
+<script type="importmap">
+{ "imports": {
+    "three": "https://unpkg.com/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.169.0/examples/jsm/"
+} }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const canvas = document.getElementById('scene');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias:true, powerPreference:'high-performance' });
+  if (!renderer.getContext()) throw new Error('no ctx');
+} catch (e) {
+  document.getElementById('fallback').style.display = 'grid';
+  throw e;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x05080f);
+scene.fog = new THREE.FogExp2(0x05080f, 0.028);
+
+const camera = new THREE.PerspectiveCamera(58, innerWidth/innerHeight, 0.1, 300);
+camera.position.set(0, 10, 30);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.55;
+controls.maxDistance = 80;
+controls.minDistance = 8;
+
+// ---------- lights ----------
+scene.add(new THREE.AmbientLight(0x24405e, 1.4));
+const key = new THREE.DirectionalLight(0x9fd8ff, 1.1); key.position.set(18, 30, 12); scene.add(key);
+const warm = new THREE.PointLight(0xe8b93e, 60, 60); warm.position.set(-14, 8, -10); scene.add(warm);
+
+// ---------- environment: grid + drifting data motes ----------
+const grid = new THREE.GridHelper(160, 80, 0x1d3355, 0x0e1c30);
+grid.position.y = -14; scene.add(grid);
+
+const moteGeo = new THREE.BufferGeometry();
+const MOTES = 700;
+{
+  const p = new Float32Array(MOTES*3);
+  for (let i=0;i<MOTES*3;i++) p[i] = (Math.random()-0.5)*140;
+  moteGeo.setAttribute('position', new THREE.BufferAttribute(p,3));
+}
+scene.add(new THREE.Points(moteGeo, new THREE.PointsMaterial({ color:0x2fd8e6, size:0.14, transparent:true, opacity:0.45 })));
+
+// ---------- shared geometry/materials ----------
+const virusGeo  = new THREE.IcosahedronGeometry(1.15, 1);
+const spikeGeo  = new THREE.ConeGeometry(0.16, 0.85, 6);
+const virusMat  = new THREE.MeshStandardMaterial({ color:0xc2458f, roughness:0.45, emissive:0x4a1038, emissiveIntensity:0.7 });
+const spikeMat  = new THREE.MeshStandardMaterial({ color:0xe067ae, roughness:0.4, emissive:0x711b4f, emissiveIntensity:0.6 });
+const cellCore  = new THREE.MeshStandardMaterial({ color:0x2fd8e6, roughness:0.25, emissive:0x0e6b78, emissiveIntensity:1.2 });
+const cellShell = new THREE.MeshStandardMaterial({ color:0x7ff3ff, transparent:true, opacity:0.22, roughness:0.1 });
+const burstMat  = new THREE.PointsMaterial({ color:0xe8b93e, size:0.3, transparent:true, opacity:1, depthWrite:false, blending:THREE.AdditiveBlending });
+
+function makeVirus() {
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(virusGeo, virusMat));
+  const up = new THREE.Vector3(0,1,0);
+  for (let i=0;i<14;i++) {
+    const dir = new THREE.Vector3().randomDirection();
+    const s = new THREE.Mesh(spikeGeo, spikeMat);
+    s.position.copy(dir).multiplyScalar(1.25);
+    s.quaternion.setFromUnitVectors(up, dir);
+    g.add(s);
+  }
+  g.userData = { vel:new THREE.Vector3().randomDirection().multiplyScalar(1.1),
+                 alive:true, scale:1, spin:(Math.random()-0.5)*0.8 };
+  return g;
+}
+function makeCell() {
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(1.0, 24, 18), cellCore));
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(1.45, 24, 18), cellShell));
+  const halo = new THREE.PointLight(0x2fd8e6, 8, 12); g.add(halo);
+  g.userData = { vel:new THREE.Vector3(), wobble:Math.random()*Math.PI*2, retarget:0 };
+  return g;
+}
+
+// ---------- populations (quality-scaled) ----------
+const BOUNDS = 22;
+let VIRUS_N = 14, CELL_N = 8;
+const viruses = [], cells = [], bursts = [];
+const spawnV = () => { const v = makeVirus();
+  v.position.set((Math.random()-0.5)*BOUNDS*1.6,(Math.random()-0.5)*16,(Math.random()-0.5)*BOUNDS*1.6);
+  scene.add(v); viruses.push(v); };
+for (let i=0;i<VIRUS_N;i++) spawnV();
+for (let i=0;i<CELL_N;i++) { const c = makeCell();
+  c.position.set((Math.random()-0.5)*BOUNDS,(Math.random()-0.5)*12,(Math.random()-0.5)*BOUNDS);
+  scene.add(c); cells.push(c); }
+
+// ---------- query params: ?threat=moral&scan=heuristic&response=block ----------
+const THREATS = {
+  moral:     { name:'MoralMaligna',     desc:'Injection / jailbreak text',      color:0xc2458f },
+  narcissis: { name:'NarcissisMaligna', desc:'Virus rewriting the instruction', color:0xb04fd8 },
+  parasitic: { name:'ParasiticMaligna', desc:'Resource drain loop',             color:0xd8693e },
+  systemic:  { name:'SystemicMaligna',  desc:'Cross-layer mutation',            color:0xd83e5e },
+  symbolic:  { name:'SymbolicMaligna',  desc:'Homoglyph / bad signature',       color:0x8f3ec2 },
+  meta:      { name:'MetaMaligna',      desc:'Quiet until isolated',            color:0x6a4fd8 },
+};
+const q = new URLSearchParams(location.search);
+const threatCfg = THREATS[(q.get('threat')||'').toLowerCase()] || null;
+const scanCfg = q.get('scan'), respCfg = q.get('response');
+if (threatCfg) {
+  virusMat.color.setHex(threatCfg.color);
+  virusMat.emissive.setHex(new THREE.Color(threatCfg.color).multiplyScalar(0.35).getHex());
+  const line = `THREAT ${threatCfg.name} · SCAN ${(scanCfg||'heuristic').toUpperCase()} · RESPONSE ${(respCfg||'block').toUpperCase()}`;
+  document.querySelector('#title p').textContent = line;
+  document.title = `Aegis 4D Board — ${threatCfg.name}`;
+}
+
+let kills = 0, paused = false;
+const $ = id => document.getElementById(id);
+$('cells').textContent = cells.length;
+
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.style.opacity=1;
+  clearTimeout(t._h); t._h=setTimeout(()=>t.style.opacity=0, 1800); }
+
+function burst(pos) {
+  const n = 60, p = new Float32Array(n*3), v = [];
+  for (let i=0;i<n;i++){ p.set([pos.x,pos.y,pos.z], i*3); v.push(new THREE.Vector3().randomDirection().multiplyScalar(3+Math.random()*4)); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p,3));
+  const pts = new THREE.Points(g, burstMat.clone()); pts.userData = { vel:v, life:1 };
+  scene.add(pts); bursts.push(pts);
+}
+
+// ---------- simulation ----------
+const tmp = new THREE.Vector3();
+function step(dt, t) {
+  // viruses wander + bounce
+  for (const v of viruses) {
+    if (!v.userData.alive) { // shrink-out
+      v.userData.scale -= dt*2.4;
+      if (v.userData.scale <= 0) { scene.remove(v); viruses.splice(viruses.indexOf(v),1);
+        $('threats').textContent = viruses.length;
+        setTimeout(spawnV, 2600 + Math.random()*3000); }
+      else v.scale.setScalar(v.userData.scale);
+      continue;
+    }
+    v.userData.vel.add(tmp.randomDirection().multiplyScalar(0.55*dt)).clampLength(0.4, 1.6);
+    v.position.addScaledVector(v.userData.vel, dt);
+    for (const ax of ['x','y','z']) {
+      const lim = ax==='y' ? 10 : BOUNDS;
+      if (Math.abs(v.position[ax]) > lim) v.userData.vel[ax] *= -1;
+    }
+    v.rotation.y += v.userData.spin*dt; v.rotation.x += v.userData.spin*0.6*dt;
+  }
+  // cells hunt nearest live virus
+  for (const c of cells) {
+    c.userData.retarget -= dt;
+    if (!c.userData.target || !c.userData.target.userData.alive || c.userData.retarget <= 0) {
+      let best=null, bd=1e9;
+      for (const v of viruses) if (v.userData.alive) {
+        const d = c.position.distanceToSquared(v.position);
+        if (d<bd){bd=d;best=v;}
+      }
+      c.userData.target = best; c.userData.retarget = 1.2;
+    }
+    const tgt = c.userData.target;
+    if (tgt) {
+      tmp.copy(tgt.position).sub(c.position);
+      const d = tmp.length();
+      c.userData.vel.addScaledVector(tmp.normalize(), 9*dt).clampLength(0, 7.5);
+      if (d < 2.1 && tgt.userData.alive) {   // engulf!
+        tgt.userData.alive = false; kills++;
+        $('kills').textContent = kills;
+        burst(tgt.position); toast('THREAT NEUTRALIZED — FINALITYFORGE ENGAGED');
+      }
+    }
+    c.userData.vel.multiplyScalar(1 - 0.6*dt);
+    c.position.addScaledVector(c.userData.vel, dt);
+    c.userData.wobble += dt*3;
+    c.scale.setScalar(1 + Math.sin(c.userData.wobble)*0.07);
+  }
+  // bursts
+  for (let i=bursts.length-1;i>=0;i--) {
+    const b = bursts[i]; b.userData.life -= dt*0.9;
+    const arr = b.geometry.attributes.position.array;
+    for (let j=0;j<b.userData.vel.length;j++) {
+      arr[j*3]+=b.userData.vel[j].x*dt; arr[j*3+1]+=b.userData.vel[j].y*dt; arr[j*3+2]+=b.userData.vel[j].z*dt;
+      b.userData.vel[j].multiplyScalar(1-1.6*dt);
+    }
+    b.geometry.attributes.position.needsUpdate = true;
+    b.material.opacity = Math.max(b.userData.life, 0);
+    if (b.userData.life<=0){ scene.remove(b); b.geometry.dispose(); b.material.dispose(); bursts.splice(i,1); }
+  }
+}
+
+// ---------- quality fallback ----------
+let frames=0, acc=0, checked=false;
+function autoQuality(dt) {
+  if (checked) return; frames++; acc+=dt;
+  if (acc>=4) { checked=true;
+    const fps = frames/acc;
+    if (fps < 30) { renderer.setPixelRatio(1); scene.fog.density=0.035;
+      toast('LOW-FPS DETECTED — QUALITY REDUCED'); }
+  }
+}
+
+// ---------- input ----------
+addEventListener('keydown', e => {
+  if (e.code==='Space'){ e.preventDefault(); paused=!paused;
+    $('banner').style.display = paused?'block':'none'; }
+  if (e.code==='KeyR'){ camera.position.set(0,10,30); controls.target.set(0,0,0); }
+});
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// ---------- main loop ----------
+$('threats').textContent = viruses.length;
+if (threatCfg) setTimeout(()=>toast(`ENGAGEMENT LOADED — ${threatCfg.name}: ${threatCfg.desc.toUpperCase()}`), 800);
+const clock = new THREE.Clock();
+let fpsF=0, fpsA=0;
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (!paused) step(dt, clock.elapsedTime);
+  controls.update();
+  renderer.render(scene, camera);
+  autoQuality(dt);
+  fpsF++; fpsA+=dt;
+  if (fpsA>=0.5){ $('fps').textContent = Math.round(fpsF/fpsA); fpsF=0; fpsA=0; }
+});
+addEventListener('error', e => { console.error(e); toast('RUNTIME ERROR — SEE CONSOLE'); });
+</script>
+</body>
+</html>
