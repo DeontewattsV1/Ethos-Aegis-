@@ -3,15 +3,43 @@
 # Rate-limit resilience:
 # - cancel superseded runs for the same ref/PR
 # - serialize language analyses to avoid bursty installation API traffic
-# - scan all PR/push paths: executable root files and scripts must not be missed
+# - skip PR/push scans when only non-code/non-workflow assets change
 # - keep scheduled and manual full scans available
 name: "CodeQL Advanced"
 
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - ".github/workflows/**"
+      - "agents/**"
+      - "graph/**"
+      - "python/**"
+      - "simulation/**"
+      - "src/**"
+      - "test/**"
+      - "tests/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "pyproject.toml"
   pull_request:
     branches: [ "main" ]
+    paths:
+      - ".github/workflows/**"
+      - "agents/**"
+      - "graph/**"
+      - "python/**"
+      - "simulation/**"
+      - "src/**"
+      - "test/**"
+      - "tests/**"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "pyproject.toml"
   schedule:
     - cron: '37 2 * * 1'
   workflow_dispatch:

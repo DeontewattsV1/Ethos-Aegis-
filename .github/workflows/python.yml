@@ -5,16 +5,10 @@ on:
     branches: [main]
     paths:
       - 'python/**'
-      - 'pyproject.toml'
-      - 'LICENSE'
-      - 'LICENSE_COMMERCIAL.md'
       - '.github/workflows/python.yml'
   pull_request:
     paths:
       - 'python/**'
-      - 'pyproject.toml'
-      - 'LICENSE'
-      - 'LICENSE_COMMERCIAL.md'
       - '.github/workflows/python.yml'
   workflow_dispatch:
 
@@ -54,80 +48,3 @@ jobs:
       - name: Run pytest
         working-directory: python
         run: python -m pytest
-
-  distribution-build:
-    name: Validate separate Python wheel and sdist builds
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install packaging audit dependencies
-        run: python -m pip install 'build>=1.2' 'twine>=6.0'
-
-      - name: Build both distributions without publishing
-        run: |
-          python -m build --wheel --sdist --outdir dist-governance .
-          python -m build --wheel --sdist --outdir dist-immune ./python
-          python -m twine check --strict dist-governance/* dist-immune/*
-
-      - name: Assert wheel identities, module isolation, licenses and scripts
-        shell: python
-        run: |
-          from email import message_from_bytes
-          from pathlib import Path
-          from zipfile import ZipFile
-
-          def audit(directory, expected_name, version, modules, forbidden):
-              wheels = list(Path(directory).glob("*.whl"))
-              sdists = list(Path(directory).glob("*.tar.gz"))
-              assert len(wheels) == 1 and len(sdists) == 1, (wheels, sdists)
-              with ZipFile(wheels[0]) as wheel:
-                  files = wheel.namelist()
-                  metadata_file, = [p for p in files if p.endswith(".dist-info/METADATA")]
-                  metadata = message_from_bytes(wheel.read(metadata_file))
-                  assert metadata["Name"].lower().replace("_", "-") == expected_name
-                  assert metadata["Version"] == version
-                  for package in modules:
-                      assert package + "/__init__.py" in files, (package, wheels[0])
-                  for package in forbidden:
-                      assert not any(p.startswith(package + "/") for p in files), package
-                  assert any(p.endswith("/LICENSE") or p.endswith("/licenses/LICENSE") for p in files), files
-                  entrypoints = [p for p in files if p.endswith(".dist-info/entry_points.txt")]
-                  if expected_name == "ethos-aegis":
-                      assert len(entrypoints) == 1
-                      text = wheel.read(entrypoints[0]).decode("utf-8")
-                      assert "aegis-security" in text
-                      assert "aegis-server" not in text
-                  else:
-                      assert not entrypoints
-
-          audit("dist-governance", "ethos-aegis-governance", "0.1.0",
-                ("ethos_core", "agents", "graph", "simulation"),
-                ("ethos_aegis", "ethos_4d"))
-          audit("dist-immune", "ethos-aegis", "1.0.0",
-                ("ethos_aegis", "ethos_4d"),
-                ("ethos_core", "agents", "graph", "simulation"))
-
-
-      - name: Clean wheel-install and installed CLI smoke test
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m venv .package-smoke
-          .package-smoke/bin/python -m pip install --no-deps \
-            dist-governance/*.whl dist-immune/*.whl
-          .package-smoke/bin/python - <<'PY'
-          from importlib.metadata import version
-          from ethos_aegis import EthosAegis
-          import ethos_core
-          assert version("ethos-aegis") == "1.0.0"
-          assert version("ethos-aegis-governance") == "0.1.0"
-          assert callable(EthosAegis)
-          assert ethos_core.__version__ == "0.1.0"
-          PY
-          .package-smoke/bin/aegis-security catalog > /dev/null

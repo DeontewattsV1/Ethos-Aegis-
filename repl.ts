@@ -21,6 +21,7 @@ const bold = (s: string) => isColor ? `\x1b[1m${s}\x1b[22m` : s;
 const cyan = (s: string) => isColor ? `\x1b[36m${s}\x1b[39m` : s;
 const green = (s: string) => isColor ? `\x1b[32m${s}\x1b[39m` : s;
 const red = (s: string) => isColor ? `\x1b[31m${s}\x1b[39m` : s;
+const magenta = (s: string) => isColor ? `\x1b[35m${s}\x1b[39m` : s;
 const dim = (s: string) => isColor ? `\x1b[2m${s}\x1b[22m` : s;
 const STEEL_BLUE = isColor ? "\x1b[38;2;94;137;168m" : "";
 const RESET = isColor ? "\x1b[0m" : "";
@@ -88,7 +89,7 @@ function makeEmitter(): EventEmitter<DemoEvents> {
       if (tapEnabled) {
         const time = dim(getTime());
         const n = count > 0 ? green(`[n=${count}]`) : dim(`[n=${count}]`);
-        console.log(`${cyan("[tap]")} ${time}  ${cyan(String(event))} ${n}`, ...rest);
+        console.log(`${magenta("[tap]")} ${time}  ${cyan(String(event))} ${n}`, ...rest);
       }
       return count;
     },
@@ -166,6 +167,9 @@ const allScenarios: Record<string, Scenario> = {
 };
 
 // ─── REPL bootstrap ─────────────────────────────────────────────────────────
+console.log(bold(cyan("Living Docs REPL")));
+console.log(dim("────────────────"));
+console.log(`Pre-loaded: ${green("`EventEmitter`")}, ${green("`emitter`")}`);
 console.log(bold(cyan("ETHOS AEGIS REPL")));
 console.log(dim("========================="));
 console.log(`Pre-loaded: ${green("`EventEmitter`")}, ${green("`emitter`")}, ${green("`scenarios`")}`);
@@ -261,6 +265,11 @@ session.defineCommand("scenario", {
       resolve(scenario.run(new EventEmitter<DemoEvents>()));
     })
       .then(() => {
+        console.log(green("  ✓ scenario complete"));
+      })
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(red(`  ✗ scenario "${key}" failed: ${msg}`));
         console.log(green("✔ Scenario completed successfully."));
       })
       .catch((err: unknown) => {
@@ -291,6 +300,7 @@ session.defineCommand("tap", {
   action() {
     this.clearBufferedCommand();
     tapEnabled = !tapEnabled;
+    console.log(`tap is now ${tapEnabled ? green("ON") : red("OFF")}`);
     console.log(`tap is now ${tapEnabled ? bold(green("ON")) : bold("OFF")}`);
     this.displayPrompt();
   },
@@ -306,6 +316,8 @@ session.defineCommand("history", {
       console.log(bold("\nRecent Emits:"));
       for (const entry of history) {
         const time = getTime(entry.ts);
+        const n = entry.count > 0 ? green(`[n=${entry.count}]`) : dim(`[n=${entry.count}]`);
+        console.log(`  ${dim(time)}  ${cyan(entry.event)} ${n}`, ...entry.args);
         console.log(`  ${dim(time)}  ${cyan(entry.event.padEnd(10))} ${JSON.stringify(entry.args)}`);
       }
       console.log("");

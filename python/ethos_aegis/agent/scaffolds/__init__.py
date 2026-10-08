@@ -14,7 +14,6 @@ from .verifier import TaskVerifierScaffold, VerificationHook
 from .patching import PatchValidationScaffold
 from .disclosure import CVDScaffold
 from .orchestrator import DefensiveResearchOrchestrator, ResearchRunReport
-from .autonomic_intake import AutonomicSentinel, MutationActivation
 
 __all__ = [
     "ConfidenceLevel",
@@ -31,6 +30,4 @@ __all__ = [
     "CVDScaffold",
     "DefensiveResearchOrchestrator",
     "ResearchRunReport",
-    "AutonomicSentinel",
-    "MutationActivation",
 ]

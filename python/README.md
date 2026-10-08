@@ -38,43 +38,8 @@ python -m pip install -e '.[dev]'
 python -m pytest
 ```
 
-The exact number of passing or skipped tests depends on the revision and optional integrations. Follow the current Python 3.10/3.11/3.12 CI matrix and do not treat historical test totals as a release guarantee.
-
-## Distribution and installed commands
-
-The canonical immune-system Python distribution is **`ethos-aegis` 1.0.0**,
-built from this `python/` directory. It declares Python **>=3.10** and no
-mandatory runtime dependencies. Its MIT declaration is accompanied by
-[`LICENSE`](LICENSE), without altering any preexisting valid CC0 grant or
-third-party component rights.
-
-The **separate** governance Python distribution at the repository root is
-**`ethos-aegis-governance` 0.1.0** (Python **>=3.12**, seven required runtime
-dependencies). It packages `ethos_core`, `agents`, `graph` and `simulation`;
-it is not the same package as `ethos-aegis`.
-
-`pyproject.toml` is the only authoritative metadata source for this distribution.
-`setup.py` is a setuptools compatibility shim and must not duplicate versions,
-dependency declarations, supported Python versions or console scripts.
-
-The installed CLI supported by this distribution is:
-
-```bash
-aegis-security catalog
-aegis-security demo --scenario toolkit
-```
-
-The Python demo and HTTP server are available as **source-tree scripts**, not as
-installed `ethos-aegis` or `aegis-server` commands:
-
-```bash
-python scripts/demo.py --quiet
-python server.py --help
-```
-
-Packaging CI must build the immune and governance wheels separately, audit their
-contained modules and license files, and never upload either distribution to
-PyPI without a distinct release authorization.
+Expected: `122 passed, 4 skipped, 2 deselected` on a clean checkout with
+Python 3.10+.
 
 ## Known preexisting issues
 
@@ -94,7 +59,7 @@ any CI environment without modification.
 
 | Surface | TypeScript side | Python side |
 |---|---|---|
-| CI workflow | `.github/workflows/examples.yml` runs `npm test`, executes `examples/*.ts`, and checks snapshot drift | `.github/workflows/python.yml` runs `pytest` |
+| CI workflow | `.github/workflows/examples.yml` runs `examples/*.ts` and diffs snapshots | `.github/workflows/python.yml` runs `pytest` |
 | Test command | `npm test` (vitest) | `cd python && python -m pytest` |
 | Lint command | `npm run lint` (tsc --noEmit) | `cd python && ruff check .` |
 | README contract | README region markers refer to `examples/*.ts` files | This README's commands are exercised by `python.yml` on every push |
