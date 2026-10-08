@@ -121,7 +121,7 @@ jobs:
           python -m venv .package-smoke
           .package-smoke/bin/python -m pip install --no-deps \
             dist-governance/*.whl dist-immune/*.whl
-          .package-smoke/bin/python -c '
+          .package-smoke/bin/python - <<'PY'
           from importlib.metadata import version
           from ethos_aegis import EthosAegis
           import ethos_core
@@ -129,5 +129,5 @@ jobs:
           assert version("ethos-aegis-governance") == "0.1.0"
           assert callable(EthosAegis)
           assert ethos_core.__version__ == "0.1.0"
-          '
+          PY
           .package-smoke/bin/aegis-security catalog > /dev/null
