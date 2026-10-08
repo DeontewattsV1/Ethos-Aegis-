@@ -1,7 +1,7 @@
 [project]
 name = "ethos-aegis"
 version = "1.0.0"
-description = "Ethos Aegis -- Sovereign AI Immune Architecture. Production-grade AI safety enforcement with biologically-inspired defense cells."
+description = "Ethos Aegis -- Sovereign AI Immune Architecture. Research-oriented AI safety and defensive demonstrations with biologically inspired components."
 authors = [
     {name = "Deonte Watts", email = "deonte@goodshyt.group"}
 ]
@@ -10,7 +10,6 @@ readme = "README.md"
 requires-python = ">=3.10"
 keywords = ["ai-safety", "immune-system", "hallucination-detection", "prompt-injection", "adversarial-defense"]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
