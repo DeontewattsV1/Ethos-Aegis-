@@ -407,8 +407,8 @@ The visual-assets workflow is designed to build PNGs, checksums, and ZIP/TAR bun
 |:---|:---|
 | [Linguistic-Encryption-System-Celestial-](https://github.com/DeontewattsV1/Linguistic-Encryption-System-Celestial-) | Evidence-bounded sovereign AI runtime with policy encryption |
 | [self-improving-agent](https://github.com/DeontewattsV1/self-improving-agent) | Continuous learning agent with skill capture and evolution |
-| [mise-pr](https://github.com/DeontewattsV1/mise-pr) | PR quality gate tooling |
-| [MCDS Hypothesis](https://github.com/DeontewattsV1/MCDS-Hypothesis) | Physics & dark sector research |
+| **mise-pr** (private; access required) | PR quality gate tooling |
+| **Mirror-Coupling-Dark-Sector-MCDS-Hypothesis** (private; access required) | Physics & dark sector research |
 
 ---
 
