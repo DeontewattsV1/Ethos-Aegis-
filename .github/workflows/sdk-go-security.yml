@@ -1,0 +1,41 @@
+# Go SDK checks must run on the actual repository checkout and Python core.
+name: Go SDK Security Contract
+
+on:
+  pull_request:
+    paths:
+      - 'sdk/go/**'
+      - 'python/ethos_aegis/**'
+      - '.github/workflows/sdk-go-security.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'sdk/go/**'
+      - 'python/ethos_aegis/**'
+      - '.github/workflows/sdk-go-security.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  go-sdk:
+    name: Go SDK unit and Python subprocess tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: sdk/go/go.mod
+          # This stdlib-only module intentionally has no go.sum; avoid a nonexistent cache key.
+          cache: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Go vet
+        working-directory: sdk/go
+        run: go vet ./...
+      - name: Go test (including secure verdict and subprocess behavior)
+        working-directory: sdk/go
+        run: go test ./... -count=1

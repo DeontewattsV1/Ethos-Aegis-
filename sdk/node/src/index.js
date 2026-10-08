@@ -330,7 +330,12 @@ class AegisClient {
   middleware(opts = {}) {
     const field = opts.field || "message";
     return async (req, res, next) => {
-      const payload = (req.body && req.body[field]) || "";
+      if (!req.body || typeof req.body !== "object" ||
+          !Object.prototype.hasOwnProperty.call(req.body, field)) return next();
+      const payload = req.body[field];
+      if (typeof payload !== "string") {
+        return res.status(400).json({ error: "Request blocked by Ethos Aegis: expected a string payload." });
+      }
       if (!payload) return next();
       try {
         const verdict = await this.adjudicate(payload);
@@ -345,6 +350,13 @@ class AegisClient {
         if (typeof verdict.purified_payload === "string") req.body[field] = verdict.purified_payload;
         next();
       } catch (err) {
+        if (err instanceof AegisError && err.verdict?.condemned === true) {
+          req.aegisVerdict = err.verdict;
+          return res.status(400).json({
+            error: "Request blocked by Ethos Aegis.",
+            depth: err.verdict.depth,
+          });
+        }
         next(err);
       }
     };
