@@ -462,15 +462,27 @@
       const runs = JSON.parse(localStorage.getItem("aegis-video-board-v1") || "[]");
       root.innerHTML = "";
       if (!runs.length) {
-        root.innerHTML = "<p class='muted'>No saved runs yet.</p>";
+        const empty = document.createElement("p");
+        empty.className = "muted";
+        empty.textContent = "No saved runs yet.";
+        root.appendChild(empty);
         return;
       }
       runs.forEach((run) => {
         const name = THREATS.find((item) => item.id === run.threat);
         const link = document.createElement("a");
         link.className = "card";
-        link.href = "?threat=" + run.threat + "&scan=" + run.scan + "&response=" + run.response;
-        link.innerHTML = "<strong>" + (name ? name.name : run.threat) + "</strong><span class='muted'>" + run.scan + " → " + run.response + "</span>";
+        link.href = "?threat=" + encodeURIComponent(run.threat) + "&scan=" + encodeURIComponent(run.scan) + "&response=" + encodeURIComponent(run.response);
+
+        const strong = document.createElement("strong");
+        strong.textContent = name ? name.name : run.threat;
+
+        const meta = document.createElement("span");
+        meta.className = "muted";
+        meta.textContent = run.scan + " → " + run.response;
+
+        link.appendChild(strong);
+        link.appendChild(meta);
         root.appendChild(link);
       });
     }
