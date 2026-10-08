@@ -56,8 +56,8 @@ Issues = "https://github.com/DeontewattsV1/Ethos-Aegis-/issues"
 Changelog = "https://github.com/DeontewattsV1/Ethos-Aegis-/blob/main/CHANGELOG.md"
 
 [project.scripts]
-ethos-aegis = "ethos_aegis.__main__:main"
-aegis-server = "ethos_aegis.server:main"
+# Keep only the console script backed by a module included in the wheel.
+# The demo and HTTP server remain documented source-tree scripts.
 aegis-security = "ethos_aegis.security_toolkit.__main__:main"
 
 [tool.pytest.ini_options]
