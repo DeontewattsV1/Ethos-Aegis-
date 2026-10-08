@@ -42,6 +42,7 @@ class PersistentFakeCKANClient(CKANClient):
         self.resource_show_calls = 0
         self.package_show_calls = 0
         self.ingest_calls = 0
+        self.ingest_kwargs: list[dict] = []
 
     def probe_capabilities(self, *, sample_resource_id: str | None = None) -> CKANCapabilityMatrix:
         self.probe_calls += 1
@@ -59,6 +60,7 @@ class PersistentFakeCKANClient(CKANClient):
 
     def ingest_resource(self, resource_id: str, **kwargs) -> CKANIngestionResult:
         self.ingest_calls += 1
+        self.ingest_kwargs.append(dict(kwargs))
         return self.ingestion_result
 
 
@@ -139,6 +141,7 @@ def test_refresh_resource_skips_ingestion_until_upstream_fingerprint_changes(tmp
 
     assert first.digest == second.digest
     assert client.ingest_calls == 1
+    assert client.ingest_kwargs[0]["capability_matrix"] is immune.capability_matrix
 
     client.resource_payload = {"id": "res-1", "package_id": "pkg-1", "last_modified": "2026-04-08T11:00:00"}
     third = immune.refresh_resource("res-1")
