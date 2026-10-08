@@ -112,3 +112,22 @@ jobs:
           audit("dist-immune", "ethos-aegis", "1.0.0",
                 ("ethos_aegis", "ethos_4d"),
                 ("ethos_core", "agents", "graph", "simulation"))
+
+      - name: Smoke-test installed wheels outside the source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # The immune package declares zero required runtime dependencies.
+          # Running outside the checkout proves imports/CLI originate from the wheel.
+          python -m venv /tmp/aegis-immune-smoke
+          /tmp/aegis-immune-smoke/bin/python -m pip install --no-deps "$GITHUB_WORKSPACE"/dist-immune/*.whl
+          (cd /tmp && /tmp/aegis-immune-smoke/bin/python -c "from importlib.metadata import version; import ethos_aegis, ethos_4d; assert version('ethos-aegis') == '1.0.0'")
+          (cd /tmp && /tmp/aegis-immune-smoke/bin/aegis-security catalog > /tmp/aegis-catalog.json)
+          /tmp/aegis-immune-smoke/bin/python -c "import json; from pathlib import Path; data = json.loads(Path('/tmp/aegis-catalog.json').read_text()); assert isinstance(data, dict) and len(data) > 0"
+
+          # The governance package has its own Python >=3.12 requirements.
+          python -m venv /tmp/aegis-governance-smoke
+          /tmp/aegis-governance-smoke/bin/python -m pip install "$GITHUB_WORKSPACE"/dist-governance/*.whl
+          (cd /tmp && /tmp/aegis-governance-smoke/bin/python -c "from importlib.metadata import version; import ethos_core, agents, graph, simulation; assert version('ethos-aegis-governance') == '0.1.0'")
+
