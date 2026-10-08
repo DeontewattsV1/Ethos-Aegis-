@@ -5,10 +5,6 @@ name: Deploy static content to Pages
 on:
   push:
     branches: ["main"]
-    paths:
-      - 'docs/aegis-brief/**'
-      - 'docs/demos/**'
-      - '.github/workflows/static.yml'
   pull_request:
     paths:
       - 'docs/aegis-brief/**'
