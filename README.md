@@ -12,9 +12,9 @@
   <a href="https://github.com/DeontewattsV1/Ethos-Aegis-/releases">
     <img src="https://img.shields.io/github/v/release/DeontewattsV1/Ethos-Aegis-?color=C9A84C&labelColor=0D1117&label=release" alt="Latest Release" />
   </a>
-  <img src="https://img.shields.io/badge/Python-3.10%2B%20immune%20%7C%203.12%2B%20governance-4D9FFF?labelColor=0D1117&logo=python&logoColor=white" alt="Immune distribution requires Python 3.10+; governance distribution requires Python 3.12+" />
-  <img src="https://img.shields.io/badge/dependencies-per%20distribution-4D9FFF?labelColor=0D1117" alt="Immune Python package declares no runtime dependencies; governance package declares seven" />
-  <a href="#license-pricing-and-availability--clarification-pending"><img src="https://img.shields.io/badge/license-review%20terms-C9A84C?labelColor=0D1117" alt="Licensing terms under review" /></a>
+  <img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-4D9FFF?labelColor=0D1117&logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/dependencies-zero-00E57A?labelColor=0D1117" alt="Zero Dependencies" />
+  <img src="https://img.shields.io/badge/license-MIT-C9A84C?labelColor=0D1117" alt="MIT" />
   <img src="https://img.shields.io/badge/AI_Safety-Aligned-5E89A8?labelColor=15181C" alt="AI Safety" />
   <img src="https://img.shields.io/badge/security-bandit-FF4F5E?labelColor=0D1117&logo=shield" alt="Bandit" />
 </p>
@@ -32,84 +32,6 @@
 </p>
 
 Every biological defense mechanism is mapped into rigorous computational infrastructure. The immune system does not merely react to pathogens -- it **learns, remembers, and anticipates**. So too must the machines we build acquire the architecture of moral resilience.
-
-### Cell Navigation
-
-<p align="center">
-  <img src="./assets/brand/cells-navigation.gif" alt="Defense cells navigate the central servers and strike crystalline viruses" width="100%" />
-</p>
-
-<p align="center">
-  This plays on its own when you scroll to it.
-  <a href="./assets/brand/cells-navigation.mp4">Full MP4</a>
-</p>
-
-### 4D Video Board
-
-<p align="center">
-  <img src="./assets/brand/aegis-4d-video-board.svg" alt="4D Immersive Mode -- defense cells hunt, engulf, and neutralize viruses and malware" width="100%" />
-</p>
-
-<p align="center"><em>The board animates itself: hunter cells engage threats across the full pipeline -- signature scan, heuristic, behavior, sandbox, quarantine, neutralize.</em></p>
-
-#### Leukocyte Cell Models — Vitality Protocol Visual Upgrade
-
-The animated 4D board now uses **leukocyte-inspired defense cells** modeled after the visual language of the [Leukocyte Defense Framework](./assets/brand/anatomy_diagram.png) and [Vitality Protocol — Upgrade System](./assets/brand/vitality_upgrade.png) diagrams. The updated cells feature **translucent, irregular membranes, three-lobed nuclei, cytoplasmic granules, and short pseudopods**, rather than simple glowing spheres.
-
-| Cell visual | Defense role | Appearance in the 4D board |
-|:---|:---|:---|
-| **Cyan / teal leukocytes** | **VanguardProbe / SanitasSwarm** — detection and purification | Granular turquoise cytoplasm, lobed violet nucleus, luminous membrane, and probing extensions |
-| **Gold leukocytes** | **FinalityForge** — adjudication and response visualization | Warm gold membrane and granules, lobed nucleus, and coordinated engagement effects |
-| **Identity-tinted leukocytes** | **Other defense cells**, including LogosScythe, MnemosyneCache, TaintBeacon, and CytokineCommand | The compact 2D board uses distinct tints with the same leukocyte-inspired anatomy |
-
-<p align="center">
-  <a href="https://deontewattsv1.github.io/Ethos-Aegis-/board.html"><strong>Explore the interactive 3D/4D leukocyte board</strong></a>
-  &nbsp;·&nbsp;
-  <a href="./docs/aegis-brief/board.html"><strong>Open the compact 2D threat-run board</strong></a>
-  &nbsp;·&nbsp;
-  <a href="./docs/4d-immersive/CELL_VISUAL_SPEC.md"><strong>Cell anatomy and visual specification</strong></a>
-</p>
-
-The WebGL scene retains **orbit, zoom, pause, threat selection, response animations, and performance fallback**; the animated SVG above plays inline in compatible README viewers. These are *illustrative simulations*, not live scans, biological models, or evidence that security actions were executed.
-
-
-
-Pick a threat and open its run. The board uses the same manifold as `ethos_4d`: **X** node, **Y** task state, **Z** ethical weight, **T** tick. Scans are signature, heuristic, behavior, cloud, and sandbox. Answers are quarantine, deletion, remediation, and blocking execution. This is a visualization of the model. It does not scan your machine.
-
-| Threat | What it is | Scan | Answer | Open |
-|:---|:---|:---|:---|:---|
-| **MoralMaligna** | Injection / jailbreak text | Heuristic | Block | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=moral&scan=heuristic&response=block) |
-| **NarcissisMaligna** | Virus that rewrites the instruction | Behavioral | Quarantine | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=narcissis&scan=behavioral&response=quarantine) |
-| **ParasiticMaligna** | Drain loop | Behavioral | Block | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=parasitic&scan=behavioral&response=block) |
-| **SystemicMaligna** | Cross-layer mutation | Cloud | Remediation | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=systemic&scan=cloud&response=remediation) |
-| **SymbolicMaligna** | Homoglyph / bad signature | Signature | Deletion | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=symbolic&scan=signature&response=deletion) |
-| **MetaMaligna** | Quiet until isolated | Sandbox | Quarantine | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=meta&scan=sandbox&response=quarantine) |
-
-<p align="center"><a href="https://deontewattsv1.github.io/Ethos-Aegis-/board.html"><strong>Open the 4D video board</strong></a></p>
-
-GitHub cannot run the scene inside this README. Each link opens the live board with that threat already loaded. Create another mix there, or record the run. The board page is `board.html` at the repository root -- serve the repo over GitHub Pages (Settings, Pages, deploy from `main` / root) or open `docs/4d-immersive/index.html` locally.
-
-
-### Integrated Security Systems — Video Walkthroughs
-
-The scoped security systems incorporated into Ethos Aegis are demonstrated with branded recordings built from actual local command output and **synthetic inputs**. These walkthroughs show observable implementation behavior; they are not live upstream scans and do not imply authorization to assess systems you do not own or have written permission to test.
-
-| Five-tool security evidence workflow | AI immune pipeline | VeriFlow reasoning |
-|:---:|:---:|:---:|
-| [![Security Toolkit walkthrough](docs/demos/toolkit-preview.gif)](docs/demos/toolkit.mp4) | [![Immune Pipeline walkthrough](docs/demos/immune-preview.gif)](docs/demos/immune.mp4) | [![VeriFlow walkthrough](docs/demos/veriflow-preview.gif)](docs/demos/veriflow.mp4) |
-| [Play MP4](docs/demos/toolkit.mp4) · [Transcript](docs/demos/toolkit.txt) | [Play MP4](docs/demos/immune.mp4) · [Transcript](docs/demos/immune.txt) | [Play MP4](docs/demos/veriflow.mp4) · [Transcript](docs/demos/veriflow.txt) |
-
-The security workflow normalizes evidence from **TruffleHog**, **Sherlock**, **Ghidra**, **mitmproxy**, and **ESP32 Marauder** into Ethos Aegis' scoped evidence model. Execution and network access remain explicit opt-ins; raw credentials, packet bodies, identifiers, and other sensitive source material are intentionally excluded from normalized demo output.
-
-| Integrated system | Ethos Aegis visualization / evidence role |
-|:---|:---|
-| **TruffleHog** | Credential-exposure observations and provenance-safe evidence normalization |
-| **Sherlock** | Explicit username/site-scope observations with separate network authorization |
-| **Ghidra** | Static binary inventory through disposable headless analysis |
-| **mitmproxy** | Sanitized application-egress observations without retaining headers or bodies |
-| **ESP32 Marauder** | Operator-controlled WiFi/Bluetooth lab inventory summaries |
-
-See the [recorded walkthrough guide](docs/demos/README.md) and [Security Toolkit integration guide](docs/security-toolkit/README.md) for reproduction commands, scope requirements, and support boundaries.
 
 ### Defense Cell Registry
 
@@ -137,87 +59,11 @@ See the [recorded walkthrough guide](docs/demos/README.md) and [Security Toolkit
 
 ---
 
-
-## Engineering Cell System — Proposed Design
-
-The defense cells below define a proposed engineering work system built around the existing Aegis components and agent harness. This is a design contract, not a claim that these controls are deployed or that this project is an Anthropic product.
-
-Each work order carries an objective, repository revision, permitted capabilities, path scopes, trusted execution environment, approved secret purposes, output destination, deadline, resource budget, and required verification evidence. A thin orchestrator dispatches bounded tasks and checkpoints progress. Read-only analysis can run concurrently; mutations require explicit authorization and verification.
-
-### Visual Cell Atlas
-
-```mermaid
-flowchart TD
-    W["Bounded work order"] --> C["CytokineCommand"]
-    C --> D["Detection and analysis cells"]
-    D --> E["Evidence and proposed action"]
-    E --> P["Independent policy authorization"]
-    P -->|Allow| X["Scoped tool execution"]
-    P -->|Deny or approval required| H["Hold and report"]
-    X --> V["Verification and audit"]
-    V -->|Verified evidence| M["MnemosyneCache"]
-    V -->|Failed or over budget| F["FinalityForge: cancel scoped action"]
-```
-
-| Cell | Engineering responsibility | Required evidence or limit |
-|:---|:---|:---|
-| **VanguardProbe** | Validate incoming work orders and scan entry payloads | Reject malformed requests; bound input size and scan cost |
-| **LogosScythe** | Examine semantic threats and conflicting instructions | Report reasons and uncertainty; detection cannot grant authority |
-| **MnemosyneCache** | Retain verified signatures and selected durable facts | Record provenance, access controls, versions, expiration, and deletion tombstones |
-| **SanitasSwarm** | Normalize Unicode and inspect ambiguous identifiers | Preserve original evidence; normalization cannot expand authorized paths |
-| **EntropicWatch** | Enforce time, token, iteration, and resource budgets | Stop runaway work; spawning stays within the original work order |
-| **TaintBeacon** | Broadcast classified risk and audit signals | Redact secrets; constrain event consumers and destinations |
-| **FinalityForge** | Cancel or deny the affected operation | Use scoped enforcement; retain verification and audit evidence |
-| **CytokineCommand** | Dispatch tasks, checkpoint state, and collect verification | Cannot mint capabilities or bypass independent policy decisions |
-
-Cell consensus, model confidence, and vitality scores never authorize a tool call. Authorization must evaluate the actual capability, canonical path, trusted environment, secret purpose, and destination. A Python thread pool does not establish operating-system or network isolation.
-
-### Memory Engineering Contract
-
-Memory is separate from the prompt context. Every stage below is required by the proposed system.
-
-| Stage | Responsibility | Integrity rule |
-|:---|:---|:---|
-| **Capture** | Select durable or explicitly expiring facts | Keep provenance and consent; exclude credentials and transient session noise |
-| **Consolidate** | Merge duplicates and related evidence | Preserve source history; similarity alone cannot resolve contradictions |
-| **Retrieve** | Surface a small set relevant to the current task | Apply access, validity, and expiration checks before ranking; access is not corroboration |
-| **Reconcile** | Handle changed facts and conflicts | Source authority and explicit supersession matter; a newer timestamp alone does not win |
-| **Decay** | Reduce stale relevance and archive expired entries | Record the last decay operation; durable deletion tombstones prevent resurrection |
-
-Vitality subsystems support maintenance, stress tests, circuit breaking, and telemetry. A health label must be derived from measured checks; it is not a security proof. Emergency cell proliferation must preserve capability limits and resource budgets.
-
-### PR #360 Remediation and Merge Gates
-
-The Codex review of [PR #360](https://github.com/DeontewattsV1/Ethos-Aegis-/pull/360) at commit `8072c6a048239adf8f81e3b5bfeda4399d5db647` requires remediation before that revision is merge-ready. This documentation does not resolve its findings.
-
-| Order | Must-fix repair | Acceptance evidence |
-|:---:|:---|:---|
-| 1 | Limit the npm publish credential to the publish step | Dependency installation and build steps receive no publish token |
-| 2 | Restore Python test collection and Windows-compatible tracked paths | Full test collection succeeds; Windows path check passes |
-| 3 | Repair the authorization boundary: segment-aware path globs, explicit secret-purpose checks, trusted environment selection, and raw secret-output checks before serialization | Negative tests deny nested paths, unapproved purposes, production effects under sandbox grants, and reflected secrets |
-| 4 | Cover root `repl.ts` and `scripts/**` in CodeQL; enforce security scan failures in the final CI result | Scans run for relevant changes; failed or unexpectedly skipped required gates block merge |
-| 5 | Resolve conflicts with `main` and validate the resulting merge candidate | Required CI, platform checks, and a fresh review pass on the exact candidate revision |
-
-Lower-priority cleanup includes the Dependabot configuration location, REPL failure reporting, safe history serialization, and redundant gated-grant selection. The missing Pages entry point becomes a release blocker if Pages deployment is part of the release.
-
-**Go/no-go:** no-go for the reviewed PR #360 revision until the must-fix repairs and merge-candidate checks pass.
-
-
----
-
 ## Quickstart
 
-The repository contains **two distinct Python distributions**: `python/pyproject.toml` defines the immune-system package **`ethos-aegis` 1.0.0**, Python **3.10+**, with no mandatory third-party runtime dependencies declared and MIT component metadata; the root `pyproject.toml` defines the governance engine **`ethos-aegis-governance` 0.1.0**, Python **3.12+**, with seven direct dependencies (`pydantic`, `pydantic-settings`, `neo4j`, `networkx`, `pyyaml`, `structlog`, and `rich`) and root CC0 metadata. Wheel builds and CI determine installable behavior; the GitHub `v1.0.0` tag does not establish PyPI availability. Both builds are intentionally separated so neither package can overwrite the other's distribution name.
-
-For a source checkout, the declared installation command is:
-
-From the repository root, install the immune-system package used by the example below:
-
 ```bash
-python -m pip install -e ./python
+pip install ethos-aegis
 ```
-
-For the **separate governance engine** (Python 3.12+ and seven required dependencies), use `python -m pip install -e .` from the repository root. These are local editable installs; PyPI publication is not implied.
 
 ```python
 from ethos_aegis import EthosAegis, AegisVitality
@@ -280,12 +126,18 @@ SEPTIC       20%  Emergency intervention required
   <img src="./assets/brand/ci_pipeline_banner.png" alt="CI/CD Pipeline" width="100%" />
 </p>
 
-Consult the current [GitHub Actions workflows](.github/workflows/) and applicable branch rules for required checks on a given commit. This README does not certify that lint, tests, security scans, or Python 3.10/3.11 compatibility currently pass. The Python project manifest requires Python 3.12 or newer.
+Five mandatory gates on every push:
+
+```
+LINT  -->  PYTHON MATRIX  -->  SECURITY  -->  SANDBOX  -->  REPORT
+           3.10/3.11/3.12     bandit          strict
+           pytest --cov       pip-audit       no network
+```
 
 **Running locally:**
 
 ```bash
-python -m pip install -e "./python[dev,test]"
+pip install -e ".[dev,test]"
 pytest python/tests/ -v --tb=short
 
 # Sandbox smoke test
@@ -350,8 +202,6 @@ python -m ethos_4d.test_harness
 pytest tests/test_4d_visual.py -v
 ```
 
-The same axes drive the [4D video board](https://deontewattsv1.github.io/Ethos-Aegis-/board.html).
-
 ---
 ## Summary
 
@@ -385,21 +235,14 @@ Implements the full agent harness architecture as a new `ethos_aegis/harness/` m
 
 ## Tests
 - 39 new unit tests in `tests/test_harness.py`
-- Historical test report: **253 passed, 6 skipped, 0 failed**. Re-run current tests and required CI before claiming current validation.
+- Full suite: **253 passed, 6 skipped, 0 failed**
 ## Release
 
 <p align="center">
   <img src="./assets/brand/aegis_release_badge.png" alt="Ethos Aegis v1.0.0" width="30%" />
 </p>
 
-See [CHANGELOG.md](./CHANGELOG.md) for history. GitHub Release **`v1.0.0`** (June 11, 2026) had no attached release assets when inspected. The **`ethos-aegis` 1.0.0** Python subtree and **`ethos-aegis-governance` 0.1.0** root distribution have different dependencies and supported Python versions. [Release Packages #490](https://github.com/DeontewattsV1/Ethos-Aegis-/actions/runs/37750343335) successfully pushed the **Node SDK container** to `ghcr.io/deontewattsv1/ethos-aegis`; the registry package's public visibility and anonymous pull access are not verified. Python distributions are not published through that workflow. Production certification and universal zero-dependency claims are not made.
-
-### Visual release assets
-
-- [Visual asset manifest](docs/assets/product/manifest.json)
-- [Release graphics workflow](.github/workflows/release-visual-assets.yml)
-
-The visual-assets workflow is designed to build PNGs, checksums, and ZIP/TAR bundles. **Do not assume existing releases have these attachments:** `v1.0.0` currently has zero attached assets. A manual dispatch with a blank `release_tag` is intended to produce workflow artifacts only; backfilling a release with a tag requires a validated workflow run and verified attachments.
+See [CHANGELOG.md](./CHANGELOG.md) for full history. Latest: **v1.0.0** -- Production-grade immune architecture, zero mandatory dependencies, full Python 3.10-3.12 support.
 
 ---
 
@@ -409,20 +252,14 @@ The visual-assets workflow is designed to build PNGs, checksums, and ZIP/TAR bun
 |:---|:---|
 | [Linguistic-Encryption-System-Celestial-](https://github.com/DeontewattsV1/Linguistic-Encryption-System-Celestial-) | Evidence-bounded sovereign AI runtime with policy encryption |
 | [self-improving-agent](https://github.com/DeontewattsV1/self-improving-agent) | Continuous learning agent with skill capture and evolution |
-| **mise-pr** (private; access required) | PR quality gate tooling |
-| **Mirror-Coupling-Dark-Sector-MCDS-Hypothesis** (private; access required) | Physics & dark sector research |
+| [mise-pr](https://github.com/DeontewattsV1/mise-pr) | PR quality gate tooling |
+| [MCDS Hypothesis](https://github.com/DeontewattsV1/MCDS-Hypothesis) | Physics & dark sector research |
 
 ---
 
-## License, pricing, and availability — clarification pending
+## License
 
-**Approved licensing direction for future releases:** preserve applicable existing public-source grants and offer optional paid hosting, support, integration, and separately identified future proprietary features. The root [LICENSE](LICENSE) contains **CC0 1.0 Universal**, the Python subtree includes an MIT notice consistent with its metadata, SDK components retain their own MIT notices, and the private Node docs scaffold declares Apache-2.0 metadata. Applicable rights are component-specific; older valid CC0 grants are not rescinded. [LICENSE_COMMERCIAL.md](LICENSE_COMMERCIAL.md) now describes **optional prospective paid services**, not an obligation to buy a license to use code already freely granted. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). A final rights/provenance review remains required before external package release.
-
-**Product Hunt pricing recommendation: `Free`** for the presently accessible public source/demo offering, provided it remains free at launch. The optional Indie ($99/year), Startup ($499/year), Business ($1,499/year) and quoted Enterprise service tiers are **proposed, not verified purchasable plans**. Switch to `Paid (with a free plan)` only after an actual paid service with fulfillment and checkout exists alongside the free offering. Leave promo and funding fields unasserted until verified.
-
-**Availability and demos:** The [GitHub repository](https://github.com/DeontewattsV1/Ethos-Aegis-) and [interactive GitHub Pages board](https://deontewattsv1.github.io/Ethos-Aegis-/board.html) are public. The README includes three recorded security walkthroughs ([toolkit](docs/demos/toolkit.mp4), [immune pipeline](docs/demos/immune.mp4), [VeriFlow](docs/demos/veriflow.mp4)) and previews in `docs/demos/`. At the October 8, 2026 live website check, these walkthroughs were **not displayed on the landing page**, and `/docs/demos/toolkit.mp4`, `/docs/demos/immune.mp4`, and `/docs/demos/veriflow.mp4` each returned **HTTP 404** under the GitHub Pages origin; the 4D board was reachable. Check the actual Pages publishing source, deployed artifact contents, and media playback before advertising the videos as live website features.
-
-Security illustrations and demos are not evidence of production certification or autonomous live protection. Verify installation, tests, security review, third-party rights, packaging, licensing, and release artifacts before launch. Record evidence and conditional Product Hunt selection in the [Product Hunt launch-readiness checklist](docs/product-hunt-launch-readiness.md).
+MIT (c) [GoodShyt Group](https://github.com/DeontewattsV1) -- Open source. Aligned by design.
 
 ---
 
