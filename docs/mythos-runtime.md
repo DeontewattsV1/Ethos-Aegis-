@@ -1,34 +1,66 @@
-# Mythos Runtime — opt-in local verification
+# Mythos Runtime — VeriFlow production assurance bridge
 
-**Status:** reference utilities integrated from the supplied Mythos archive, with security hardening. Not activated in the agent harness or VeriFlow data ingestion. No autonomous execution, publishing, or policy grants.
+**Status:** Mythos is automatically connected to VeriFlow whenever a `MythosVeriflowRuntime` is supplied to `VeriflowImmuneSystem`. The default non-production API remains backward compatible; production mode is fail-closed and requires an operator-issued execution grant.
 
-## Capabilities
+## Production controls
 
-- `BudgetMeter`: rejects operations that would exceed delegated turn/token quotas.
-- `StrictWriteDiscipline`: optional atomic local text writes with bounded relative paths, symlink rejection, size limits, before/after SHA-256 receipts.
-- `MemoryLedger`: explicitly-created, local JSONL receipts with timestamps and SHA-256 metadata, not source contents or credentials.
-- `DriftDetector`: read-only checking of files against their latest recorded receipts. No receipt means **unknown**, not verified.
-- CLI: `python -m ethos_aegis.mythos_runtime.cli --root . verify --json`. It performs no writes; exit 0 = no drift among tracked files, 1 = drift/missing, 2 = no baseline.
+- **Independent authorization:** the trusted control plane owns `ExecutionGrantSigner`; runtime code receives only `ExecutionGrantVerifier`. Grants are short-lived and bound to subject, purposes, actions, resource IDs, CKAN host, execution environment, target environment, and source revision.
+- **Trusted environment enforcement:** `TrustedEnvironment` is fixed at runtime construction and compared exactly against the signed grant. Production CKAN endpoints must use credential-free HTTPS.
+- **Automatic execution mediation:** capability probes, resource refresh/ingestion, and question answering call Mythos automatically before execution. Missing, expired, wrong-purpose, wrong-resource, wrong-host, wrong-environment, or wrong-revision grants fail before network work.
+- **Authenticated state:** persisted VeriFlow state is HMAC-authenticated and bound to the trusted environment. Unsigned legacy state is rejected in production mode.
+- **Retention:** `RetentionPolicy` bounds evidence by age/count and resource state by TTL/count/bytes. Raw dataset rows are not persisted by default in production.
+- **Durability:** state/evidence writes use temporary files, fsync, atomic replacement, private POSIX modes, symlink rejection, bounded sizes, and fail-closed writer locks.
+- **Evidence:** the assurance ledger stores bounded metadata and hashes, not raw questions or dataset rows.
 
-## Local opt-in use
+## Recommended runtime posture
+
+Startup probing remains enabled. `fingerprint_mode="auto"` is now the default: CKAN Datastore resources use a lightweight row signature automatically, while other resources fall back to metadata fingerprints.
+
+## Example
 
 ```python
-from pathlib import Path
-from ethos_aegis.mythos_runtime import MemoryLedger, StrictWriteDiscipline, DriftDetector
+from ethos_aegis.mythos_runtime import (
+    ExecutionGrantSigner, ExecutionGrantVerifier, MythosVeriflowRuntime,
+    RetentionPolicy, TrustedEnvironment,
+)
+from ethos_aegis.veriflow import CKANClient, VeriflowImmuneSystem
 
-root = Path('/absolute/path/to/authorized/workspace')
-ledger = MemoryLedger(root / '.ethos-aegis' / 'MEMORY.jsonl')
-writer = StrictWriteDiscipline(root, memory_ledger=ledger)
-report = writer.write_text('reports/result.txt', 'approved output')
-assert report.ok
-status = DriftDetector(root, ledger=ledger).scan()
-assert 'reports/result.txt' in status.verified
+# Source these from trusted secret storage. Keep the signer outside model/tool code.
+authorization_key = b"<32+ bytes>"
+persistence_key = b"<different 32+ bytes>"
+
+environment = TrustedEnvironment(
+    execution_environment="service-prod-us-west",
+    target_environment="ckan-production",
+    ckan_base_url="https://data.example.gov",
+    source_revision="<deployed git SHA>",
+)
+token = ExecutionGrantSigner(authorization_key).issue(
+    subject="service://veriflow",
+    purposes=("capability_probe", "dataset_refresh", "question_answer"),
+    actions=("veriflow.probe", "veriflow.refresh", "veriflow.answer"),
+    resources=("resource-id",),
+    environment=environment,
+    ttl_seconds=300,
+)
+bridge = MythosVeriflowRuntime(
+    environment=environment,
+    grant_verifier=ExecutionGrantVerifier(authorization_key),
+    persistence_key=persistence_key,
+    state_dir="/var/lib/ethos-aegis",
+    retention=RetentionPolicy(),
+)
+immune = VeriflowImmuneSystem(
+    CKANClient(environment.ckan_base_url),
+    sample_resource_id="resource-id",
+    mythos_runtime=bridge,
+    execution_grant=token,
+)
+answer = immune.answer_question("resource-id", "What changed?")
 ```
 
-Do not feed untrusted target paths, passwords, or agent-generated write grants to this helper. A filesystem check is not a trusted authorization decision. Writes are **explicit** and require a separately authorized caller. The runtime does not defend against adversarial race conditions in the host filesystem, malicious content, transformed-secret exfiltration, or forged local receipts. Use OS containment for stronger guarantees.
+Rotate grants with `immune.set_execution_grant(new_token)` before expiry. The HMAC format is a reference implementation for a single trust domain; production deployments needing centralized revocation or asymmetric verification should put issuance/signing behind KMS/HSM or an external authorization service.
 
-Local `.ethos-aegis/` receipts are gitignored and should not be uploaded to public repositories. The prior archive's automatic VeriFlow persistence and destructive `dream` compaction are intentionally deferred pending memory retention, concurrency, and permission review.
+Production mode rejects unsigned legacy VeriFlow state. Migrate it explicitly or use an empty production state directory. Retention is a deletion policy, not proof that external backups or exported copies have been removed.
 
-## Provenance
-
-Source inspiration: user-supplied `Ethos-Aegis-Agentic-Immune-Veriflow-main(1).zip` (2026-10-08). The attached alternative snapshots and row-signature archives were inspected and not overlaid on the newer canonical repository. This file describes the new opt-in implementation, not an assurance certification.
+`BudgetMeter`, `StrictWriteDiscipline`, `MemoryLedger`, and `DriftDetector` remain available for local explicit workflows.
