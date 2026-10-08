@@ -52,6 +52,28 @@ Every biological defense mechanism is mapped into rigorous computational infrast
 
 <p align="center"><em>The board animates itself: hunter cells engage threats across the full pipeline -- signature scan, heuristic, behavior, sandbox, quarantine, neutralize.</em></p>
 
+#### Leukocyte Cell Models — Vitality Protocol Visual Upgrade
+
+The animated 4D board now uses **leukocyte-inspired defense cells** modeled after the visual language of the [Leukocyte Defense Framework](./assets/brand/anatomy_diagram.png) and [Vitality Protocol — Upgrade System](./assets/brand/vitality_upgrade.png) diagrams. The updated cells feature **translucent, irregular membranes, three-lobed nuclei, cytoplasmic granules, and short pseudopods**, rather than simple glowing spheres.
+
+| Cell visual | Defense role | Appearance in the 4D board |
+|:---|:---|:---|
+| **Cyan / teal leukocytes** | **VanguardProbe / SanitasSwarm** — detection and purification | Granular turquoise cytoplasm, lobed violet nucleus, luminous membrane, and probing extensions |
+| **Gold leukocytes** | **FinalityForge** — adjudication and response visualization | Warm gold membrane and granules, lobed nucleus, and coordinated engagement effects |
+| **Identity-tinted leukocytes** | **Other defense cells**, including LogosScythe, MnemosyneCache, TaintBeacon, and CytokineCommand | The compact 2D board uses distinct tints with the same leukocyte-inspired anatomy |
+
+<p align="center">
+  <a href="https://deontewattsv1.github.io/Ethos-Aegis-/board.html"><strong>Explore the interactive 3D/4D leukocyte board</strong></a>
+  &nbsp;·&nbsp;
+  <a href="./docs/aegis-brief/board.html"><strong>Open the compact 2D threat-run board</strong></a>
+  &nbsp;·&nbsp;
+  <a href="./docs/4d-immersive/CELL_VISUAL_SPEC.md"><strong>Cell anatomy and visual specification</strong></a>
+</p>
+
+The WebGL scene retains **orbit, zoom, pause, threat selection, response animations, and performance fallback**; the animated SVG above plays inline in compatible README viewers. These are *illustrative simulations*, not live scans, biological models, or evidence that security actions were executed.
+
+
+
 Pick a threat and open its run. The board uses the same manifold as `ethos_4d`: **X** node, **Y** task state, **Z** ethical weight, **T** tick. Scans are signature, heuristic, behavior, cloud, and sandbox. Answers are quarantine, deletion, remediation, and blocking execution. This is a visualization of the model. It does not scan your machine.
 
 | Threat | What it is | Scan | Answer | Open |
