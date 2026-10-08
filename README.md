@@ -12,9 +12,9 @@
   <a href="https://github.com/DeontewattsV1/Ethos-Aegis-/releases">
     <img src="https://img.shields.io/github/v/release/DeontewattsV1/Ethos-Aegis-?color=C9A84C&labelColor=0D1117&label=release" alt="Latest Release" />
   </a>
-  <img src="https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-4D9FFF?labelColor=0D1117&logo=python&logoColor=white" alt="Python" />
-  <img src="https://img.shields.io/badge/dependencies-zero-00E57A?labelColor=0D1117" alt="Zero Dependencies" />
-  <img src="https://img.shields.io/badge/license-MIT-C9A84C?labelColor=0D1117" alt="MIT" />
+  <img src="https://img.shields.io/badge/python-%3E%3D3.12-4D9FFF?labelColor=0D1117&logo=python&logoColor=white" alt="Python project metadata requires 3.12 or newer" />
+  <img src="https://img.shields.io/badge/Python%20dependencies-7%20declared-4D9FFF?labelColor=0D1117" alt="Seven direct Python runtime dependencies are declared" />
+  <a href="#license-pricing-and-availability--clarification-pending"><img src="https://img.shields.io/badge/license-review%20terms-C9A84C?labelColor=0D1117" alt="Licensing terms under review" /></a>
   <img src="https://img.shields.io/badge/AI_Safety-Aligned-5E89A8?labelColor=15181C" alt="AI Safety" />
   <img src="https://img.shields.io/badge/security-bandit-FF4F5E?labelColor=0D1117&logo=shield" alt="Bandit" />
 </p>
@@ -207,9 +207,15 @@ Lower-priority cleanup includes the Dependabot configuration location, REPL fail
 
 ## Quickstart
 
+The Python project manifest declares **`ethos-aegis` version `0.1.0`**, **Python 3.12 or newer**, and seven direct runtime dependencies (`pydantic`, `pydantic-settings`, `neo4j`, `networkx`, `pyyaml`, `structlog`, and `rich`). The separate GitHub release `v1.0.0` does **not** establish that the Python package is version 1.0.0 or available on PyPI. Package-index publication and installation success have not been independently verified.
+
+For a source checkout, the declared installation command is:
+
 ```bash
-pip install ethos-aegis
+python -m pip install -e .
 ```
+
+This command is based on `pyproject.toml`; installation on the current revision has not been independently validated.
 
 ```python
 from ethos_aegis import EthosAegis, AegisVitality
@@ -272,18 +278,12 @@ SEPTIC       20%  Emergency intervention required
   <img src="./assets/brand/ci_pipeline_banner.png" alt="CI/CD Pipeline" width="100%" />
 </p>
 
-Five mandatory gates on every push:
-
-```
-LINT  -->  PYTHON MATRIX  -->  SECURITY  -->  SANDBOX  -->  REPORT
-           3.10/3.11/3.12     bandit          strict
-           pytest --cov       pip-audit       no network
-```
+Consult the current [GitHub Actions workflows](.github/workflows/) and applicable branch rules for required checks on a given commit. This README does not certify that lint, tests, security scans, or Python 3.10/3.11 compatibility currently pass. The Python project manifest requires Python 3.12 or newer.
 
 **Running locally:**
 
 ```bash
-pip install -e ".[dev,test]"
+python -m pip install -e ".[dev]"
 pytest python/tests/ -v --tb=short
 
 # Sandbox smoke test
@@ -383,21 +383,21 @@ Implements the full agent harness architecture as a new `ethos_aegis/harness/` m
 
 ## Tests
 - 39 new unit tests in `tests/test_harness.py`
-- Full suite: **253 passed, 6 skipped, 0 failed**
+- Historical test report: **253 passed, 6 skipped, 0 failed**. Re-run current tests and required CI before claiming current validation.
 ## Release
 
 <p align="center">
   <img src="./assets/brand/aegis_release_badge.png" alt="Ethos Aegis v1.0.0" width="30%" />
 </p>
 
-See [CHANGELOG.md](./CHANGELOG.md) for full history. Latest: **v1.0.0** -- Production-grade immune architecture, zero mandatory dependencies, full Python 3.10-3.12 support.
+See [CHANGELOG.md](./CHANGELOG.md) for history. The latest verified GitHub release is **`v1.0.0`** (June 11, 2026), with no release assets attached at audit time. `pyproject.toml` independently declares Python distribution **`0.1.0`**, **Python >=3.12**, and **seven direct dependencies**. No production certification, zero-dependency status, or full Python 3.10–3.12 compatibility is claimed.
 
 ### Visual release assets
 
 - [Visual asset manifest](docs/assets/product/manifest.json)
 - [Release graphics workflow](.github/workflows/release-visual-assets.yml)
 
-Published GitHub Releases automatically receive rendered PNG copies of the SVG masters, `SHA256SUMS`, and ZIP/TAR visual bundles. A manual dispatch with a blank `release_tag` is package-only and preserves the same bundles as a GitHub Actions artifact. To backfill an existing release, enter its exact tag; the workflow validates that release, checks out the tag, builds from that historical revision, and attaches the generated visual bundles.
+The visual-assets workflow is designed to build PNGs, checksums, and ZIP/TAR bundles. **Do not assume existing releases have these attachments:** `v1.0.0` currently has zero attached assets. A manual dispatch with a blank `release_tag` is intended to produce workflow artifacts only; backfilling a release with a tag requires a validated workflow run and verified attachments.
 
 ---
 
@@ -412,9 +412,15 @@ Published GitHub Releases automatically receive rendered PNG copies of the SVG m
 
 ---
 
-## License
+## License, pricing, and availability — clarification pending
 
-MIT (c) [GoodShyt Group](https://github.com/DeontewattsV1) -- Open source. Aligned by design.
+**The repository's legal documents currently conflict.** The root [LICENSE](LICENSE) contains **CC0 1.0 Universal** (not MIT), while [LICENSE_COMMERCIAL.md](LICENSE_COMMERCIAL.md) states that certain commercial uses require payment. Additionally, `package.json` declares `Apache-2.0` for the Node scaffold, and some imported SDK components carry their own MIT notices; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). These statements have **not** been legally reconciled. Do not treat the old MIT README badge as a license grant, or assume the commercial-payment language overrides existing CC0 permissions. The underlying licenses and third-party notices remain unchanged pending an explicit rights-and-scope review.
+
+**Product Hunt pricing:** not finalized. The repository and its demo pages can be viewed at no charge, but this does not establish pricing or rights for commercial products, support, hosted services, or new proprietary releases. Do **not** select `Paid` or `Paid with a free plan` solely from the conflicting documents. Confirm the distribution license and actual purchase path before selecting a launch pricing category. The commercial tiers listed in `LICENSE_COMMERCIAL.md` are statements in that document, **not a verified checkout, paid entitlement system, or enforceable restriction on material already granted under CC0**.
+
+**Availability and demos:** The [GitHub repository](https://github.com/DeontewattsV1/Ethos-Aegis-) and [interactive GitHub Pages board](https://deontewattsv1.github.io/Ethos-Aegis-/board.html) are public. The README includes three recorded security walkthroughs ([toolkit](docs/demos/toolkit.mp4), [immune pipeline](docs/demos/immune.mp4), [VeriFlow](docs/demos/veriflow.mp4)) and previews in `docs/demos/`. At the time of the October 8, 2026 website check, these walkthroughs were **not displayed on the published landing page**, even though the 4D board was reachable. Confirm Pages deployment and video playback before using the website as a Product Hunt video showcase.
+
+Security illustrations and demos are not evidence of production certification or autonomous live protection. Verify installation, tests, security review, third-party rights, packaging, licensing, and release artifacts before launch.
 
 ---
 
