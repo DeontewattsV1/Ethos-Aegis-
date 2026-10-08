@@ -7,6 +7,7 @@ import urllib.request
 import urllib.error
 from typing import Any, Dict, Generator, List, Optional
 from .base_adapter import BaseAdapter
+from ethos_aegis.security.http_transport import validate_http_base_url
 
 
 class GenericAdapter(BaseAdapter):
@@ -31,7 +32,7 @@ class GenericAdapter(BaseAdapter):
         api_key: str = "local",
         timeout: float = 60.0,
     ):
-        self._base_url = base_url.rstrip("/")
+        self._base_url = validate_http_base_url(base_url)
         self._model = model
         self._api_key = api_key
         self._timeout = timeout
@@ -62,7 +63,7 @@ class GenericAdapter(BaseAdapter):
         }).encode()
 
         req = urllib.request.Request(
-            f"{self._base_url}/chat/completions",
+            f"{validate_http_base_url(self._base_url)}/chat/completions",
             data=body,
             headers={
                 "Content-Type": "application/json",
@@ -70,7 +71,7 @@ class GenericAdapter(BaseAdapter):
             },
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=self._timeout) as resp:
+        with urllib.request.urlopen(req, timeout=self._timeout) as resp:  # nosec B310 - validated HTTP(S) URL
             data = json.loads(resp.read())
             return data["choices"][0]["message"]["content"]
 
