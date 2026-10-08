@@ -1,0 +1,17 @@
+ETHOS AEGIS | Sovereign AI Immune Architecture
+LOCAL DEMO | Synthetic inputs | No external scanners or services
+
+[NORMAL REQUEST]
+  sanctified=True | depth=VOID
+  threats=0 | purification=False
+
+[INJECTION ATTEMPT]
+  sanctified=False | depth=GRAVE
+  threats=1 | purification=False
+
+[UNICODE PAYLOAD]
+  sanctified=False | depth=CAUTION
+  threats=1 | purification=True
+
+[VITALITY] report type=VitalityReport
+Detection is evidence. Independent authorization governs tool execution.

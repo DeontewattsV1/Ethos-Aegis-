@@ -59,6 +59,7 @@ Changelog = "https://github.com/DeontewattsV1/Ethos-Aegis-/blob/main/CHANGELOG.m
 [project.scripts]
 ethos-aegis = "ethos_aegis.__main__:main"
 aegis-server = "ethos_aegis.server:main"
+aegis-security = "ethos_aegis.security_toolkit.__main__:main"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
@@ -151,3 +152,6 @@ build-backend = "setuptools.build_meta"
 where   = ["."]
 include = ["ethos_aegis*", "ethos_4d*"]
 exclude = ["tests*", "scripts*", "sdk*"]
+
+[tool.setuptools.package-data]
+"ethos_aegis.security_toolkit" = ["ghidra_scripts/*.java"]
