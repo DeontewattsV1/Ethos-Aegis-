@@ -757,7 +757,8 @@ class CKANClient:
         if self.api_key:
             request.add_header("Authorization", self.api_key)
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:  # nosec B310 - validated HTTP(S) URL
+            # B310: the base URL was validated as HTTPS or loopback HTTP above.
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:  # nosec B310
                 body = response.read().decode("utf-8")
                 parsed = json.loads(body)
                 return ProbeEvidence(
@@ -779,7 +780,8 @@ class CKANClient:
         request = urllib.request.Request(url, method="GET")
         request.add_header("User-Agent", "ethos-aegis-veriflow/1.2")
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:  # nosec B310 - validated HTTP(S) URL
+            # B310: the base URL was validated as HTTPS or loopback HTTP above.
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:  # nosec B310
                 status = getattr(response, "status", None)
                 ok = status is None or 200 <= status < 400
                 return ProbeEvidence(name=path, ok=ok, source="http_get", detail="endpoint reachable", status_code=status)
