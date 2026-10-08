@@ -32,8 +32,10 @@ class MemoryLedger:
             "before_sha256": before,
             "after_sha256": after,
         }
+        if self.path.parent.is_symlink():
+            raise ValueError("ledger parent symlinks are not supported")
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        if self.path.is_symlink():
+        if self.path.parent.is_symlink() or self.path.is_symlink():
             raise ValueError("ledger symlinks are not supported")
         flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT
         if hasattr(os, "O_NOFOLLOW"):
@@ -56,7 +58,7 @@ class MemoryLedger:
     def list_events(self) -> list[MemoryEvent]:
         if not self.path.exists():
             return []
-        if self.path.is_symlink():
+        if self.path.parent.is_symlink() or self.path.is_symlink():
             raise ValueError("ledger symlinks are not supported")
         events = []
         with self.path.open("r", encoding="utf-8") as stream:

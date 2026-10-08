@@ -46,7 +46,13 @@ class StrictWriteDiscipline:
                 or any(ord(c) < 32 for c in raw)):
             raise ValueError("only bounded relative paths are accepted")
         segments = raw.split("/")
-        if any(seg in ("", ".", "..") or ":" in seg for seg in segments) or segments[0] in {".git", ".ethos-aegis"}:
+        if any(
+            seg in ("", ".", "..") or ":" in seg or seg.endswith((" ", "."))
+            or seg.lower() in {".git", ".ethos-aegis"}
+            or seg.split(".", 1)[0].upper() in {"CON", "PRN", "AUX", "NUL"}
+            or re.fullmatch(r"(?:COM|LPT)[1-9](?:\..*)?", seg, flags=re.IGNORECASE)
+            for seg in segments
+        ):
             raise ValueError("path traversal and ambiguous segments are rejected")
         target = self.root.joinpath(*segments)
         for ancestor in (target, *list(target.parents)):
@@ -63,6 +69,8 @@ class StrictWriteDiscipline:
             if target.exists():
                 if not target.is_file():
                     raise ValueError("only regular files are supported")
+                if target.stat().st_size > 8 * 1024 * 1024:
+                    raise ValueError("snapshot exceeds the 8 MiB limit")
                 data = target.read_bytes()
                 result[relative] = FileSnapshot(relative, True, len(data), hashlib.sha256(data).hexdigest())
             else:

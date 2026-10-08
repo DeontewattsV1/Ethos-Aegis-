@@ -38,7 +38,7 @@ def test_dry_run_is_not_verified(tmp_path):
     assert not (tmp_path / "x.txt").exists()
 
 
-@pytest.mark.parametrize("path", ["../escape", "a/../escape", "a//b", "C:/Windows/file", "/tmp/file", "./file", ".git/config", ".ethos-aegis/MEMORY.jsonl"])
+@pytest.mark.parametrize("path", ["../escape", "a/../escape", "a//b", "C:/Windows/file", "/tmp/file", "./file", ".git/config", "sub/.GiT/config", "NUL.txt", "bad. ", ".ethos-aegis/MEMORY.jsonl"])
 def test_path_escape_rejected(tmp_path, path):
     with pytest.raises(ValueError):
         StrictWriteDiscipline(tmp_path).write_text(path, "data")
@@ -58,3 +58,11 @@ def test_unverified_missing_baseline_is_not_success(tmp_path):
 def test_write_size_limit(tmp_path):
     with pytest.raises(ValueError):
         StrictWriteDiscipline(tmp_path).write_text("large.txt", "x" * (8 * 1024 * 1024 + 1))
+
+def test_symlinked_ledger_directory_is_rejected(tmp_path):
+    external = tmp_path.parent / (tmp_path.name + "-outside")
+    external.mkdir()
+    (tmp_path / ".ethos-aegis").symlink_to(external, target_is_directory=True)
+    with pytest.raises(ValueError, match="symlink"):
+        MemoryLedger(tmp_path / ".ethos-aegis" / "MEMORY.jsonl").append_verified(path="a", action="CREATE", before=None, after="fake")
+    assert not (external / "MEMORY.jsonl").exists()
