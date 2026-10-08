@@ -1,11 +1,12 @@
 [project]
-name = "ethos-aegis"
+name = "ethos-aegis-governance"
 version = "0.1.0"
-description = "ETHOS-AEGIS Governance and Execution Engine"
+description = "Ethos Aegis governance engine (separate from the ethos-aegis Python subtree distribution)"
 authors = [
     {name = "Deonte Watts"}
 ]
 requires-python = ">=3.12"
+license = {text = "CC0-1.0"}
 
 dependencies = [
     "pydantic>=2.8.0",
@@ -42,3 +43,9 @@ warn_unused_configs = true
 [build-system]
 requires = ["setuptools>=75.0"]
 build-backend = "setuptools.build_meta"
+
+# Package only the separate root governance engine, never the python/ subtree.
+# Explicit discovery avoids accidental inclusion of the other distribution.
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ethos_core*", "agents*", "graph*", "simulation*"]
