@@ -71,7 +71,8 @@ class GenericAdapter(BaseAdapter):
             },
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=self._timeout) as resp:  # nosec B310 - validated HTTP(S) URL
+        # B310: the base URL was validated as HTTPS or loopback HTTP above.
+        with urllib.request.urlopen(req, timeout=self._timeout) as resp:  # nosec B310
             data = json.loads(resp.read())
             return data["choices"][0]["message"]["content"]
 

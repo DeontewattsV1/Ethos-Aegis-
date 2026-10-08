@@ -38,6 +38,7 @@ def test_security_scans_do_not_suppress_failures() -> None:
     scan = workflow.split("\n  security:\n", 1)[1].split("\n  sandbox:\n", 1)[0]
     assert "bandit -r ethos_aegis/" in scan
     assert "pip-audit" in scan
+    assert '"setuptools>=83.0.0"' in scan
     assert "|| true" not in scan
 
 
