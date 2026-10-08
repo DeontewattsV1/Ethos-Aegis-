@@ -17,10 +17,8 @@ jobs:
     name: Publish npm
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      packages: write
-    env:
-      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -37,10 +35,14 @@ jobs:
         run: npm ci
 
       - name: Publish to npm
-        if: ${{ env.NPM_TOKEN != '' }}
         env:
-          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
-        run: npm publish --access public --provenance
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "Publishing requires the NPM_TOKEN repository secret." >&2
+            exit 1
+          fi
+          npm publish --access public --provenance
 
   attach-assets:
     name: Attach Release Assets
