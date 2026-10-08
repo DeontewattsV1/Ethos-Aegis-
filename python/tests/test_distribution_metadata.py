@@ -43,8 +43,12 @@ def test_package_scopes_and_legacy_setup_are_explicit() -> None:
     shim = (IMMUNE / "setup.py").read_text(encoding="utf-8")
     assert 'include = ["ethos_core*", "agents*", "graph*", "simulation*"]' in governance
     assert 'include = ["ethos_aegis*", "ethos_4d*"]' in immune
-    assert 'license = {text = "CC0-1.0"}' in governance
-    assert 'license = {text = "MIT"}' in immune
+    assert 'license = "CC0-1.0"' in governance
+    assert 'license = "MIT"' in immune
+    assert 'license-files = ["LICENSE"]' in governance
+    assert 'license-files = ["LICENSE"]' in immune
+    assert 'setuptools>=77.0.3' in governance
+    assert 'setuptools>=77.0.3' in immune
     assert "setup()" in shim
     assert "version=" not in shim
     assert "install_requires=" not in shim
