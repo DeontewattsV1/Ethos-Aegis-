@@ -5,14 +5,14 @@ description = "Ethos Aegis -- Sovereign AI Immune Architecture. Research-oriente
 authors = [
     {name = "Deonte Watts", email = "deonte@goodshyt.group"}
 ]
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.10"
 keywords = ["ai-safety", "immune-system", "hallucination-detection", "prompt-injection", "adversarial-defense"]
 classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -144,7 +144,7 @@ skip_covered = false
 fail_under   = 0
 
 [build-system]
-requires      = ["setuptools>=75.0"]
+requires      = ["setuptools>=77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
