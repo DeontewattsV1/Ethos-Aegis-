@@ -105,6 +105,28 @@ class SecureEvidenceLedger:
         self.path = Path(path)
         self._key = bytes(signing_key)
         self.retention = retention
+        # Detect file removal after this ledger instance observed an existing file.
+        # Cross-process anti-rollback still requires an external monotonic anchor.
+        self._observed_ledger = self.path.exists()
+
+    def _new_payload(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "version": 2,
+            "anchor_hash": self.GENESIS,
+            "events": [],
+        }
+        self._seal_payload(payload)
+        return payload
+
+    def _seal_payload(self, payload: dict[str, Any]) -> None:
+        """Authenticate the entire bounded ledger, not just surviving events."""
+        events = payload["events"]
+        payload["event_count"] = len(events)
+        payload["head_hash"] = events[-1]["event_hash"] if events else payload["anchor_hash"]
+        canonical = {key: value for key, value in payload.items() if key != "seal"}
+        payload["seal"] = hmac.new(
+            self._key, b"ethos-evidence-ledger-v2:" + _canonical(canonical), hashlib.sha256
+        ).hexdigest()
 
     def _assert_safe_path(self) -> None:
         if self.path.is_symlink() or self.path.parent.is_symlink():
@@ -113,19 +135,41 @@ class SecureEvidenceLedger:
     def _load(self) -> dict[str, Any]:
         self._assert_safe_path()
         if not self.path.exists():
-            return {"version": 1, "anchor_hash": self.GENESIS, "events": []}
+            if self._observed_ledger:
+                raise StateIntegrityError("evidence ledger disappeared after it was observed")
+            return self._new_payload()
+        self._observed_ledger = True
         if self.path.stat().st_size > self.retention.max_state_bytes:
             raise StateIntegrityError("evidence ledger exceeds configured size limit")
         try:
             payload = json.loads(self.path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
             raise StateIntegrityError("evidence ledger is unreadable") from exc
-        if not isinstance(payload, dict) or payload.get("version") != 1 or not isinstance(payload.get("events"), list):
-            raise StateIntegrityError("evidence ledger schema is invalid")
+        if not isinstance(payload, dict) or payload.get("version") != 2 or not isinstance(payload.get("events"), list):
+            raise StateIntegrityError(
+                "evidence ledger schema is invalid or legacy unsigned ledger needs operator-reviewed migration"
+            )
         self._verify_payload(payload)
         return payload
 
     def _verify_payload(self, payload: Mapping[str, Any]) -> None:
+        required = {"version", "anchor_hash", "events", "event_count", "head_hash", "seal"}
+        if set(payload) != required or payload.get("version") != 2:
+            raise StateIntegrityError("signed evidence ledger envelope is missing or invalid")
+        events = payload["events"]
+        if not isinstance(events, list) or type(payload["event_count"]) is not int:
+            raise StateIntegrityError("signed evidence ledger count is invalid")
+        if payload["event_count"] != len(events):
+            raise StateIntegrityError("evidence ledger event count was modified")
+        seal = payload["seal"]
+        if not isinstance(seal, str):
+            raise StateIntegrityError("evidence ledger envelope signature is missing")
+        unsigned = {key: value for key, value in payload.items() if key != "seal"}
+        expected_seal = hmac.new(
+            self._key, b"ethos-evidence-ledger-v2:" + _canonical(unsigned), hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(seal, expected_seal):
+            raise StateIntegrityError("evidence ledger envelope authentication failed")
         previous = str(payload.get("anchor_hash") or self.GENESIS)
         for event in payload.get("events", []):
             if not isinstance(event, dict) or event.get("previous_hash") != previous:
@@ -142,6 +186,10 @@ class SecureEvidenceLedger:
             if not isinstance(signature, str) or not hmac.compare_digest(signature, expected_signature):
                 raise StateIntegrityError("evidence ledger signature is invalid")
             previous = event_hash
+        if not isinstance(payload["head_hash"], str) or not hmac.compare_digest(
+            payload["head_hash"], previous
+        ):
+            raise StateIntegrityError("evidence ledger authenticated head is inconsistent")
 
     def _write(self, payload: Mapping[str, Any]) -> None:
         self._assert_safe_path()
@@ -215,13 +263,17 @@ class SecureEvidenceLedger:
             event["signature"] = hmac.new(self._key, event_hash.encode("ascii"), hashlib.sha256).hexdigest()
             events.append(event)
             payload["events"] = events
+            self._seal_payload(payload)
             self._verify_payload(payload)
             self._write(payload)
+            self._observed_ledger = True
             return dict(event)
 
     def events(self) -> tuple[dict[str, Any], ...]:
         return tuple(dict(x) for x in self._load()["events"])
 
     def verify(self) -> bool:
+        if not self.path.exists():
+            raise StateIntegrityError("evidence ledger file does not exist")
         self._load()
         return True
