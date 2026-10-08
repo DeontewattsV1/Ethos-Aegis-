@@ -207,7 +207,7 @@ Lower-priority cleanup includes the Dependabot configuration location, REPL fail
 
 ## Quickstart
 
-The Python project manifest declares **`ethos-aegis` version `0.1.0`**, **Python 3.12 or newer**, and seven direct runtime dependencies (`pydantic`, `pydantic-settings`, `neo4j`, `networkx`, `pyyaml`, `structlog`, and `rich`). The separate GitHub release `v1.0.0` does **not** establish that the Python package is version 1.0.0 or available on PyPI. Package-index publication and installation success have not been independently verified.
+The repository-root `pyproject.toml` declares **`ethos-aegis` version `0.1.0`**, **Python 3.12 or newer**, and seven direct runtime dependencies (`pydantic`, `pydantic-settings`, `neo4j`, `networkx`, `pyyaml`, `structlog`, and `rich`). The separate `python/pyproject.toml` declares a different **`ethos-aegis` version `1.0.0`**, **Python 3.10 or newer**, and no required third-party dependencies, and it labels that subtree as MIT. These are distinct build configurations with the same distribution name; neither metadata file validates the other's installation, rights, or compatibility claims. The GitHub release `v1.0.0` is separate from package-index publication; PyPI/npm/GHCR availability and installation success have not been independently verified.
 
 For a source checkout, the declared installation command is:
 
@@ -407,8 +407,8 @@ The visual-assets workflow is designed to build PNGs, checksums, and ZIP/TAR bun
 |:---|:---|
 | [Linguistic-Encryption-System-Celestial-](https://github.com/DeontewattsV1/Linguistic-Encryption-System-Celestial-) | Evidence-bounded sovereign AI runtime with policy encryption |
 | [self-improving-agent](https://github.com/DeontewattsV1/self-improving-agent) | Continuous learning agent with skill capture and evolution |
-| [mise-pr](https://github.com/DeontewattsV1/mise-pr) | PR quality gate tooling |
-| [MCDS Hypothesis](https://github.com/DeontewattsV1/MCDS-Hypothesis) | Physics & dark sector research |
+| **mise-pr** (private; access required) | PR quality gate tooling |
+| **Mirror-Coupling-Dark-Sector-MCDS-Hypothesis** (private; access required) | Physics & dark sector research |
 
 ---
 
@@ -418,9 +418,9 @@ The visual-assets workflow is designed to build PNGs, checksums, and ZIP/TAR bun
 
 **Product Hunt pricing:** not finalized. The repository and its demo pages can be viewed at no charge, but this does not establish pricing or rights for commercial products, support, hosted services, or new proprietary releases. Do **not** select `Paid` or `Paid with a free plan` solely from the conflicting documents. Confirm the distribution license and actual purchase path before selecting a launch pricing category. The commercial tiers listed in `LICENSE_COMMERCIAL.md` are statements in that document, **not a verified checkout, paid entitlement system, or enforceable restriction on material already granted under CC0**.
 
-**Availability and demos:** The [GitHub repository](https://github.com/DeontewattsV1/Ethos-Aegis-) and [interactive GitHub Pages board](https://deontewattsv1.github.io/Ethos-Aegis-/board.html) are public. The README includes three recorded security walkthroughs ([toolkit](docs/demos/toolkit.mp4), [immune pipeline](docs/demos/immune.mp4), [VeriFlow](docs/demos/veriflow.mp4)) and previews in `docs/demos/`. At the time of the October 8, 2026 website check, these walkthroughs were **not displayed on the published landing page**, even though the 4D board was reachable. Confirm Pages deployment and video playback before using the website as a Product Hunt video showcase.
+**Availability and demos:** The [GitHub repository](https://github.com/DeontewattsV1/Ethos-Aegis-) and [interactive GitHub Pages board](https://deontewattsv1.github.io/Ethos-Aegis-/board.html) are public. The README includes three recorded security walkthroughs ([toolkit](docs/demos/toolkit.mp4), [immune pipeline](docs/demos/immune.mp4), [VeriFlow](docs/demos/veriflow.mp4)) and previews in `docs/demos/`. At the October 8, 2026 live website check, these walkthroughs were **not displayed on the landing page**, and `/docs/demos/toolkit.mp4`, `/docs/demos/immune.mp4`, and `/docs/demos/veriflow.mp4` each returned **HTTP 404** under the GitHub Pages origin; the 4D board was reachable. Check the actual Pages publishing source, deployed artifact contents, and media playback before advertising the videos as live website features.
 
-Security illustrations and demos are not evidence of production certification or autonomous live protection. Verify installation, tests, security review, third-party rights, packaging, licensing, and release artifacts before launch.
+Security illustrations and demos are not evidence of production certification or autonomous live protection. Verify installation, tests, security review, third-party rights, packaging, licensing, and release artifacts before launch. Record evidence and conditional Product Hunt selection in the [Product Hunt launch-readiness checklist](docs/product-hunt-launch-readiness.md).
 
 ---
 
