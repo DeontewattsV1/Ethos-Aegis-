@@ -229,9 +229,9 @@ jobs:
             -f json \
             -o reports/bandit.json \
             -ll \
-            --skip B101,B110,B311,B404,B602,B603 || true
+            --skip B101,B110,B311,B404,B602,B603
       - name: pip-audit — supply chain audit
-        run: pip-audit --desc -f json -o reports/pip-audit.json || true
+        run: pip-audit --desc -f json -o reports/pip-audit.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -239,10 +239,10 @@ jobs:
           path: python/reports/
 
   # ───────────────────────────────────────────────────────────────────────────
-  # JOB 6 — SANDBOX (strict isolation, no network)
+  # JOB 6 — SANDBOX-MODE SMOKE TESTS (not OS/network isolation evidence)
   # ───────────────────────────────────────────────────────────────────────────
   sandbox:
-    name: Sandbox Isolation Tests
+    name: Sandbox-Mode Adjudication Smoke Tests
     needs: [python, security]
     runs-on: ubuntu-latest
     defaults:
@@ -283,7 +283,7 @@ jobs:
   # ───────────────────────────────────────────────────────────────────────────
   report:
     name: Pipeline Report
-    needs: [python, macos, windows_paths, windows, security, sandbox]
+    needs: [lint, python, macos, windows_paths, windows, security, sandbox]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -309,8 +309,24 @@ jobs:
             echo "**Branch:** \`${{ github.ref_name }}\`"
             echo "**Triggered by:** ${{ github.event_name }}"
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Fail if critical jobs failed
-        if: needs.python.result == 'failure' || needs.macos.result == 'failure' || needs.windows_paths.result == 'failure' || needs.windows.result == 'failure' || needs.sandbox.result == 'failure'
+      - name: Enforce all required gate results
+        env:
+          LINT_RESULT: ${{ needs.lint.result }}
+          PYTHON_RESULT: ${{ needs.python.result }}
+          MACOS_RESULT: ${{ needs.macos.result }}
+          WINDOWS_PATHS_RESULT: ${{ needs.windows_paths.result }}
+          WINDOWS_RESULT: ${{ needs.windows.result }}
+          SECURITY_RESULT: ${{ needs.security.result }}
+          SANDBOX_RESULT: ${{ needs.sandbox.result }}
+        shell: bash
         run: |
-          echo "Critical jobs failed."
-          exit 1
+          failed=0
+          for gate in LINT PYTHON MACOS WINDOWS_PATHS WINDOWS SECURITY SANDBOX; do
+            variable="${gate}_RESULT"
+            outcome="${!variable}"
+            if [ "${outcome}" != "success" ]; then
+              echo "::error::Required gate ${gate} ended with ${outcome}; expected success."
+              failed=1
+            fi
+          done
+          exit "${failed}"
