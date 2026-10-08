@@ -1,44 +1,45 @@
-# Commercial License — Deonte Watts Open-Source Projects
+# Ethos Aegis — Optional Commercial Services and Future Proprietary Offerings
 
-Copyright (c) 2024–2026 Deonte Watts. All rights reserved.
+**Prospective commercial-offer policy — review draft, October 8, 2026**
 
-## Free (Non-Commercial) Use
+This document describes the intended business model for offers made after approval. It does **not** restrict, revoke, or replace rights already granted to recipients of public code or create an active subscription or service agreement.
 
-This software is available at no cost for:
-- Personal, educational, and research use
-- Non-profit organizations
-- Open-source projects (with attribution)
+## Open-source and prior-publication rights remain intact
 
-## Commercial License Required
+- The repository-root `LICENSE` contains **CC0 1.0 Universal**. Where validly applied to a work, it permits commercial as well as non-commercial reuse. This document does not impose new payment, employee-count, revenue, or mandatory attribution conditions on those rights.
+- The `python/` distribution and individually licensed SDK components advertise or carry **MIT** terms; their license text and accompanying notices apply to the relevant covered components. The private Node documentation scaffold separately declares Apache-2.0 metadata. Review `THIRD_PARTY_NOTICES.md` and component files for their scope.
+- Any existing third-party terms, prior valid CC0/MIT/Apache rights, attribution/notice requirements, and already executed contracts remain independent. An existing grant cannot be rescinded by changing this file.
+- **No commercial license purchase is required merely to use, modify, redistribute, integrate, sell, or offer services around open-source code insofar as its applicable public license permits those uses.**
 
-A paid commercial license is required for any of the following:
-- Use in a commercial product or SaaS offering
-- Integration into proprietary software sold or licensed to third parties
-- Use by a for-profit company with > 3 employees or > $10,000 USD annual revenue
-- Consulting or agency work delivered to clients
+## Optional paid offerings — only when separately delivered and contracted
 
-## Pricing Tiers
+Ethos Aegis may offer paid **implementation assistance, maintenance, integration, customer support, managed hosting, service-level commitments, training**, and **future proprietary features** that are specifically identified and not already available under a public grant.
 
-| Tier | Use Case | Price |
-|------|----------|-------|
-| **Indie** | Solo developers / freelancers | $99 / year |
-| **Startup** | Teams < 10, < $500k ARR | $499 / year |
-| **Business** | Teams < 50, any revenue | $1,499 / year |
-| **Enterprise** | Unlimited seats, SLA support | Contact: deontewatts@pm.me |
+A paid agreement must identify the distinct deliverables, scope, term, price, authorized use, support commitments, and contracting party. Proprietary components, if developed, require separate advance notices, clearly marked boundaries, and license terms; no paid condition applies retroactively to existing source.
 
-## How to Purchase
+### Indicative annual service plans (not an active checkout)
 
-1. GitHub Sponsors: https://github.com/sponsors/DeontewattsV1
-2. Email: deontewatts@pm.me with subject "Commercial License Request"
+| Proposed tier | Potential service scope | Indicative price |
+| --- | --- | --- |
+| Indie | Individual onboarding and limited support | $99/year |
+| Startup | Small-team setup assistance and integration support | $499/year |
+| Business | Expanded implementation and support | $1,499/year |
+| Enterprise | Custom hosting, contractual SLAs, services and support | By written quote |
 
-## Attribution
+These are **non-binding proposed service prices**, not evidence that any hosted offering, checkout, entitlement system, support SLA, or subscription currently exists. Do not market them as purchased software-license requirements. Confirm scope, fulfillment ability and terms before enabling payment.
 
-All use (commercial or non-commercial) must include the following notice:
+## Requests and donations
 
-> Built with [Project Name] by Deonte Watts — https://github.com/DeontewattsV1
+Commercial service inquiries: `deontewatts@pm.me`, subject "Ethos Aegis Commercial Services". GitHub Sponsors (`https://github.com/sponsors/DeontewattsV1`) may be used for voluntary sponsorship; sponsorship alone does not purchase a software license or guarantee support.
 
-## Warranty Disclaimer
+## Branding and notices
 
-THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. IN NO EVENT
-SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING
-FROM USE OF THIS SOFTWARE.
+Preserve notices required by the **applicable component license**. CC0 has no mandatory attribution condition. MIT retains its copyright-and-permission notice requirement for covered copies. Trademark/brand use and separately contracted services are distinct from copyright licenses.
+
+## No warranty or automatic entitlement
+
+THE PUBLIC SOFTWARE AND DEMONSTRATIONS ARE PROVIDED UNDER THEIR APPLICABLE LICENSE TERMS WITHOUT AN IMPLIED SERVICE CONTRACT OR GUARANTEE. THIS DOCUMENT DOES NOT CREATE A WARRANTY, A SIGNED SUPPORT AGREEMENT, OR A RIGHT TO A FUTURE PROPRIETARY PRODUCT.
+
+## Transition record
+
+This prospective document replaces this file's earlier generalized claim that **every commercial use** requires a paid license. That claim cannot override valid rights in software already published under CC0, MIT, or other applicable grants. Existing third-party obligations or independently executed agreements are unaffected. Obtain a rights/provenance review before marking a newly developed component proprietary or setting final commercial contracts.
