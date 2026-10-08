@@ -1,57 +1,52 @@
-# Ethos Aegis — Product Hunt launch readiness
-**State:** Evidence-bounded working checklist; no licensing grant, paid entitlement, warranty, or certification is created by this document.
-**Reviewed:** October 8, 2026. Verify all dynamic facts again immediately before launch.
+# Ethos Aegis — Product Hunt, licensing and packaging readiness
 
-## Distinct package and source scopes
+**Status:** Prospective business-model direction approved by the maintainer; release gate remains **NO-GO** pending verified security, package, legal-provenance and website conditions.
 
-| Component | Declared version | Requirements | License/status |
+**Audit date:** October 8, 2026. Recheck changing registry and CI facts immediately before publishing.
+
+## Product and distribution boundaries
+
+| Distribution / service | Declared source | Requirements and availability | Applicable status |
 | --- | --- | --- | --- |
-| Repository root `pyproject.toml` | 0.1.0 | Python >=3.12; seven direct dependencies | No license field in the project manifest |
-| `python/pyproject.toml` | 1.0.0 | Python >=3.10; no required third-party dependencies declared | Metadata states MIT; root license differs |
-| Root `package.json` | 0.1.1, `living-docs-template` | Node >=22.12 | Apache-2.0 metadata; **`private: true`**, not a publishable npm package |
-| GitHub Release tag | v1.0.0 (June 11, 2026) | Release tag, not a package-index verification | At audit time: zero attached release assets |
-| SDK / imported archive portions | Component-specific | Consult local manifests | Preserve their individual notices; see `THIRD_PARTY_NOTICES.md` |
+| **Python immune library** — `ethos-aegis` v1.0.0 | `python/pyproject.toml` | Python >=3.10; no required runtime dependencies declared; local install from `./python` | Subtree metadata declares MIT; `python/LICENSE` includes existing project MIT grant. Provenance still requires review. |
+| **Python governance engine** — `ethos-aegis-governance` v0.1.0 | Root `pyproject.toml` | Python >=3.12; seven declared direct dependencies; local install from repository root | Root CC0 grant and metadata; package discovery limited to `ethos_core`, `agents`, `graph`, `simulation` |
+| **Node SDK** — `@deontewattsv1/ethos-aegis-sdk` v1.0.0 | `sdk/node/package.json` | Published only by `release` event to `https://npm.pkg.github.com` | SDK MIT notice; release-run publication and package visibility not yet independently verified |
+| **Node docs scaffold** — `living-docs-template` v0.1.1 | Root `package.json` | Node >=22.12; `private: true`, not a registry distribution | Separate Apache-2.0 manifest metadata |
+| **Container** — `ghcr.io/deontewattsv1/ethos-aegis` | Root Dockerfile | **Release Packages #490** (run `37750343335`, at `a04f2a1`) succeeded; contains Node SDK, **not a Python server or full suite** | GHCR visibility and anonymous pull access **not verified** |
+| **GitHub Release** — `v1.0.0` | GitHub Releases | Published June 11, 2026; zero attached release assets at audit | Release tag is not proof of PyPI/n﻿pm installation |
 
-Do not collapse these independent manifests into one version, Python compatibility, dependency, or license claim. Do not describe the product as production-certified or a fully autonomous protection service based solely on demos or release tags.
+Do not conflate the similarly branded Python wheels, npm SDK, container, root scaffold, or release tag. The Python packages have distinct names and are built/tested separately; neither is published by the GitHub Packages registry picker. **Never publish `ethos-aegis` from the repository root.**
 
-## Licensing decision gate — BLOCKED
+## Approved commercial strategy — preserve open-source rights
 
-1. Root `LICENSE` contains **CC0 1.0 Universal**. Its grant is intended to permit commercial reuse, subject to other applicable rights and local law. Do not describe it as MIT or imply a future edit can retroactively revoke valid CC0 permissions.
-2. `LICENSE_COMMERCIAL.md` describes **free non-commercial use** and **paid commercial licensing**. It also lists Indie **$99/year**, Startup **$499/year**, Business **$1,499/year**, and Enterprise **contact for pricing**. These are publicly stated proposed terms, **not proof that the terms govern all previously released CC0 material**, that payment is required for CC0 works, or that a working subscription/checkout exists.
-3. The Python subtree advertises MIT and the Node scaffold advertises Apache-2.0. Component provenance, historical grants, ownership, third-party rights, and package-specific distribution must be reviewed before deciding what each notice covers.
-4. Preserve original license and attribution notices, including imported SDK MIT files and third-party licenses. Any prospective paid commercial product must identify **distinct qualifying deliverables/services** and rights that have not already been granted, such as separate proprietary functionality, a hosted service, contracts, or support (if actually offered).
-5. Obtain an explicit maintainer-approved scope decision and qualified legal review before modifying `LICENSE`, `LICENSE_COMMERCIAL.md`, package `license` metadata, or describing a universal mandatory paid license.
+1. Preserve existing, valid **CC0 1.0 Universal** grants in the repository root and the existing MIT and other component-specific third-party grants. Neither prospective marketing nor a later policy edit can revoke permissions already granted.
+2. The Python subtree includes the previously advertised **MIT** license text; imported and separately licensed modules keep their corresponding notices. The root governance wheel uses existing **CC0** terms. Rights/provenance and upstream compatibility still need review before registry publication.
+3. `LICENSE_COMMERCIAL.md` now describes **optional paid services and prospective separately marked proprietary add-ons** rather than a blanket charge for commercial use of free source. No fees are required solely for activities permitted by the applicable open-source grant.
+4. Future proprietary modules must be clearly segregated and separately contracted/licensed **before** release. Do not retrospectively relabel already distributed CC0/MIT source.
+5. The historical indicative commercial service tiers are Indie **$99/year**, Startup **$499/year**, Business **$1,499/year**, and Enterprise **by written quote**. They are **not verified live subscriptions, hosted services, SLA contracts, or payment entitlements**.
 
-## Product Hunt pricing — pending license and offer verification
+A final counsel/provenance review of license scopes remains a launch gate. This project cannot guarantee rights held by third parties or replace separately signed agreements.
 
-| Product Hunt category | Appropriate only if actually true |
-| --- | --- |
-| **Free** | The Product Hunt offering is free to use, with no payment required for what is launched. |
-| **Paid** | Access to the launched offering requires payment, with no free plan. |
-| **Paid (with a free trial or plan)** | The launch contains a real paid offering plus an actually available free plan or trial. |
+## Product Hunt pricing / availability
 
-**No final category selected.** Public viewing of GitHub/Pages and unverified commercial tiers are not sufficient to establish a paid plan. If a paid hosted or supported tier and a real free tier are later launched, the third category may fit; if only the free source/demo is offered, choose Free. Never relabel CC0 code as paid-only.
+**Recommended pricing category for the currently accessible public code and demonstration: `Free`**, assuming it remains free at the time of submission. Do **not** select `Paid` or `Paid (with a free plan)` merely because proposed service rates exist. Switch to `Paid (with a free trial or plan)` only if a separately paid service truly becomes available alongside a usable free product.
 
-**Promo code:** no code, offer, or expiration verified; leave blank. **Funding information:** select Bootstrapped, Y Combinator, or Venture backed only after the maintainer verifies the corresponding funding history; do not infer it from repository ownership.
+**Promo code:** blank; no verified offer, code or expiry. **Funding:** owner must verify Bootstrapped, YC-backed or Venture-backed; no status is inferred.
 
-## Availability — public source vs deployed media
+**Public site:** `https://deontewattsv1.github.io/Ethos-Aegis-/` accessible during audit. The 4D demonstration at `/board.html` was reachable. All three Pages URLs `/docs/demos/toolkit.mp4`, `/docs/demos/immune.mp4`, and `/docs/demos/veriflow.mp4` returned **HTTP 404**. Their presence as repository README links is **not** evidence of deployment or playback.
 
-- GitHub repository: `https://github.com/DeontewattsV1/Ethos-Aegis-`
-- Public website: `https://deontewattsv1.github.io/Ethos-Aegis-/` — accessible at audit.
-- 4D interactive board: `https://deontewattsv1.github.io/Ethos-Aegis-/board.html` — accessible at audit.
-- `/docs/demos/toolkit.mp4`, `/docs/demos/immune.mp4`, and `/docs/demos/veriflow.mp4` under the Pages origin: all **HTTP 404** at audit.
-- The repository README links to videos and GIF previews, but this does not prove those videos were copied into the currently published Pages artifact, nor that playback works on the published website.
-- Check the actual Pages source (branch/folder or Actions artifact), deployment status, media MIME types, direct URLs, and browser playback. Preserve authorization boundaries and synthetic-demo labeling.
+**GitHub Packages:** choose **Containers** to inspect the GHCR image. Do not select Maven, NuGet or RubyGems without corresponding artifacts. Node SDK npm publishing occurs only on GitHub Release events; `workflow_dispatch` run #490 intentionally skipped npm. The root docs scaffold must stay private. The container has separate visibility from the repository. Publishing to a public package registry or changing package visibility is an explicit, independently verified release decision; it was **not** performed as part of this cleanup.
 
-## Launch acceptance — no-go until verified
+## Release acceptance criteria
 
-- [ ] License scope, older CC0 grants, MIT SDK notices, Python MIT metadata and Node Apache-2.0 metadata reconciled without removing existing rights.
-- [ ] Exact public/free and commercial service/product boundaries, deliverables, support, checkout, and prices confirmed.
-- [ ] Product Hunt pricing and funding information chosen from real offer and founder-confirmed records.
-- [ ] Package build/install tested for each advertised target; no conflict between package identity, versions, dependencies and supported Python versions.
-- [ ] Required tests, security gates, provenance and authorization reviews pass on the exact release commit; no skipped or downgraded gates.
-- [ ] Security findings, release assets, and source-to-release tags/SHAs reviewed.
-- [ ] Public site home page and board agree with current launch content; all three videos demonstrably return success and play.
-- [ ] Product Hunt description makes no unsupported production-certified, zero-dependency, or autonomous live scanning claims.
+- [ ] Explicit rights/provenance review approves CC0-root, MIT-subtree/SDK, third-party notices and prospectively optional paid-services language without retroactive restriction.
+- [ ] Python CI builds isolated, correctly named governance and immune wheels/sdists, verifies wheel contents/licenses/working entry points, and validates full required test/security coverage on the candidate SHA.
+- [ ] Each advertised Python version is supported by actual matrix checks; user-facing local install instructions succeed for both distributions.
+- [ ] Confirm PyPI account ownership/namespace availability; publish a named version only via a separately approved, verified workflow.
+- [ ] Confirm GHCR image manifest/package visibility and inspect entrypoint runtime behavior. A successful push is not proof of a functional web server.
+- [ ] Resolve any outstanding P1/P2 security findings and preserve required security, CI, authorization, signed-commit, and review gates.
+- [ ] Website homepage and 4D board match release copy; all three MP4 URLs return success with correct media type and are playable.
+- [ ] If offered, paid plans have actual deliverables, terms, payment path, and support commitments.
+- [ ] Confirm funding and any actual Product Hunt promo details; reject unsupported 'production-certified', 'zero-dependency across all packages' and 'autonomous live protection' claims.
 
-**Release recommendation:** withhold Product Hunt launch and package-registry publication until legal/offer scope and live-media blockers are resolved.
+**Publishing disposition: NO-GO until these gates pass.** This document is a configuration/marketing decision record, not proof of title, security assurance, product availability or legal clearance.
