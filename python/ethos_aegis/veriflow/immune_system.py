@@ -203,7 +203,9 @@ class VeriflowImmuneSystem:
                 # probe unavailable: fall through to ingest but use digest guard below
 
         # Full ingest
-        result: CKANIngestionResult = self.ckan.ingest_resource(resource_id)
+        result: CKANIngestionResult = self.ckan.ingest_resource(
+            resource_id, capability_matrix=self._capability_matrix
+        )
         rows   = result.rows
         fields = result.fields
 
