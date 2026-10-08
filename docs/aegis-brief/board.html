@@ -468,9 +468,15 @@
       runs.forEach((run) => {
         const name = THREATS.find((item) => item.id === run.threat);
         const link = document.createElement("a");
+        const strong = document.createElement("strong");
+        const meta = document.createElement("span");
         link.className = "card";
         link.href = "?threat=" + run.threat + "&scan=" + run.scan + "&response=" + run.response;
-        link.innerHTML = "<strong>" + (name ? name.name : run.threat) + "</strong><span class='muted'>" + run.scan + " → " + run.response + "</span>";
+        strong.textContent = name ? name.name : run.threat;
+        meta.className = "muted";
+        meta.textContent = run.scan + " → " + run.response;
+        link.appendChild(strong);
+        link.appendChild(meta);
         root.appendChild(link);
       });
     }
