@@ -112,3 +112,22 @@ jobs:
           audit("dist-immune", "ethos-aegis", "1.0.0",
                 ("ethos_aegis", "ethos_4d"),
                 ("ethos_core", "agents", "graph", "simulation"))
+
+
+      - name: Clean wheel-install and installed CLI smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv .package-smoke
+          .package-smoke/bin/python -m pip install --no-deps \
+            dist-governance/*.whl dist-immune/*.whl
+          .package-smoke/bin/python -c '
+          from importlib.metadata import version
+          from ethos_aegis import EthosAegis
+          import ethos_core
+          assert version("ethos-aegis") == "1.0.0"
+          assert version("ethos-aegis-governance") == "0.1.0"
+          assert callable(EthosAegis)
+          assert ethos_core.__version__ == "0.1.0"
+          '
+          .package-smoke/bin/aegis-security catalog > /dev/null
