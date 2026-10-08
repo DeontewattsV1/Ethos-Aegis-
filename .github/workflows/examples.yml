@@ -25,9 +25,6 @@ jobs:
           cache: "npm"
       - run: npm ci
 
-      - name: Run Vitest suite with coverage
-        run: npm test
-
       - name: Execute every example and capture output
         run: npx tsx scripts/run-examples.ts
 

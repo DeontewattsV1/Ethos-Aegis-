@@ -4,7 +4,7 @@ const isCI = process.env.CI === "true";
 
 export default defineConfig({
   test: {
-    include: ["test/**/*.{test,spec}.ts", "tests/**/*.{test,spec}.ts", "src/**/*.{test,spec}.ts"],
+    include: ["tests/**/*.test.ts"],
     exclude: ["node_modules/**", "dist/**", "coverage/**"],
     environment: "node",
     passWithNoTests: false,

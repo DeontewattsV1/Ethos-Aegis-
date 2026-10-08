@@ -4,15 +4,6 @@
 
  # Ethos Aegis &mdash; Brand Identity
 
-## Security toolkit showcase
-
-The [toolkit hero](assets/brand/security-toolkit-hero.svg) and
-[recorded walkthroughs](docs/demos/README.md) use this identity's obsidian,
-graphite, steel blue, cold blue and bone white palette. They retain Deonte Watts
-authorship, distinguish tool integrations from upstream ownership, and label
-synthetic demo inputs. The [launch copy](docs/security-toolkit/launch-copy.md)
-follows the README's published feature support matrix.
-
 Original, civilian, government-grade visual identity for the **Ethos Aegis** sovereign AI integrity defense architecture. Built to feel institutional, doctrinal, and unbreakable while staying intentionally and provably independent of any real military or government insignia.
 
 > **Safety contract:** every mark in this kit is original abstract geometry. No eagles, no flags, no stars, no weapons, no real branch crests, no claim of government affiliation. See [`STYLEGUIDE.md`](./assets/brand/STYLEGUIDE.md) for the full safe-use note.
