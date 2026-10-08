@@ -1,0 +1,64 @@
+name: Security Toolkit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-toolkit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Toolkit and archive / Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install local packages and verification tools
+        run: python -m pip install -e './python[test]' -e ./sdk/python 'ruff==0.16.10'
+      - name: Check integration source
+        run: >-
+          python -m ruff check --config python/pyproject.toml
+          python/ethos_aegis/security_toolkit
+          python/ethos_aegis/agent/scaffolds/autonomic_intake.py
+          python/ethos_aegis/veriflow/logic_laws.py
+          python/ethos_aegis/veriflow/__init__.py
+          python/tests/test_security_toolkit.py python/tests/test_archive_features.py
+          sdk/python
+      - name: Test evidence, authorization boundaries and SDK
+        env:
+          PYTHONPATH: python:sdk/python
+        run: >-
+          python -m pytest python/tests/test_security_toolkit.py
+          python/tests/test_archive_features.py sdk/python/tests -q
+      - name: Validate runnable walkthroughs
+        run: |
+          python -m ethos_aegis.security_toolkit demo --scenario toolkit
+          python -m ethos_aegis.security_toolkit demo --scenario immune
+          python -m ethos_aegis.security_toolkit demo --scenario veriflow
+  node:
+    name: Node SDK
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Install local core
+        run: python -m pip install -e ./python
+      - name: Test SDK subprocess and guard boundaries
+        run: node --test sdk/node/tests/*.test.js

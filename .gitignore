@@ -65,3 +65,6 @@ __pycache__/
 *.egg-info/
 
 build/
+
+# Local Mythos runtime receipts (never publish)
+.ethos-aegis/

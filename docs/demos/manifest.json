@@ -1,0 +1,79 @@
+{
+  "schema": "ethos-aegis.demo-recordings.v1",
+  "created_utc": "2026-10-07T23:53:54.224384+00:00",
+  "author": "Deonte Watts",
+  "input": "synthetic",
+  "method": "actual stdout rendered progressively",
+  "upstream_tools_executed": false,
+  "recordings": [
+    {
+      "scenario": "toolkit",
+      "command": "python -m ethos_aegis.security_toolkit demo --scenario toolkit",
+      "duration_seconds": 32.0,
+      "files": {
+        "toolkit.txt": {
+          "bytes": 1044,
+          "sha256": "2b1abe639c7d1e5d9f5ba4e1f576dfaaa44de4ce068690dde170ecb67756d60a"
+        },
+        "toolkit.mp4": {
+          "bytes": 161632,
+          "sha256": "98893984c60ded525f5433832803a4939b23b3d345e19616116a6b7699eaa1a7"
+        },
+        "toolkit-preview.gif": {
+          "bytes": 151047,
+          "sha256": "19e6baed024dea875225b6cfca6b76ba8f4ca6a87bd43333aea1c124166a52f9"
+        },
+        "toolkit-poster.png": {
+          "bytes": 44912,
+          "sha256": "de87760ff19547469a257565d07e8ec184372b92e5a33d51f26b411e60c90cb5"
+        }
+      }
+    },
+    {
+      "scenario": "immune",
+      "command": "python -m ethos_aegis.security_toolkit demo --scenario immune",
+      "duration_seconds": 24.0,
+      "files": {
+        "immune.txt": {
+          "bytes": 479,
+          "sha256": "b623ee4582deb2ee4e691c3f99c1e7fc7a26c7ab1c06b2eb90e36babd75e5c33"
+        },
+        "immune.mp4": {
+          "bytes": 77006,
+          "sha256": "eb60e9735f697caa40a4fc0ff7301a4462eeeb41134eb392c2b58fc6a6124d6e"
+        },
+        "immune-preview.gif": {
+          "bytes": 115938,
+          "sha256": "4a97845ea2c0b8b9f48c05053d10ae8347bfa8c20b393a3fc89f076bdd43eee2"
+        },
+        "immune-poster.png": {
+          "bytes": 38375,
+          "sha256": "5f404c9c9d86c0f0f75530741a1ea53f7eec5c3ea905f98db42538f262b03b03"
+        }
+      }
+    },
+    {
+      "scenario": "veriflow",
+      "command": "python -m ethos_aegis.security_toolkit demo --scenario veriflow",
+      "duration_seconds": 20.0,
+      "files": {
+        "veriflow.txt": {
+          "bytes": 376,
+          "sha256": "b65a7ebca211eaeac99f691e78d76d9bdd09ff730beefa9fc06b10da21eab61c"
+        },
+        "veriflow.mp4": {
+          "bytes": 71791,
+          "sha256": "8736274f5e32a0c24e0fff711f8b391461541e85c2cae0c2e45f3c9e05a57947"
+        },
+        "veriflow-preview.gif": {
+          "bytes": 107070,
+          "sha256": "e0c22033c80892df2ec07d7507f32f9ade85760be6db3e149536f647c41f454a"
+        },
+        "veriflow-poster.png": {
+          "bytes": 35918,
+          "sha256": "9a09e7907c862688e3d6ec8319a986745750eb34e2f84c4d4d83db6f897a826b"
+        }
+      }
+    }
+  ]
+}

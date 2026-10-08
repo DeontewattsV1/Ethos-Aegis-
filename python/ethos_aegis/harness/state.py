@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import re
 import time
 import uuid
 from pathlib import Path
@@ -33,14 +35,21 @@ class CheckpointStore:
 
     def __init__(self, root: Path) -> None:
         self._root = Path(root)
-        self._root.mkdir(parents=True, exist_ok=True)
+        self._root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if os.name == "posix":
+            self._root.chmod(0o700)
+
+    def _session_dir(self, session_id: str) -> Path:
+        if not isinstance(session_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", session_id):
+            raise ValueError("checkpoint session IDs must be bounded path-safe identifiers")
+        return self._root / session_id
 
     # ── Checkpointing ──────────────────────────────────────────────────────────
 
     def save(self, state: HarnessState) -> str:
         """Persist the current state as a checkpoint. Returns the checkpoint path."""
-        session_dir = self._root / state.session_id
-        session_dir.mkdir(exist_ok=True)
+        session_dir = self._session_dir(state.session_id)
+        session_dir.mkdir(exist_ok=True, mode=0o700)
         path = session_dir / f"{state.turns:04d}.json"
         with open(path, "w") as f:
             json.dump(self._serialise(state), f, indent=2, default=str)
@@ -49,7 +58,7 @@ class CheckpointStore:
 
     def load_latest(self, session_id: str) -> Optional[HarnessState]:
         """Load the most recent checkpoint for a session."""
-        session_dir = self._root / session_id
+        session_dir = self._session_dir(session_id)
         if not session_dir.exists():
             return None
         checkpoints = sorted(session_dir.glob("*.json"))
@@ -68,19 +77,19 @@ class CheckpointStore:
         Ralph Loop: write the structured progress file so the next session
         can orient itself without re-reading full history.
         """
-        path = self._root / session_id / "progress.json"
+        path = self._session_dir(session_id) / "progress.json"
         existing: Dict[str, Any] = {}
         if path.exists():
             with open(path) as f:
                 existing = json.load(f)
         existing.update(data)
         existing["updated_at"] = time.time()
-        path.parent.mkdir(parents=True, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         with open(path, "w") as f:
             json.dump(existing, f, indent=2, default=str)
 
     def read_progress(self, session_id: str) -> Optional[Dict[str, Any]]:
-        path = self._root / session_id / "progress.json"
+        path = self._session_dir(session_id) / "progress.json"
         if not path.exists():
             return None
         with open(path) as f:
