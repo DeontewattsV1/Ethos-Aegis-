@@ -28,6 +28,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: sdk/go/go.mod
+          # This stdlib-only module intentionally has no go.sum; avoid a nonexistent cache key.
+          cache: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
