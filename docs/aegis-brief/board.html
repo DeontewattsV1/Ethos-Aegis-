@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aegis 4D Video Board</title>
+  <meta name="description" content="Create a 4D visualization of Ethos Aegis cells scanning and answering a threat. Not a scanner for your machine." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560&family=Outfit:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #101614;
+      --surface: #1a2420;
+      --fg: #e7eee6;
+      --muted: #93a398;
+      --line: #314039;
+      --accent: #d4a25a;
+      --ink: #1a140c;
+      --virus: #7ec8bf;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: Outfit, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    header, main { width: min(1180px, calc(100% - 28px)); margin: 0 auto; }
+    header { padding: 22px 0 8px; }
+    h1, h2 { font-family: Fraunces, Palatino, serif; font-weight: 560; margin: 0; }
+    h1 { font-size: clamp(32px, 6vw, 52px); line-height: 0.95; }
+    a { color: var(--accent); }
+    .kicker { letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); font-size: 12px; margin: 0 0 8px; }
+    .muted { color: var(--muted); }
+    .layout { display: grid; gap: 14px; padding-bottom: 36px; }
+    @media (min-width: 980px) {
+      .layout { grid-template-columns: 300px 1fr; align-items: start; }
+    }
+    .panel, .stage {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+    }
+    .panel { padding: 14px; }
+    label { display: block; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; }
+    select, button {
+      min-height: 44px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #24302a;
+      color: var(--fg);
+      font: inherit;
+      padding: 0 14px;
+    }
+    select { width: 100%; border-radius: 12px; }
+    button { cursor: pointer; }
+    button.primary { background: var(--accent); color: var(--ink); border-color: var(--accent); font-weight: 500; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .cells { display: flex; flex-wrap: wrap; gap: 6px; }
+    .cells button[aria-pressed="true"] { background: var(--accent); color: var(--ink); border-color: var(--accent); }
+    canvas { display: block; width: 100%; height: auto; background: #101614; border-radius: 16px; }
+    .readout { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+    .readout div { background: #101614; border-radius: 12px; padding: 8px; }
+    .readout strong { display: block; font-family: Fraunces, serif; font-size: 18px; color: var(--accent); }
+    .board { display: grid; gap: 8px; margin-top: 8px; }
+    .card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #101614;
+    }
+    .card strong { display: block; }
+    .note { font-size: 14px; }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="kicker">Ethos Aegis · ethos_4d</p>
+    <h1>4D video board</h1>
+    <p class="muted">Build a visualization of the cells scanning a threat and answering it. This is the immersive manifold, not antivirus for your computer.</p>
+  </header>
+  <main class="layout">
+    <form class="panel" id="controls">
+      <label for="threat">Threat</label>
+      <select id="threat"></select>
+      <p class="note muted" id="threat-note"></p>
+      <label for="scan">How it is scanned</label>
+      <select id="scan">
+        <option value="signature">Signature — compare against the known fingerprint vault</option>
+        <option value="heuristic">Heuristic — read suspicious structure</option>
+        <option value="behavioral">Behavioral — watch what it tries to do</option>
+        <option value="cloud">Cloud — ask the shared threat record</option>
+        <option value="sandbox">Sandbox — run a copy where it cannot touch the host</option>
+      </select>
+      <label for="response">How the cells answer</label>
+      <select id="response">
+        <option value="quarantine">Quarantine — isolate it so it cannot run</option>
+        <option value="deletion">Deletion — remove the malicious file</option>
+        <option value="remediation">Remediation — strip the bad code and keep the host file</option>
+        <option value="block">Block — stop the process before it executes</option>
+      </select>
+      <label>Cells on this run</label>
+      <div class="cells" id="cells"></div>
+      <div class="row">
+        <button class="primary" id="create" type="button">Create visualization</button>
+        <button id="pause" type="button">Pause</button>
+        <button id="record" type="button">Record</button>
+      </div>
+      <p class="note muted" id="status">Choose a threat and create a run. T is the tick. Z rises at the ethical check.</p>
+    </form>
+    <section>
+      <div class="stage">
+        <canvas id="view" width="1280" height="720" aria-label="4D cell visualization"></canvas>
+      </div>
+      <div class="readout" aria-live="polite">
+        <div><span class="kicker">X node</span><strong id="x">—</strong></div>
+        <div><span class="kicker">Y state</span><strong id="y">—</strong></div>
+        <div><span class="kicker">Z weight</span><strong id="z">—</strong></div>
+        <div><span class="kicker">T tick</span><strong id="t">0</strong></div>
+      </div>
+      <div class="panel" style="margin-top:12px">
+        <h2>Saved on this board</h2>
+        <div class="board" id="saved"></div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const THREATS = [
+      { id: "moral", name: "MoralMaligna", kind: "Injection", scan: "heuristic", response: "block", note: "Instruction override. The scan reads the shape. It does not obey it." },
+      { id: "narcissis", name: "NarcissisMaligna", kind: "Virus", scan: "behavioral", response: "quarantine", note: "A virus that argues. Behavior shows the rewrite. Quarantine keeps it from running." },
+      { id: "parasitic", name: "ParasiticMaligna", kind: "Loop", scan: "behavioral", response: "block", note: "A drain loop. The watch cuts it when the budget breaks." },
+      { id: "systemic", name: "SystemicMaligna", kind: "Mutation", scan: "cloud", response: "remediation", note: "Corruption across layers. The shared record matches it. Cleaning keeps the host file." },
+      { id: "symbolic", name: "SymbolicMaligna", kind: "Taint", scan: "signature", response: "deletion", note: "A disguised name. The vault already holds the fingerprint." },
+      { id: "meta", name: "MetaMaligna", kind: "Blindspot", scan: "sandbox", response: "quarantine", note: "Looks quiet until a copy is run alone. A pass here is not permission." }
+    ];
+    const CELLS = [
+      { id: "vanguard", name: "VanguardProbe", node: "SecurityLayer" },
+      { id: "logos", name: "LogosScythe", node: "Governance" },
+      { id: "mnemosyne", name: "MnemosyneCache", node: "Theory" },
+      { id: "sanitas", name: "SanitasSwarm", node: "Interface" },
+      { id: "entropic", name: "EntropicWatch", node: "ComputeLayer" },
+      { id: "taint", name: "TaintBeacon", node: "Signal" },
+      { id: "finality", name: "FinalityForge", node: "SecurityLayer" },
+      { id: "cytokine", name: "CytokineCommand", node: "System" }
+    ];
+    const NODES = { Governance: 0, System: 1, Agent: 2, Workflow: 3, Theory: 4, Task: 5, Signal: 6, Interface: 7, ComputeLayer: 8, SecurityLayer: 9 };
+    const STATES = [
+      ["QUEUED", 0.1], ["VALIDATED", 0.2], ["ETHICAL_CHECK", 0.9], ["PLANNED", 0.4],
+      ["ASSIGNED_AGENT", 0.55], ["EXECUTING", 0.7], ["REVIEW", 0.65], ["COMMITTED", 0.3],
+      ["PUBLISHED", 0.15], ["ARCHIVED", 0.05]
+    ];
+    const SCAN_CELLS = {
+      signature: ["mnemosyne", "vanguard"],
+      heuristic: ["logos", "vanguard"],
+      behavioral: ["entropic", "taint"],
+      cloud: ["cytokine", "mnemosyne"],
+      sandbox: ["finality", "entropic"]
+    };
+    const RESPONSE_CELLS = {
+      quarantine: ["finality", "taint"],
+      deletion: ["finality", "sanitas"],
+      remediation: ["sanitas", "logos"],
+      block: ["vanguard", "finality"]
+    };
+
+    const threatEl = document.getElementById("threat");
+    const noteEl = document.getElementById("threat-note");
+    const scanEl = document.getElementById("scan");
+    const responseEl = document.getElementById("response");
+    const cellRoot = document.getElementById("cells");
+    const statusEl = document.getElementById("status");
+    const canvas = document.getElementById("view");
+    const ctx = canvas.getContext("2d");
+    const selected = new Set();
+
+    THREATS.forEach((threat) => {
+      const option = document.createElement("option");
+      option.value = threat.id;
+      option.textContent = threat.name + " · " + threat.kind;
+      threatEl.appendChild(option);
+    });
+    CELLS.forEach((cell) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = cell.name;
+      button.setAttribute("aria-pressed", "false");
+      button.addEventListener("click", () => {
+        if (selected.has(cell.id)) selected.delete(cell.id);
+        else selected.add(cell.id);
+        button.setAttribute("aria-pressed", selected.has(cell.id) ? "true" : "false");
+      });
+      cellRoot.appendChild(button);
+    });
+
+    function threat() { return THREATS.find((item) => item.id === threatEl.value); }
+    function applyPair() {
+      selected.clear();
+      SCAN_CELLS[scanEl.value].concat(RESPONSE_CELLS[responseEl.value]).forEach((id) => selected.add(id));
+      cellRoot.querySelectorAll("button").forEach((button, index) => {
+        button.setAttribute("aria-pressed", selected.has(CELLS[index].id) ? "true" : "false");
+      });
+      noteEl.textContent = threat().note;
+    }
+    threatEl.addEventListener("change", () => {
+      const item = threat();
+      scanEl.value = item.scan;
+      responseEl.value = item.response;
+      applyPair();
+    });
+    scanEl.addEventListener("change", applyPair);
+    responseEl.addEventListener("change", applyPair);
+
+    const params = new URLSearchParams(location.search);
+    if (params.get("threat")) threatEl.value = params.get("threat");
+    if (params.get("scan")) scanEl.value = params.get("scan");
+    if (params.get("response")) responseEl.value = params.get("response");
+    applyPair();
+
+    let running = false;
+    let runId = 0;
+    let tick = 0;
+    let shards = [];
+    let riders = [];
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    function resetScene() {
+      tick = 0;
+      shards = Array.from({ length: 7 }, (_, i) => ({
+        a: (i / 7) * Math.PI * 2,
+        r: 70 + (i % 3) * 28,
+        s: 10 + (i % 4) * 4
+      }));
+      riders = [...selected].map((id, i) => ({ id, lag: i * 0.4 }));
+    }
+
+    function stateAt(time) {
+      const index = Math.min(STATES.length - 1, Math.floor(time / 90));
+      return { index, name: STATES[index][0], z: STATES[index][1] };
+    }
+
+    function activeNode() {
+      const ids = [...selected];
+      if (!ids.length) return "Task";
+      const phase = stateAt(tick).index;
+      const id = ids[Math.min(ids.length - 1, Math.floor(phase / 2))] || ids[0];
+      return CELLS.find((cell) => cell.id === id).node;
+    }
+
+    function drawMark(id, x, y, s) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.strokeStyle = "#d4a25a";
+      ctx.fillStyle = "#e7eee6";
+      ctx.lineWidth = 2;
+      if (id === "vanguard") {
+        ctx.beginPath(); ctx.moveTo(-s, -s); ctx.lineTo(s, 0); ctx.lineTo(-s, s); ctx.stroke();
+      } else if (id === "logos") {
+        ctx.beginPath(); ctx.arc(0, 0, s, Math.PI, 0); ctx.stroke();
+      } else if (id === "mnemosyne") {
+        ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 0, s * 0.35, 0, Math.PI * 2); ctx.fill();
+      } else if (id === "finality") {
+        ctx.fillStyle = "#d4a25a";
+        ctx.fillRect(-s, -s * 0.8, s * 2, s * 0.7);
+        ctx.strokeRect(-s * 0.35, -s * 0.1, s * 0.7, s);
+      } else if (id === "taint") {
+        ctx.beginPath(); ctx.arc(0, 0, s * 0.35, 0, Math.PI * 2); ctx.fillStyle = "#d4a25a"; ctx.fill();
+        ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.stroke();
+      } else if (id === "cytokine") {
+        ctx.beginPath();
+        ctx.moveTo(0, -s); ctx.lineTo(0, s); ctx.moveTo(-s, 0); ctx.lineTo(s, 0); ctx.stroke();
+      } else {
+        ctx.beginPath(); ctx.arc(0, 0, s * 0.7, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function frame() {
+      const mine = runId;
+      const w = canvas.width;
+      const h = canvas.height;
+      const phase = stateAt(tick);
+      const node = activeNode();
+      ctx.clearRect(0, 0, w, h);
+      const sky = ctx.createLinearGradient(0, 0, 0, h);
+      sky.addColorStop(0, "#18211d");
+      sky.addColorStop(1, "#101614");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, w, h);
+
+      for (let i = 0; i < 9; i++) {
+        const x = 80 + i * ((w - 160) / 8);
+        ctx.strokeStyle = "rgba(49,64,57,0.9)";
+        ctx.strokeRect(x, 80, 36, h - 220);
+        ctx.fillStyle = i % 2 ? "rgba(212,162,90,0.18)" : "rgba(231,238,230,0.05)";
+        for (let y = 100; y < h - 240; y += 28) ctx.fillRect(x + 8, y, 20, 8);
+      }
+
+      const cx = w * 0.56;
+      const cy = h * 0.48;
+      const answer = responseEl.value;
+      const scan = scanEl.value;
+      const progress = Math.min(1, tick / (STATES.length * 90));
+
+      if (scan === "sandbox") {
+        ctx.strokeStyle = "#d4a25a";
+        ctx.strokeRect(cx - 150, cy - 110, 300, 220);
+      }
+      if (scan === "signature" || scan === "cloud") {
+        ctx.strokeStyle = "rgba(212,162,90,0.7)";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 40 + (tick % 80), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (scan === "heuristic" || scan === "behavioral") {
+        ctx.strokeStyle = "#e7eee6";
+        ctx.beginPath();
+        ctx.moveTo(120, 120 + (tick * 3) % (h - 280));
+        ctx.lineTo(w - 80, 120 + (tick * 3) % (h - 280));
+        ctx.stroke();
+      }
+
+      shards.forEach((shard, i) => {
+        const dead = progress > 0.72 && (answer === "deletion" || answer === "block");
+        const cleaned = progress > 0.72 && answer === "remediation";
+        const held = progress > 0.62 && answer === "quarantine";
+        const ang = shard.a + tick * 0.01;
+        const pull = held || dead ? 0.25 : 1;
+        const x = cx + Math.cos(ang) * shard.r * pull;
+        const y = cy + Math.sin(ang * 1.3) * shard.r * 0.55 * pull;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(ang);
+        ctx.strokeStyle = cleaned && i % 2 === 0 ? "#e7eee6" : "#7ec8bf";
+        ctx.globalAlpha = dead ? Math.max(0, 1 - (progress - 0.72) * 4) : 1;
+        ctx.beginPath();
+        ctx.moveTo(0, -shard.s);
+        ctx.lineTo(shard.s * 0.7, 0);
+        ctx.lineTo(0, shard.s);
+        ctx.lineTo(-shard.s * 0.7, 0);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      if (progress > 0.62 && answer === "quarantine") {
+        ctx.strokeStyle = "#d4a25a";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(cx - 54, cy - 54, 108, 108);
+        ctx.lineWidth = 1;
+      }
+
+      riders.forEach((rider, i) => {
+        const along = Math.min(1, Math.max(0, progress * 1.15 - rider.lag * 0.08));
+        const x = 90 + along * (cx - 140);
+        const y = 160 + i * 58 + Math.sin(tick * 0.05 + i) * 10;
+        drawMark(rider.id, x, y, 16);
+        ctx.fillStyle = "#93a398";
+        ctx.font = "14px Outfit, sans-serif";
+        ctx.fillText(CELLS.find((cell) => cell.id === rider.id).name, x + 24, y + 4);
+      });
+
+      ctx.fillStyle = "#e7eee6";
+      ctx.font = "22px Fraunces, serif";
+      ctx.fillText(threat().name + "  ·  " + phase.name, 36, 46);
+      ctx.font = "15px Outfit, sans-serif";
+      ctx.fillStyle = "#93a398";
+      ctx.fillText(scan + " scan  →  " + answer, 36, 70);
+
+      const plotX = w - 250;
+      const plotY = h - 150;
+      ctx.strokeStyle = "#314039";
+      ctx.strokeRect(plotX, plotY, 210, 110);
+      ctx.beginPath();
+      ctx.strokeStyle = "#d4a25a";
+      for (let p = 0; p <= phase.index; p++) {
+        const px = plotX + 16 + (NODES[node] / 9) * 120;
+        const py = plotY + 96 - (p / 10) * 80;
+        if (p === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+
+      document.getElementById("x").textContent = NODES[node] + " " + node;
+      document.getElementById("y").textContent = phase.index + " " + phase.name;
+      document.getElementById("z").textContent = phase.z.toFixed(2);
+      document.getElementById("t").textContent = String(tick);
+
+      if (running && mine === runId) {
+        tick += 1;
+        if (tick > STATES.length * 90 + 40) running = false;
+        else requestAnimationFrame(frame);
+      }
+    }
+
+    function createRun(auto) {
+      if (!selected.size) applyPair();
+      runId += 1;
+      resetScene();
+      running = !reduce || auto === "force";
+      statusEl.textContent = threat().name + " · " + scanEl.value + " · " + responseEl.value + (running ? " · running" : " · held for reduced motion");
+      saveRun();
+      frame();
+      const url = new URL(location.href);
+      url.searchParams.set("threat", threatEl.value);
+      url.searchParams.set("scan", scanEl.value);
+      url.searchParams.set("response", responseEl.value);
+      history.replaceState(null, "", url);
+    }
+
+    function saveRun() {
+      const run = { threat: threatEl.value, scan: scanEl.value, response: responseEl.value, at: Date.now() };
+      const prior = JSON.parse(localStorage.getItem("aegis-video-board-v1") || "[]").filter((item) => item.threat !== run.threat || item.scan !== run.scan || item.response !== run.response);
+      prior.unshift(run);
+      localStorage.setItem("aegis-video-board-v1", JSON.stringify(prior.slice(0, 6)));
+      paintSaved();
+    }
+
+    function paintSaved() {
+      const root = document.getElementById("saved");
+      const runs = JSON.parse(localStorage.getItem("aegis-video-board-v1") || "[]");
+      root.innerHTML = "";
+      if (!runs.length) {
+        root.innerHTML = "<p class='muted'>No saved runs yet.</p>";
+        return;
+      }
+      runs.forEach((run) => {
+        const name = THREATS.find((item) => item.id === run.threat);
+        const link = document.createElement("a");
+        link.className = "card";
+        link.href = "?threat=" + run.threat + "&scan=" + run.scan + "&response=" + run.response;
+        link.innerHTML = "<strong>" + (name ? name.name : run.threat) + "</strong><span class='muted'>" + run.scan + " → " + run.response + "</span>";
+        root.appendChild(link);
+      });
+    }
+
+    document.getElementById("create").addEventListener("click", () => createRun("force"));
+    document.getElementById("pause").addEventListener("click", (event) => {
+      running = !running;
+      event.currentTarget.textContent = running ? "Pause" : "Play";
+      if (running) requestAnimationFrame(frame);
+    });
+    document.getElementById("record").addEventListener("click", async () => {
+      if (!window.MediaRecorder || !canvas.captureStream) {
+        statusEl.textContent = "This browser cannot record. The live board still plays.";
+        return;
+      }
+      createRun("force");
+      const stream = canvas.captureStream(30);
+      let recorder;
+      try {
+        recorder = new MediaRecorder(stream);
+      } catch (error) {
+        statusEl.textContent = "Recording failed to start. The live board still plays.";
+        return;
+      }
+      const chunks = [];
+      recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: recorder.mimeType || "video/webm" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "aegis-" + threatEl.value + "-" + responseEl.value + ".webm";
+        link.click();
+        statusEl.textContent = "Recording saved.";
+      };
+      recorder.start();
+      statusEl.textContent = "Recording this run.";
+      setTimeout(() => { if (recorder.state === "recording") recorder.stop(); }, 8000);
+    });
+
+    paintSaved();
+    resetScene();
+    frame();
+    if (params.get("threat") && !reduce) createRun();
+  </script>
+</body>
+</html>

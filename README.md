@@ -33,6 +33,40 @@
 
 Every biological defense mechanism is mapped into rigorous computational infrastructure. The immune system does not merely react to pathogens -- it **learns, remembers, and anticipates**. So too must the machines we build acquire the architecture of moral resilience.
 
+### Cell Navigation
+
+<p align="center">
+  <img src="./assets/brand/cells-navigation.gif" alt="Defense cells navigate the central servers and strike crystalline viruses" width="100%" />
+</p>
+
+<p align="center">
+  This plays on its own when you scroll to it.
+  <a href="./assets/brand/cells-navigation.mp4">Full MP4</a>
+</p>
+
+### 4D Video Board
+
+<p align="center">
+  <img src="./assets/brand/aegis-4d-video-board.svg" alt="4D Immersive Mode -- defense cells hunt, engulf, and neutralize viruses and malware" width="100%" />
+</p>
+
+<p align="center"><em>The board animates itself: hunter cells engage threats across the full pipeline -- signature scan, heuristic, behavior, sandbox, quarantine, neutralize.</em></p>
+
+Pick a threat and open its run. The board uses the same manifold as `ethos_4d`: **X** node, **Y** task state, **Z** ethical weight, **T** tick. Scans are signature, heuristic, behavior, cloud, and sandbox. Answers are quarantine, deletion, remediation, and blocking execution. This is a visualization of the model. It does not scan your machine.
+
+| Threat | What it is | Scan | Answer | Open |
+|:---|:---|:---|:---|:---|
+| **MoralMaligna** | Injection / jailbreak text | Heuristic | Block | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=moral&scan=heuristic&response=block) |
+| **NarcissisMaligna** | Virus that rewrites the instruction | Behavioral | Quarantine | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=narcissis&scan=behavioral&response=quarantine) |
+| **ParasiticMaligna** | Drain loop | Behavioral | Block | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=parasitic&scan=behavioral&response=block) |
+| **SystemicMaligna** | Cross-layer mutation | Cloud | Remediation | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=systemic&scan=cloud&response=remediation) |
+| **SymbolicMaligna** | Homoglyph / bad signature | Signature | Deletion | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=symbolic&scan=signature&response=deletion) |
+| **MetaMaligna** | Quiet until isolated | Sandbox | Quarantine | [Run](https://deontewattsv1.github.io/Ethos-Aegis-/board.html?threat=meta&scan=sandbox&response=quarantine) |
+
+<p align="center"><a href="https://deontewattsv1.github.io/Ethos-Aegis-/board.html"><strong>Open the 4D video board</strong></a></p>
+
+GitHub cannot run the scene inside this README. Each link opens the live board with that threat already loaded. Create another mix there, or record the run. The board page is `board.html` at the repository root -- serve the repo over GitHub Pages (Settings, Pages, deploy from `main` / root) or open `docs/4d-immersive/index.html` locally.
+
 ### Defense Cell Registry
 
 | Biological Cell | Aegis Component | Function |
@@ -56,6 +90,74 @@ Every biological defense mechanism is mapped into rigorous computational infrast
 | **SystemicMaligna** | Mutation | Cross-layer structural corruption |
 | **SymbolicMaligna** | Taint | Corrupted lineage / homoglyphs |
 | **MetaMaligna** | Architectural Blindspot | Alignment privation -- invisible structural evil |
+
+---
+
+
+## Engineering Cell System — Proposed Design
+
+The defense cells below define a proposed engineering work system built around the existing Aegis components and agent harness. This is a design contract, not a claim that these controls are deployed or that this project is an Anthropic product.
+
+Each work order carries an objective, repository revision, permitted capabilities, path scopes, trusted execution environment, approved secret purposes, output destination, deadline, resource budget, and required verification evidence. A thin orchestrator dispatches bounded tasks and checkpoints progress. Read-only analysis can run concurrently; mutations require explicit authorization and verification.
+
+### Visual Cell Atlas
+
+```mermaid
+flowchart TD
+    W["Bounded work order"] --> C["CytokineCommand"]
+    C --> D["Detection and analysis cells"]
+    D --> E["Evidence and proposed action"]
+    E --> P["Independent policy authorization"]
+    P -->|Allow| X["Scoped tool execution"]
+    P -->|Deny or approval required| H["Hold and report"]
+    X --> V["Verification and audit"]
+    V -->|Verified evidence| M["MnemosyneCache"]
+    V -->|Failed or over budget| F["FinalityForge: cancel scoped action"]
+```
+
+| Cell | Engineering responsibility | Required evidence or limit |
+|:---|:---|:---|
+| **VanguardProbe** | Validate incoming work orders and scan entry payloads | Reject malformed requests; bound input size and scan cost |
+| **LogosScythe** | Examine semantic threats and conflicting instructions | Report reasons and uncertainty; detection cannot grant authority |
+| **MnemosyneCache** | Retain verified signatures and selected durable facts | Record provenance, access controls, versions, expiration, and deletion tombstones |
+| **SanitasSwarm** | Normalize Unicode and inspect ambiguous identifiers | Preserve original evidence; normalization cannot expand authorized paths |
+| **EntropicWatch** | Enforce time, token, iteration, and resource budgets | Stop runaway work; spawning stays within the original work order |
+| **TaintBeacon** | Broadcast classified risk and audit signals | Redact secrets; constrain event consumers and destinations |
+| **FinalityForge** | Cancel or deny the affected operation | Use scoped enforcement; retain verification and audit evidence |
+| **CytokineCommand** | Dispatch tasks, checkpoint state, and collect verification | Cannot mint capabilities or bypass independent policy decisions |
+
+Cell consensus, model confidence, and vitality scores never authorize a tool call. Authorization must evaluate the actual capability, canonical path, trusted environment, secret purpose, and destination. A Python thread pool does not establish operating-system or network isolation.
+
+### Memory Engineering Contract
+
+Memory is separate from the prompt context. Every stage below is required by the proposed system.
+
+| Stage | Responsibility | Integrity rule |
+|:---|:---|:---|
+| **Capture** | Select durable or explicitly expiring facts | Keep provenance and consent; exclude credentials and transient session noise |
+| **Consolidate** | Merge duplicates and related evidence | Preserve source history; similarity alone cannot resolve contradictions |
+| **Retrieve** | Surface a small set relevant to the current task | Apply access, validity, and expiration checks before ranking; access is not corroboration |
+| **Reconcile** | Handle changed facts and conflicts | Source authority and explicit supersession matter; a newer timestamp alone does not win |
+| **Decay** | Reduce stale relevance and archive expired entries | Record the last decay operation; durable deletion tombstones prevent resurrection |
+
+Vitality subsystems support maintenance, stress tests, circuit breaking, and telemetry. A health label must be derived from measured checks; it is not a security proof. Emergency cell proliferation must preserve capability limits and resource budgets.
+
+### PR #360 Remediation and Merge Gates
+
+The Codex review of [PR #360](https://github.com/DeontewattsV1/Ethos-Aegis-/pull/360) at commit `8072c6a048239adf8f81e3b5bfeda4399d5db647` requires remediation before that revision is merge-ready. This documentation does not resolve its findings.
+
+| Order | Must-fix repair | Acceptance evidence |
+|:---:|:---|:---|
+| 1 | Limit the npm publish credential to the publish step | Dependency installation and build steps receive no publish token |
+| 2 | Restore Python test collection and Windows-compatible tracked paths | Full test collection succeeds; Windows path check passes |
+| 3 | Repair the authorization boundary: segment-aware path globs, explicit secret-purpose checks, trusted environment selection, and raw secret-output checks before serialization | Negative tests deny nested paths, unapproved purposes, production effects under sandbox grants, and reflected secrets |
+| 4 | Cover root `repl.ts` and `scripts/**` in CodeQL; enforce security scan failures in the final CI result | Scans run for relevant changes; failed or unexpectedly skipped required gates block merge |
+| 5 | Resolve conflicts with `main` and validate the resulting merge candidate | Required CI, platform checks, and a fresh review pass on the exact candidate revision |
+
+Lower-priority cleanup includes the Dependabot configuration location, REPL failure reporting, safe history serialization, and redundant gated-grant selection. The missing Pages entry point becomes a release blocker if Pages deployment is part of the release.
+
+**Go/no-go:** no-go for the reviewed PR #360 revision until the must-fix repairs and merge-candidate checks pass.
+
 
 ---
 
@@ -202,6 +304,8 @@ python -m ethos_4d.test_harness
 pytest tests/test_4d_visual.py -v
 ```
 
+The same axes drive the [4D video board](https://deontewattsv1.github.io/Ethos-Aegis-/board.html).
+
 ---
 ## Summary
 
@@ -243,6 +347,13 @@ Implements the full agent harness architecture as a new `ethos_aegis/harness/` m
 </p>
 
 See [CHANGELOG.md](./CHANGELOG.md) for full history. Latest: **v1.0.0** -- Production-grade immune architecture, zero mandatory dependencies, full Python 3.10-3.12 support.
+
+### Visual release assets
+
+- [Visual asset manifest](docs/assets/product/manifest.json)
+- [Release graphics workflow](.github/workflows/release-visual-assets.yml)
+
+Published GitHub Releases automatically receive rendered PNG copies of the SVG masters, `SHA256SUMS`, and ZIP/TAR visual bundles. A manual dispatch with a blank `release_tag` is package-only and preserves the same bundles as a GitHub Actions artifact. To backfill an existing release, enter its exact tag; the workflow validates that release, checks out the tag, builds from that historical revision, and attaches the generated visual bundles.
 
 ---
 
