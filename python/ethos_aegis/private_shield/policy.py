@@ -16,13 +16,44 @@ from .models import (
 from .paths import PathPolicyError, canonicalize_resource_path, canonicalize_scope_pattern
 
 
+def _scope_matches(candidate: str, scope: str) -> bool:
+    """Match POSIX-like policy paths without letting * cross a / boundary.
+
+    A segment equal to ** matches zero or more complete path segments.
+    The historical lone '*' scope remains an explicit universal sentinel.
+    Dynamic programming avoids recursive backtracking on long inputs.
+    """
+    if scope == "*":
+        return True
+
+    parts = candidate.split("/") if candidate else []
+    patterns = scope.split("/") if scope else []
+    matched = [False] * (len(parts) + 1)
+    matched[0] = True
+
+    for pattern in patterns:
+        following = [False] * (len(parts) + 1)
+        if pattern == "**":
+            following[0] = matched[0]
+            for index in range(1, len(parts) + 1):
+                following[index] = matched[index] or following[index - 1]
+        else:
+            for index in range(1, len(parts) + 1):
+                following[index] = (
+                    matched[index - 1]
+                    and fnmatchcase(parts[index - 1], pattern)
+                )
+        matched = following
+    return matched[-1]
+
+
 def _scope_allows(path: str, scopes: Sequence[str]) -> bool:
     try:
         candidate = canonicalize_resource_path(path or "")
         normalized_scopes = tuple(canonicalize_scope_pattern(scope) for scope in scopes)
     except PathPolicyError:
         return False
-    return any(scope == "*" or fnmatchcase(candidate, scope) for scope in normalized_scopes)
+    return any(_scope_matches(candidate, scope) for scope in normalized_scopes)
 
 
 def _destination_allows(destination: str | None, allowed: frozenset[str]) -> bool:

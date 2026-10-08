@@ -1,30 +1,14 @@
-name: PR Conductor — Standalone
+name: PR Conductor — audit-only template (not installed)
 
+# This root-level template is not an installed GitHub Actions workflow.
+# Keep disabled until independently reviewed, tested, and explicitly approved.
 on:
-  pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - ready_for_review
-      - converted_to_draft
-      - labeled
-      - unlabeled
-      - edited
-  schedule:
-    - cron: "*/10 * * * *"
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: Run without mutating PRs or branches
-        type: boolean
-        required: false
-        default: false
 
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
+  contents: read
+  pull-requests: read
+  issues: read
 
 concurrency:
   group: pr-conductor-${{ github.repository }}
@@ -42,12 +26,12 @@ jobs:
       TARGET_PR: ${{ github.event.pull_request.number || 0 }}
 
       # Policy defaults
-      AUTO_MERGE_MODE: same-repo
-      AUTO_REBASE: "true"
-      STACK_SYNC: "true"
-      NORMALIZE_TITLES: "true"
-      COMMENT_ENABLED: "true"
-      DRY_RUN: ${{ inputs.dry_run || false }}
+      AUTO_MERGE_MODE: off
+      AUTO_REBASE: "false"
+      STACK_SYNC: "false"
+      NORMALIZE_TITLES: "false"
+      COMMENT_ENABLED: "false"
+      DRY_RUN: "true"
       DEFAULT_SINGLE_STRATEGY: rebase
       DEFAULT_MULTI_STRATEGY: squash
       RELEASE_STRATEGY: merge
@@ -61,7 +45,7 @@ jobs:
         with:
           ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Conduct pull requests
         shell: bash
@@ -79,12 +63,12 @@ jobs:
           GH_REPO="${GH_REPO:?GH_REPO is required}"
           EVENT_NAME="${EVENT_NAME:-workflow_dispatch}"
           TARGET_PR="${TARGET_PR:-0}"
-          AUTO_MERGE_MODE="${AUTO_MERGE_MODE:-same-repo}"
-          AUTO_REBASE="${AUTO_REBASE:-true}"
-          STACK_SYNC="${STACK_SYNC:-true}"
-          NORMALIZE_TITLES="${NORMALIZE_TITLES:-true}"
-          COMMENT_ENABLED="${COMMENT_ENABLED:-true}"
-          DRY_RUN="${DRY_RUN:-false}"
+          AUTO_MERGE_MODE="${AUTO_MERGE_MODE:-off}"
+          AUTO_REBASE="${AUTO_REBASE:-false}"
+          STACK_SYNC="${STACK_SYNC:-false}"
+          NORMALIZE_TITLES="${NORMALIZE_TITLES:-false}"
+          COMMENT_ENABLED="${COMMENT_ENABLED:-false}"
+          DRY_RUN="${DRY_RUN:-true}"
           DEFAULT_SINGLE_STRATEGY="${DEFAULT_SINGLE_STRATEGY:-rebase}"
           DEFAULT_MULTI_STRATEGY="${DEFAULT_MULTI_STRATEGY:-squash}"
           RELEASE_STRATEGY="${RELEASE_STRATEGY:-merge}"
