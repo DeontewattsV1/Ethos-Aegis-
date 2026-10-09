@@ -21,7 +21,7 @@ Usage::
     if (
         verdict.get("sanctified") is True
         and verdict.get("condemned") is False
-        and (not verdict.get("sanitized") or isinstance(verdict.get("purified_payload"), str))
+        and (verdict.get("sanitized", False) is False or (verdict.get("sanitized") is True and isinstance(verdict.get("purified_payload"), str)))
     ):
         purified = verdict.get("purified_payload")
         forward_to_llm(purified if isinstance(purified, str) else original)
