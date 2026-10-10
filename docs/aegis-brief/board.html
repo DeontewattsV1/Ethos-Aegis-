@@ -251,31 +251,67 @@
       return CELLS.find((cell) => cell.id === id).node;
     }
 
+    // Shared leukocyte morphology for the small 2D threat-run board.
+    // Differentiated hues retain the seven defense cell identities.
     function drawMark(id, x, y, s) {
+      const palette = {
+        vanguard: ["#57dace", "#c4fff1"], sanitas: ["#6bd8d5", "#c4ffeb"],
+        logos: ["#9cc6f6", "#edf1ff"], mnemosyne: ["#79b8df", "#d4f0ff"],
+        taint: ["#e5a6c7", "#ffe1ee"], cytokine: ["#99dba1", "#e1ffe7"],
+        finality: ["#e8b93e", "#fff0be"]
+      };
+      const color = palette[id] || palette.vanguard;
       ctx.save();
       ctx.translate(x, y);
-      ctx.strokeStyle = "#d4a25a";
-      ctx.fillStyle = "#e7eee6";
-      ctx.lineWidth = 2;
-      if (id === "vanguard") {
-        ctx.beginPath(); ctx.moveTo(-s, -s); ctx.lineTo(s, 0); ctx.lineTo(-s, s); ctx.stroke();
-      } else if (id === "logos") {
-        ctx.beginPath(); ctx.arc(0, 0, s, Math.PI, 0); ctx.stroke();
-      } else if (id === "mnemosyne") {
-        ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.stroke();
-        ctx.beginPath(); ctx.arc(0, 0, s * 0.35, 0, Math.PI * 2); ctx.fill();
-      } else if (id === "finality") {
-        ctx.fillStyle = "#d4a25a";
-        ctx.fillRect(-s, -s * 0.8, s * 2, s * 0.7);
-        ctx.strokeRect(-s * 0.35, -s * 0.1, s * 0.7, s);
-      } else if (id === "taint") {
-        ctx.beginPath(); ctx.arc(0, 0, s * 0.35, 0, Math.PI * 2); ctx.fillStyle = "#d4a25a"; ctx.fill();
-        ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.stroke();
-      } else if (id === "cytokine") {
+      const radius = s * (1 + 0.045 * Math.sin(tick * 0.06 + x * 0.03));
+
+      // Small pseudopod extensions; geometry is deterministic for stable playback.
+      ctx.strokeStyle = color[0];
+      ctx.lineWidth = Math.max(1.3, s * 0.12);
+      ctx.lineCap = "round";
+      for (let i = 0; i < 7; i++) {
+        const angle = i * Math.PI * 2 / 7;
         ctx.beginPath();
-        ctx.moveTo(0, -s); ctx.lineTo(0, s); ctx.moveTo(-s, 0); ctx.lineTo(s, 0); ctx.stroke();
-      } else {
-        ctx.beginPath(); ctx.arc(0, 0, s * 0.7, 0, Math.PI * 2); ctx.stroke();
+        ctx.moveTo(Math.cos(angle) * radius * 0.8, Math.sin(angle) * radius * 0.8);
+        ctx.lineTo(Math.cos(angle) * radius * 1.16, Math.sin(angle) * radius * 1.16);
+        ctx.stroke();
+      }
+
+      // Translucent cytoplasm and luminous outer membrane.
+      const fill = ctx.createRadialGradient(-radius * 0.36, -radius * 0.38, 1, 0, 0, radius);
+      fill.addColorStop(0, color[1]);
+      fill.addColorStop(0.56, color[0]);
+      fill.addColorStop(1, "#234956");
+      ctx.fillStyle = fill;
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      for (let i=1; i<=36; i++) {
+        const angle = i * Math.PI * 2/36;
+        const variance = 1 + 0.065 * Math.sin(5*angle + x);
+        ctx.lineTo(Math.cos(angle)*radius*variance, Math.sin(angle)*radius*variance);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = color[1];
+      ctx.lineWidth = 1.35;
+      ctx.stroke();
+
+      // Three interconnected nuclear lobes, inspired by biological leukocytes.
+      ctx.fillStyle = "#253354";
+      ctx.strokeStyle = "#a4a5d3";
+      ctx.lineWidth = 0.9;
+      for (const [nx,ny,nr] of [[-0.28,-0.23,0.27],[0.27,-0.08,0.33],[0.04,0.33,0.29]]) {
+        ctx.beginPath(); ctx.arc(nx*radius,ny*radius,nr*radius,0,Math.PI*2);
+        ctx.fill(); ctx.stroke();
+      }
+
+      // Cytoplasmic granules rendered inside the plasma membrane.
+      ctx.fillStyle = color[1];
+      for (let i=0; i<8; i++) {
+        const angle = i*Math.PI*2/8 + 0.21;
+        ctx.beginPath();
+        ctx.arc(Math.cos(angle)*radius*0.73,Math.sin(angle)*radius*0.73,Math.max(1, radius*0.075),0,Math.PI*2);
+        ctx.fill();
       }
       ctx.restore();
     }
@@ -426,15 +462,27 @@
       const runs = JSON.parse(localStorage.getItem("aegis-video-board-v1") || "[]");
       root.innerHTML = "";
       if (!runs.length) {
-        root.innerHTML = "<p class='muted'>No saved runs yet.</p>";
+        const empty = document.createElement("p");
+        empty.className = "muted";
+        empty.textContent = "No saved runs yet.";
+        root.appendChild(empty);
         return;
       }
       runs.forEach((run) => {
         const name = THREATS.find((item) => item.id === run.threat);
         const link = document.createElement("a");
         link.className = "card";
-        link.href = "?threat=" + run.threat + "&scan=" + run.scan + "&response=" + run.response;
-        link.innerHTML = "<strong>" + (name ? name.name : run.threat) + "</strong><span class='muted'>" + run.scan + " → " + run.response + "</span>";
+        link.href = "?threat=" + encodeURIComponent(run.threat) + "&scan=" + encodeURIComponent(run.scan) + "&response=" + encodeURIComponent(run.response);
+
+        const strong = document.createElement("strong");
+        strong.textContent = name ? name.name : run.threat;
+
+        const meta = document.createElement("span");
+        meta.className = "muted";
+        meta.textContent = run.scan + " → " + run.response;
+
+        link.appendChild(strong);
+        link.appendChild(meta);
         root.appendChild(link);
       });
     }
