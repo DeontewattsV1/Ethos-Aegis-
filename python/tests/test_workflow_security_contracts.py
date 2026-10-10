@@ -24,7 +24,7 @@ def test_publish_token_only_exists_at_publish_step() -> None:
     assert "NODE_AUTH_TOKEN:" not in before_publish
     assert "secrets.GITHUB_TOKEN" not in before_publish
     assert "working-directory: sdk/node" in before_publish
-    assert "if: github.event_name == 'release'" in before_publish
+    assert "if: github.event_name == 'release'" in npm_job.split("    steps:\n", 1)[0]
     assert "registry-url: https://npm.pkg.github.com" in before_publish
     assert 'scope: "@deontewattsv1"' in before_publish
     assert "NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in publish_step
