@@ -2,29 +2,35 @@
  * @ethos-aegis/sdk — Node.js / TypeScript SDK
  *
  * Three transport modes:
- *   1. subprocess  — calls Python core directly via child_process (default, zero infra)
+ *   1. subprocess  — calls independently installed Python core or checkout (default)
  *   2. http        — calls a running Aegis REST server (production recommended)
  *   3. embedded    — reserved for future N-API / WASM binding
  *
  * Usage (ESM):
- *   import { AegisClient } from "@ethos-aegis/sdk";
+ *   import { AegisClient } from "@deontewattsv1/ethos-aegis-sdk";
+ *   // Requires the separate Python core in pythonBin or an explicit repoRoot.
  *   const client = new AegisClient();
  *   const result = await client.adjudicate("user payload");
  *
  * Usage (CJS):
- *   const { AegisClient } = require("@ethos-aegis/sdk");
+ *   const { AegisClient } = require("@deontewattsv1/ethos-aegis-sdk");
  */
 
 "use strict";
 
 const { execFileSync, execFile } = require("child_process");
 const path   = require("path");
+const fs     = require("fs");
 const https  = require("https");
 const http   = require("http");
 const crypto = require("crypto");
 
 // ── Repo root resolution ──────────────────────────────────────────────────────
 const REPO_ROOT = path.resolve(__dirname, "..", "..", "..");
+function hasSourceCore(root) {
+  return typeof root === "string" &&
+    fs.existsSync(path.join(root, "python", "ethos_aegis", "__init__.py"));
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // TYPES (JSDoc — consumed by TypeScript via @ts-check / d.ts generation)
@@ -93,14 +99,16 @@ class AegisTransportError extends Error {
 // SUBPROCESS TRANSPORT
 // ══════════════════════════════════════════════════════════════════════════════
 
-/** @param {string} payload @param {string} pythonBin @param {string} root @param {number} timeout */
+/** @param {string} payload @param {string} pythonBin @param {string|null} root @param {number} timeout */
 function _subprocessAdjudicate(payload, pythonBin, root, timeout) {
   // Build a self-contained Python one-liner, passing payload via env var
   // to avoid any shell-quoting issues with special characters.
   const script = [
     "import sys, json, os, logging",
     "logging.disable(logging.CRITICAL)",
-    `sys.path.insert(0, ${JSON.stringify(path.join(root, "python"))})`,
+    ...(root ? [`sys.path.insert(0, ${JSON.stringify(path.join(root, "python"))})`] : []),
+    // An installed Node package does not contain the separate Python core;
+    // Python's configured site-packages may supply it independently.
     "from ethos_aegis import EthosAegis",
     "import time as _t",
     "a = EthosAegis()",
@@ -133,6 +141,15 @@ function _subprocessAdjudicate(payload, pythonBin, root, timeout) {
       maxBuffer: 5 * 1024 * 1024,
     });
   } catch (err) {
+    const detail = String(err.stderr || "");
+    if (/ModuleNotFoundError:\\s*No module named ['"]ethos_aegis['"]/.test(detail)) {
+      throw new AegisTransportError(
+        "Python core is unavailable. Install the separate ethos-aegis Python " +
+        "distribution in the configured pythonBin environment, or provide " +
+        "repoRoot pointing to an Ethos Aegis source checkout.",
+        err
+      );
+    }
     throw new AegisTransportError(
       `Subprocess failed: ${err.message}`,
       err
@@ -220,7 +237,14 @@ class AegisClient {
   constructor(options = {}) {
     this._transport       = options.transport    || "subprocess";
     this._pythonBin       = options.pythonBin    || "python3";
-    this._root            = options.repoRoot     || REPO_ROOT;
+    const root = options.repoRoot || REPO_ROOT;
+    if (options.repoRoot && !hasSourceCore(root)) {
+      throw new AegisTransportError(
+        "repoRoot must point to a checkout containing python/ethos_aegis; " +
+        "omit repoRoot to use a separately installed Python core."
+      );
+    }
+    this._root            = hasSourceCore(root) ? root : null;
     this._serverUrl       = options.serverUrl    || "http://localhost:8080/v1/adjudicate";
     this._apiKey          = options.apiKey       || null;
     this._timeout         = options.timeoutMs    || 15_000;
