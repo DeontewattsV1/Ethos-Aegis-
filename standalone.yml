@@ -673,7 +673,7 @@ jobs:
             head_repo="$(jq -r '.head.repo.full_name // ""' <<<"$data")"
             commits="$(jq -r '.commits // 1' <<<"$data")"
             stack_present="$(jq -r 'if .stack == null then "false" else "true" end' <<<"$data")"
-            default_branch="$(api "repos/${GH_REPO}" --jq '.default_branch')"
+default_branch="$(api "repos/${GH_REPO}" --jq '.default_branch' 2>/dev/null || true)"
 
             load_labels "$data"
 
