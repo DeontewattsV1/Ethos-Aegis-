@@ -41,7 +41,13 @@ const result = await client.guard({
 console.log(result.blocked);
 ```
 
-CommonJS entry: `sdk/node/src/index.js`. Declarations: `sdk/node/types/index.d.ts`. Subprocess calls require Python 3.10+ and the local core, and are synchronous despite the async API. The middleware factory implements an Express-compatible request shape.
+CommonJS entry: `sdk/node/src/index.js`. Declarations: `sdk/node/types/index.d.ts`. Subprocess calls require Python 3.10+ and the **separate Ethos Aegis Python core**, and are synchronous despite the async API. The middleware factory implements an Express-compatible request shape.
+
+**For a cloned repository**, pass `repoRoot` pointing to that clone, as above. The core lives in `python/ethos_aegis` and is not bundled in the Node SDK.
+
+**For a separately installed Node package**, install the Python core into the `pythonBin` interpreter independently (for example, `python -m pip install /path/to/Ethos-Aegis-/python`) and omit `repoRoot`; the SDK now uses the installed Python distribution instead of deriving a bogus source path under `node_modules`. If the core is absent, adjudication fails with a descriptive `AegisTransportError` rather than assuming an unrelated checkout. Use `new AegisClient({transport: "http", serverUrl: "https://your-authorized-server.example/v1/adjudicate"})` only with a separately deployed and verified service; installing the SDK or GHCR Node image **does not deploy an HTTP server**.
+
+The npm distribution configured at `sdk/node/package.json` is `@deontewattsv1/ethos-aegis-sdk` on GitHub Packages and is published only from an approved GitHub Release workflow; registry availability and anonymous access require separate verification. Do not claim the npm package includes the Python core or that the container exposes a functional API.
 
 ## Reference clients
 
