@@ -80,6 +80,7 @@ def test_unsupported_output_type_is_rejected() -> None:
 
 def test_adapter_exception_cannot_reflect_secret_through_error_or_receipt() -> None:
     secret = "never-expose-me"
+
     def fail(raw, args):
         raise ValueError(f"adapter leaked {raw.decode('utf-8')}")
 
