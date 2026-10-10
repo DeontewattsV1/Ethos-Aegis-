@@ -142,7 +142,7 @@ function _subprocessAdjudicate(payload, pythonBin, root, timeout) {
     });
   } catch (err) {
     const detail = String(err.stderr || "");
-    if (/ModuleNotFoundError:\\s*No module named ['"]ethos_aegis['"]/.test(detail)) {
+    if (/ModuleNotFoundError:\s*No module named ['"]ethos_aegis['"]/.test(detail)) {
       throw new AegisTransportError(
         "Python core is unavailable. Install the separate ethos-aegis Python " +
         "distribution in the configured pythonBin environment, or provide " +
