@@ -15,25 +15,35 @@ function parsePatterns(content: string): string[] {
 
 const patterns = parsePatterns(gitignoreContent);
 
-describe(".gitignore — Python project hygiene", () => {
-  const requiredPatterns = [
-    ".venv/",
-    "venv/",
+describe(".gitignore — removed Python patterns", () => {
+  const removedPatterns = [
     "__pycache__/",
-    "*.py[cod]",
+    "*.pyc",
     ".pytest_cache/",
     ".ruff_cache/",
     "*.egg-info/",
   ];
 
-  for (const pattern of requiredPatterns) {
-    it(`ignores Python-generated artifact "${pattern}"`, () => {
-      expect(patterns).toContain(pattern);
+  for (const pattern of removedPatterns) {
+    it(`no longer ignores "${pattern}"`, () => {
+      expect(patterns).not.toContain(pattern);
     });
   }
+
+  it("does not contain any Python-specific cache patterns", () => {
+    const pythonKeywords = ["__pycache__", ".pytest_cache", ".ruff_cache", ".egg-info"];
+    for (const kw of pythonKeywords) {
+      const found = patterns.some((p) => p.includes(kw));
+      expect(found).toBe(false);
+    }
+  });
+
+  it("does not ignore .pyc files", () => {
+    expect(patterns.some((p) => p.includes(".pyc"))).toBe(false);
+  });
 });
 
-describe(".gitignore — retained Node.js and local-tool patterns", () => {
+describe(".gitignore — retained Node.js patterns", () => {
   const retainedPatterns = [
     "node_modules/",
     "coverage/",
@@ -55,7 +65,8 @@ describe(".gitignore — retained Node.js and local-tool patterns", () => {
     expect(patterns).toContain(".idea/");
   });
 
-  it("still ignores .DS_Store (macOS system file)", () => {
+  it("does not ignore .DS_Store (macOS system file)", () => {
+    // .DS_Store is listed; it should remain in the file.
     expect(patterns).toContain(".DS_Store");
   });
 });
