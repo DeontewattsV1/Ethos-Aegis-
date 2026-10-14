@@ -12,7 +12,8 @@
       "extensions": [
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
-        "vitest.explorer"
+        "vitest.explorer",
+        "DavidAnson.vscode-markdownlint"
       ],
       "settings": {
         "editor.formatOnSave": true,
