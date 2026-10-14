@@ -1,0 +1,7 @@
+- name: clean-commit
+  # You may pin to the exact commit or the version.
+  # uses: deontewattsv1/clean-commit-action@887cfa1f5bb8a53b74c83905b8685a23886070c2
+  uses: deontewattsv1/clean-commit-action@v0.2.0
+  with:
+    # Token for the repository. This can be passed using {{ secrets.GITHUB_TOKEN }}
+    repo-token: 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
