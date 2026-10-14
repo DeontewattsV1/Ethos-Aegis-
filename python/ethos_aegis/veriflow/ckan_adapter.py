@@ -8,6 +8,8 @@ import urllib.request
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping, Optional
 
+from ethos_aegis.security.http_transport import validate_http_base_url
+
 
 @dataclass(slots=True)
 class SchemaField:
@@ -128,6 +130,7 @@ class CKANCapabilityMatrix:
                             "source": item.source,
                             "detail": item.detail,
                             "status_code": item.status_code,
+                            "payload": dict(item.payload) if item.payload is not None else None,
                         }
                         for item in record.evidence
                     ],
@@ -197,7 +200,7 @@ class CKANClient:
     )
 
     def __init__(self, base_url: str, api_key: str | None = None, timeout: float = 30.0) -> None:
-        self.base_url = base_url.rstrip("/")
+        self.base_url = validate_http_base_url(base_url)
         self.api_key = api_key
         self.timeout = timeout
 
@@ -746,7 +749,7 @@ class CKANClient:
         )
 
     def _safe_action(self, action: str, payload: dict[str, Any]) -> ProbeEvidence:
-        url = f"{self.base_url}/api/3/action/{action}"
+        url = f"{validate_http_base_url(self.base_url)}/api/3/action/{action}"
         data = json.dumps(payload).encode("utf-8")
         request = urllib.request.Request(url, data=data, method="POST")
         request.add_header("Content-Type", "application/json")
@@ -754,7 +757,8 @@ class CKANClient:
         if self.api_key:
             request.add_header("Authorization", self.api_key)
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            # B310: the base URL was validated as HTTPS or loopback HTTP above.
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:  # nosec B310
                 body = response.read().decode("utf-8")
                 parsed = json.loads(body)
                 return ProbeEvidence(
@@ -772,11 +776,12 @@ class CKANClient:
             return ProbeEvidence(name=action, ok=False, source=f"action:{action}", detail=str(error), status_code=None)
 
     def _safe_get(self, path: str) -> ProbeEvidence:
-        url = f"{self.base_url}{path}"
+        url = f"{validate_http_base_url(self.base_url)}{path}"
         request = urllib.request.Request(url, method="GET")
         request.add_header("User-Agent", "ethos-aegis-veriflow/1.2")
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            # B310: the base URL was validated as HTTPS or loopback HTTP above.
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:  # nosec B310
                 status = getattr(response, "status", None)
                 ok = status is None or 200 <= status < 400
                 return ProbeEvidence(name=path, ok=ok, source="http_get", detail="endpoint reachable", status_code=status)
