@@ -124,7 +124,7 @@ class VeriflowImmuneSystem:
         self._execution_grant = execution_grant
         if mythos_runtime is not None and mythos_runtime.environment.ckan_base_url != self.ckan.base_url:
             raise ValueError("Mythos trusted CKAN host must match the VeriFlow CKAN client")
-        if state_dir:
+        if state_dir is not None:
             self._state_dir = Path(state_dir)
         elif mythos_runtime is not None:
             self._state_dir = mythos_runtime.state_dir / "veriflow-state"
