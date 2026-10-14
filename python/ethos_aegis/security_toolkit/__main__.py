@@ -63,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     except ToolkitError as exc:
         print(f"Ethos Aegis: {exc}", file=sys.stderr)
-    except (OSError, ValueError, TypeError, AttributeError):
+    except (OSError, ValueError, TypeError, AttributeError, RecursionError):
         print("Ethos Aegis: unable to read valid scope or tool evidence.", file=sys.stderr)
     return 2
 
