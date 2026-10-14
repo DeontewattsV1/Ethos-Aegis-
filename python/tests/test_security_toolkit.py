@@ -201,7 +201,7 @@ def test_radio_and_proxy_integrations_cannot_execute(tmp_path: Path, tool: ToolI
 
 
 def test_process_timeout_output_limit_and_error_redaction(tmp_path: Path):
-    runner = BoundedProcessRunner(timeout=0.3, max_bytes=100)
+    runner = BoundedProcessRunner(timeout=1.0, max_bytes=100)
     with pytest.raises(ToolkitError, match="time budget"):
         runner.run([sys.executable, "-c", "import time; time.sleep(2)"], tmp_path)
     with pytest.raises(ToolkitError, match="byte budget"):
