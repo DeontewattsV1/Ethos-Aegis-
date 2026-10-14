@@ -329,8 +329,7 @@ class AegisClient {
    */
   async assertSanctified(payload) {
     const verdict = await this.adjudicate(payload);
-    if (verdict.sanctified !== true || verdict.condemned !== false ||
-        (verdict.sanitized && typeof verdict.purified_payload !== "string")) {
+    if (verdict.sanctified !== true || verdict.condemned !== false) {
       throw new AegisError(
         `Payload CONDEMNED at depth ${verdict.depth}`,
         verdict
