@@ -1,0 +1,20 @@
+- name: Pydantic to Typescript
+  # You may pin to the exact commit or the version.
+  # uses: phillipdupuis/pydantic-to-typescript@83ec9e9d6790daaa280c03f5e467b438891c0ed4
+  uses: phillipdupuis/pydantic-to-typescript@v1.0.10
+  with:
+    # name or filepath of the root python module. Typescript interfaces will be generated for all of the pydantic models contained within this module and its discoverable submodules.
+
+    python-module: 
+    # path to the file where the resulting typescript definitions will be saved. Example: './frontend/apiTypes.ts'.
+
+    ts-file: 
+    # comma-separated list of the names of any pydantic models which should be omitted from the resulting typescript definitions.
+
+    exclude-models: # optional, default is 
+    # Boolean flag indicating if type definition mismatches should cause this action to fail.
+
+    fail-on-mismatch: # optional, default is true
+    # Value for secrets.GITHUB_TOKEN, necessary for pull requests to be automatically opened.
+
+    GITHUB_TOKEN: # optional

@@ -18,6 +18,7 @@ lives in the model. The harness just manages turns.
 from __future__ import annotations
 
 import logging
+import os
 import time
 import uuid
 from pathlib import Path
@@ -93,7 +94,9 @@ When you are done, respond with your final answer — do NOT call any more tools
         self._parser      = OutputParser()
         self._guardrails  = GuardrailLayer(self._config, aegis)
         self._verifier    = VerificationEngine()
-        self._checkpoints = CheckpointStore(checkpoint_dir or Path("/tmp/aegis_checkpoints"))
+        state_home = Path(os.environ.get("XDG_STATE_HOME", str(Path.home() / ".local" / "state")))
+        default_checkpoints = state_home / "ethos-aegis" / "checkpoints"
+        self._checkpoints = CheckpointStore(checkpoint_dir if checkpoint_dir is not None else default_checkpoints)
 
     # ── Public API ────────────────────────────────────────────────────────────
 
