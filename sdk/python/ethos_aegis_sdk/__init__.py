@@ -14,19 +14,12 @@ Usage::
 
     # HTTP mode works without the embedded core when a server is available.
     client = AegisClient(transport="http", server_url="https://example.test/v1/adjudicate")
-    original = "user message"
-    verdict = client.adjudicate(original)  # HTTP verdicts are dictionaries.
+    verdict = client.adjudicate("user message")
 
-    # Fail closed if the verdict is missing clearance or has invalid sanitation.
-    if (
-        verdict.get("sanctified") is True
-        and verdict.get("condemned") is False
-        and (not verdict.get("sanitized") or isinstance(verdict.get("purified_payload"), str))
-    ):
-        purified = verdict.get("purified_payload")
-        forward_to_llm(purified if isinstance(purified, str) else original)
-    else:
+    if verdict.is_condemned:
         refuse()
+    else:
+        forward_to_llm(verdict.purified_payload or original)
 """
 
 from importlib import import_module
