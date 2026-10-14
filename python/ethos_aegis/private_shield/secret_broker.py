@@ -202,26 +202,34 @@ class SecretBroker:
 
         try:
             output = adapter(record.material, adapter_arguments)
-        except Exception as exc:
+        except Exception:
+            # Exception messages can contain credential bytes. Do not return or
+            # audit raw adapter exceptions across the secret boundary.
             self._append_consumption_receipt(
                 record,
                 input_material=evidence_input,
-                output_material=repr(exc),
+                output_material=b"trusted-adapter-error",
+                success=False,
+                now=now,
+            )
+            raise SecretLeaseError("trusted adapter execution failed") from None
+
+        try:
+            self._assert_safe_output(output, record.material)
+            encoded_output = self._evidence_bytes(output)
+            if len(encoded_output) > 1_048_576:
+                raise SecretLeaseError("trusted adapter output exceeds the size limit")
+            if record.material in encoded_output:
+                raise SecretExfiltrationError("trusted adapter attempted to return raw secret material")
+        except (SecretExfiltrationError, SecretLeaseError):
+            self._append_consumption_receipt(
+                record,
+                input_material=evidence_input,
+                output_material=b"blocked-secret-reflection-or-output-type",
                 success=False,
                 now=now,
             )
             raise
-
-        encoded_output = self._evidence_bytes(output)
-        if record.material in encoded_output:
-            self._append_consumption_receipt(
-                record,
-                input_material=evidence_input,
-                output_material=b"blocked-secret-reflection",
-                success=False,
-                now=now,
-            )
-            raise SecretExfiltrationError("trusted adapter attempted to return raw secret material")
 
         self._append_consumption_receipt(
             record,
@@ -266,6 +274,55 @@ class SecretBroker:
             output_material=output_material,
             timestamp=now,
         )
+
+    @staticmethod
+    def _assert_safe_output(value: object, secret: bytes) -> None:
+        """Reject raw secret reflection before JSON escaping or repr conversion.
+
+        Walk mapping keys and nested values, including binary outputs. Adapter
+        results are deliberately restricted to bounded plain data types.
+        This is a defense-in-depth check, not a guarantee against encoding or
+        deliberately transformed credential exfiltration by a trusted adapter.
+        """
+        seen: set[int] = set()
+        visited = 0
+
+        def walk(item: object, depth: int) -> None:
+            nonlocal visited
+            visited += 1
+            if depth > 32 or visited > 10_000:
+                raise SecretLeaseError("trusted adapter output exceeds structural limits")
+            if isinstance(item, str):
+                if secret in item.encode("utf-8"):
+                    raise SecretExfiltrationError("trusted adapter attempted to return raw secret material")
+                return
+            if isinstance(item, (bytes, bytearray, memoryview)):
+                if secret in bytes(item):
+                    raise SecretExfiltrationError("trusted adapter attempted to return raw secret material")
+                return
+            if item is None or type(item) in (bool, int, float):
+                return
+            if isinstance(item, (dict, list, tuple)):
+                identity = id(item)
+                if identity in seen:
+                    raise SecretLeaseError("cyclic adapter output is not permitted")
+                seen.add(identity)
+                try:
+                    if isinstance(item, dict):
+                        for key, nested in item.items():
+                            if not isinstance(key, str):
+                                raise SecretLeaseError("adapter output mapping keys must be strings")
+                            walk(key, depth + 1)
+                            walk(nested, depth + 1)
+                    else:
+                        for nested in item:
+                            walk(nested, depth + 1)
+                finally:
+                    seen.remove(identity)
+                return
+            raise SecretLeaseError("unsupported trusted adapter output type")
+
+        walk(value, 0)
 
     @staticmethod
     def _evidence_bytes(value: object) -> bytes:
