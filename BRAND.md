@@ -11,7 +11,7 @@ The [toolkit hero](assets/brand/security-toolkit-hero.svg) and
 graphite, steel blue, cold blue and bone white palette. They retain Deonte Watts
 authorship, distinguish tool integrations from upstream ownership, and label
 synthetic demo inputs. The [launch copy](docs/security-toolkit/launch-copy.md)
-follows the README's published feature support matrix.
+follows the [Security Toolkit README's](docs/security-toolkit/README.md) published feature support matrix.
 
 Original, civilian, government-grade visual identity for the **Ethos Aegis** sovereign AI integrity defense architecture. Built to feel institutional, doctrinal, and unbreakable while staying intentionally and provably independent of any real military or government insignia.
 

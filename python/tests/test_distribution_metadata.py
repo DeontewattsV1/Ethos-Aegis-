@@ -4,9 +4,9 @@ All assertions use the standard library so they run on the Python 3.10–3.12
 CI matrix without adding a runtime or test-only TOML dependency.
 """
 
-from pathlib import Path
 import importlib
 import re
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 IMMUNE = ROOT / "python"
