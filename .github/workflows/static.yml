@@ -1,0 +1,79 @@
+# GitHub Pages — static Aegis brief, 4D board and recorded demonstrations.
+# Validate the same public artifact on PRs without giving PRs deploy privileges.
+name: Deploy static content to Pages
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    paths:
+      - 'docs/aegis-brief/**'
+      - 'docs/demos/**'
+      - '.github/workflows/static.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && format('pages-pr-{0}', github.event.pull_request.number) || 'pages' }}
+  cancel-in-progress: false
+
+jobs:
+  build-site:
+    name: Build and validate public site artifact
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stage landing page, board and recorded media
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site/docs/demos
+          cp -a docs/aegis-brief/. _site/
+          cp -a docs/demos/. _site/docs/demos/
+
+      - name: Verify entrypoint and every recorded walkthrough
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s _site/index.html
+          test -s _site/board.html
+          test -s _site/cells-navigation.mp4
+          for stem in toolkit immune veriflow; do
+            test -s "_site/docs/demos/${stem}.mp4"
+            test -s "_site/docs/demos/${stem}-poster.png"
+            test -s "_site/docs/demos/${stem}.txt"
+            grep -Fq "docs/demos/${stem}.mp4" _site/index.html
+          done
+          test -s _site/docs/demos/manifest.json
+          echo 'All three walkthroughs are present in the Pages artifact.'
+
+      - name: Configure Pages
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy validated Pages artifact
+    if: github.event_name != 'pull_request'
+    needs: build-site
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
