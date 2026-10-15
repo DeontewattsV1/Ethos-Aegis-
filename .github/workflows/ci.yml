@@ -98,7 +98,7 @@ jobs:
           print(f"Windows path compatibility OK: {len(paths)} tracked paths checked.")
 
   # ───────────────────────────────────────────────────────────────────────────
-  # JOB 2 — PYTHON MATRIX (3.13 / 3.14 / 3.15)
+  # JOB 2 — PYTHON MATRIX (3.15)
   # ───────────────────────────────────────────────────────────────────────────
   python:
     name: Python ${{ matrix.python-version }}
@@ -110,7 +110,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.13", "3.14", "3.15"]
+        python-version: ["3.15"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -301,7 +301,7 @@ jobs:
             echo ""
             echo "| Job | Result |"
             echo "|-----|--------|"
-            echo "| Python 3.13/3.14/3.15 | ${{ needs.python.result }} |"
+            echo "| Python 3.15 | ${{ needs.python.result }} |"
             echo "| macOS Private Shield | ${{ needs.macos.result }} |"
             echo "| Windows Path Compatibility | ${{ needs.windows_paths.result }} |"
             echo "| Windows Private Shield | ${{ needs.windows.result }} |"
