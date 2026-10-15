@@ -13,7 +13,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  PYTHON_DEFAULT: "3.11"
+  PYTHON_DEFAULT: "3.15"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -98,7 +98,7 @@ jobs:
           print(f"Windows path compatibility OK: {len(paths)} tracked paths checked.")
 
   # ───────────────────────────────────────────────────────────────────────────
-  # JOB 2 — PYTHON MATRIX (3.10 / 3.11 / 3.12)
+  # JOB 2 — PYTHON MATRIX (3.13 / 3.14 / 3.15)
   # ───────────────────────────────────────────────────────────────────────────
   python:
     name: Python ${{ matrix.python-version }}
@@ -110,7 +110,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.13", "3.14", "3.15"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -142,7 +142,7 @@ jobs:
   # JOB 3 — macOS PRIVATE SHIELD COMPATIBILITY
   # ───────────────────────────────────────────────────────────────────────────
   macos:
-    name: macOS Private Shield (Python 3.11)
+    name: macOS Private Shield (Python 3.15)
     needs: lint
     runs-on: macos-latest
     permissions:
@@ -176,7 +176,7 @@ jobs:
   # JOB 4 — WINDOWS PRIVATE SHIELD COMPATIBILITY
   # ───────────────────────────────────────────────────────────────────────────
   windows:
-    name: Windows Private Shield (Python 3.11)
+    name: Windows Private Shield (Python 3.15)
     needs: [lint, windows_paths]
     runs-on: windows-latest
     permissions:
@@ -301,7 +301,7 @@ jobs:
             echo ""
             echo "| Job | Result |"
             echo "|-----|--------|"
-            echo "| Python 3.10/3.11/3.12 | ${{ needs.python.result }} |"
+            echo "| Python 3.13/3.14/3.15 | ${{ needs.python.result }} |"
             echo "| macOS Private Shield | ${{ needs.macos.result }} |"
             echo "| Windows Path Compatibility | ${{ needs.windows_paths.result }} |"
             echo "| Windows Private Shield | ${{ needs.windows.result }} |"
