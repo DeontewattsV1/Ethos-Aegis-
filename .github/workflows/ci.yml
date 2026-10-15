@@ -139,10 +139,10 @@ jobs:
             python/coverage-*.xml
 
   # ───────────────────────────────────────────────────────────────────────────
-  # JOB 3 — macOS PRIVATE SHIELD COMPATIBILITY
+  # JOB 3 — Linux PRIVATE SHIELD COMPATIBILITY
   # ───────────────────────────────────────────────────────────────────────────
   macos:
-    name: macOS Private Shield (Python 3.15)
+    name: Linux Private Shield (Python 3.15)
     needs: lint
     runs-on: macos-latest
     permissions:
