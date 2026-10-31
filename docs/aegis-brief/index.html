@@ -103,6 +103,30 @@
     </nav>
   </header>
   <main>
+    <section aria-labelledby="walkthroughs-heading">
+      <h2 id="walkthroughs-heading">Recorded walkthroughs</h2>
+      <p class="muted">These recordings use synthetic inputs and show captured local command output.</p>
+      <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+        <article class="card">
+          <h3>Security Toolkit</h3>
+          <p>Evidence imports, provenance, raw-secret omission, scope denial, and execution default-off.</p>
+          <video controls playsinline preload="metadata" aria-label="Security Toolkit walkthrough" poster="./docs/demos/toolkit-poster.png" src="./docs/demos/toolkit.mp4" style="width:100%;border-radius:12px;background:#101614"></video>
+          <p><a href="./docs/demos/toolkit.txt">Transcript</a></p>
+        </article>
+        <article class="card">
+          <h3>Immune Pipeline</h3>
+          <p>Normal input, injection verdict, Unicode purification, and a vitality report.</p>
+          <video controls playsinline preload="metadata" aria-label="Immune Pipeline walkthrough" poster="./docs/demos/immune-poster.png" src="./docs/demos/immune.mp4" style="width:100%;border-radius:12px;background:#101614"></video>
+          <p><a href="./docs/demos/immune.txt">Transcript</a></p>
+        </article>
+        <article class="card">
+          <h3>VeriFlow</h3>
+          <p>Boolean simplification, fitted formula evidence, and aggregate reasoning.</p>
+          <video controls playsinline preload="metadata" aria-label="VeriFlow walkthrough" poster="./docs/demos/veriflow-poster.png" src="./docs/demos/veriflow.mp4" style="width:100%;border-radius:12px;background:#101614"></video>
+          <p><a href="./docs/demos/veriflow.txt">Transcript</a></p>
+        </article>
+      </div>
+    </section>
     <section class="panel" id="verdict" data-open="true">
       <div class="hero">
         <div class="stamp">
