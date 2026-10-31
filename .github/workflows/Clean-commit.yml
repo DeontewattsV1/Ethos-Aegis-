@@ -3,5 +3,5 @@
   # uses: deontewattsv1/clean-commit-action@887cfa1f5bb8a53b74c83905b8685a23886070c2
   uses: deontewattsv1/clean-commit-action@v0.2.0
   with:
-    # Token for the repository. This can be passed using {{ secrets.GITHUB_TOKEN }}
-    repo-token: REDACTED_GITHUB_TOKEN
+    # Use the workflow-scoped token rather than a committed credential.
+    repo-token: ${{ github.token }}
