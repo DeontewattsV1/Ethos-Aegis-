@@ -3,7 +3,7 @@ name = "ethos-aegis-governance"
 version = "0.1.0"
 description = "Ethos Aegis governance engine (separate from the ethos-aegis Python subtree distribution)"
 authors = [
-    {name = "Deonte Watts"}
+    {name = "Deonté O'dell Watts / GoodShyt Group Inc."}
 ]
 requires-python = ">=3.12"
 license = "CC0-1.0"

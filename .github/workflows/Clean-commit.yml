@@ -1,7 +1,23 @@
-- name: clean-commit
-  # You may pin to the exact commit or the version.
-  # uses: deontewattsv1/clean-commit-action@887cfa1f5bb8a53b74c83905b8685a23886070c2
-  uses: deontewattsv1/clean-commit-action@v0.2.0
-  with:
-    # Token for the repository. This can be passed using {{ secrets.GITHUB_TOKEN }}
-    repo-token: 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
+name: Clean commit messages
+
+# The checked-in file was a marketplace step for clean-commit-action v0.2.0.
+# That tag is ad1992/clean-commit-action@887cfa1f5bb8a53b74c83905b8685a23886070c2.
+# deontewattsv1/clean-commit-action does not exist. The action rejects pull
+# request commit messages shorter than 10 characters or containing
+# temp, tmp, fixup, squash, or wip.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  clean-commit:
+    name: Reject placeholder commit messages
+    runs-on: ubuntu-latest
+    steps:
+      - name: clean-commit
+        uses: ad1992/clean-commit-action@887cfa1f5bb8a53b74c83905b8685a23886070c2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
