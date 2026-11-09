@@ -12,9 +12,8 @@
 
 Report privately via:
 1. **GitHub Private Security Advisory** (preferred):  
-   `https://github.com/ethos-aegis/ethos-aegis/security/advisories/new`
-2. **Email**: security@ethos-aegis.dev  
-   GPG key fingerprint: (publish your key fingerprint here)
+   `https://github.com/DeontewattsV1/Ethos-Aegis-/security/advisories/new`
+2. **Email**: deonte@goodshyt.fun
 
 ### What to include
 - Affected module(s) and version

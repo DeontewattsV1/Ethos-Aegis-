@@ -14,4 +14,4 @@ response = AegisClient(auto_nourish=False).guard("Explain a computer", llm_fn=la
 print(response.was_blocked, response.content)
 ```
 
-See the [SDK guide](../README.md) for transport behavior, support status and limits. MIT license; copyright 2026 The Ethos Aegis Project.
+See the [SDK guide](../README.md) for transport behavior, support status and limits. MIT license; copyright 2026 Deonté O'dell Watts / GoodShyt Group Inc.

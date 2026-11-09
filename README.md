@@ -188,7 +188,7 @@ Vitality subsystems support maintenance, stress tests, circuit breaking, and tel
 
 ### PR #360 Remediation and Merge Gates
 
-The Codex review of [PR #360](https://github.com/DeontewattsV1/Ethos-Aegis-/pull/360) at commit `8072c6a048239adf8f81e3b5bfeda4399d5db647` requires remediation before that revision is merge-ready. This documentation does not resolve its findings.
+[PR #360](https://github.com/DeontewattsV1/Ethos-Aegis-/pull/360) at commit `8072c6a048239adf8f81e3b5bfeda4399d5db647` still needs the repairs below before that revision is merge-ready. This documentation does not resolve those findings.
 
 | Order | Must-fix repair | Acceptance evidence |
 |:---:|:---|:---|
@@ -432,7 +432,8 @@ Security illustrations and demos are not evidence of production certification or
 
 <p align="center">
   <sub>
-    Built by <a href="https://github.com/DeontewattsV1">DeontewattsV1</a> |
+    Built by <a href="https://github.com/DeontewattsV1">Deonté O'dell Watts / GoodShyt Group Inc.</a>
+    (GitHub: DeontewattsV1, ORCID <a href="https://orcid.org/0009-0005-8586-3650">0009-0005-8586-3650</a>) |
     <a href="./BRAND.md">Brand Guide</a> |
     <a href="./SECURITY.md">Security Policy</a> |
     <a href="./docs/architecture.md">Architecture Docs</a> |

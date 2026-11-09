@@ -58,7 +58,7 @@ from ethos_aegis.security.vault import (
 )
 
 __version__ = "1.0.0"
-__author__  = "The Ethos Aegis Project"
+__author__  = "Deonté O'dell Watts / GoodShyt Group Inc."
 __all__ = [
     # Core pipeline
     "EthosAegis", "AegisVerdict", "Malignum", "MalignaClass", "CorruptionDepth",
