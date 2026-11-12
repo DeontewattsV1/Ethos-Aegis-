@@ -14,6 +14,7 @@ on:
       - "README.md"
       - "examples/**"
       - "docs/output-snapshots/**"
+      - ".github/workflows/readme.yml"
   schedule:
     - cron: "0 7 * * 1"
   workflow_dispatch:
@@ -40,7 +41,16 @@ jobs:
         run: npm install --no-save markdown-link-check@3
 
       - name: Check README links
-        run: npx markdown-link-check -q README.md
+        run: |
+          for attempt in 1 2 3; do
+            if npx markdown-link-check -q README.md; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            sleep 10
+          done
 
       - name: Validate example markers + snapshots
         run: npx tsx scripts/validate-docs.ts
