@@ -1,48 +1,42 @@
-import { describe, expect, it } from "vitest";
-import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { describe, it, expect } from "vitest";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { spawnSync } from "node:child_process";
 
 const workflow = readFileSync(join(import.meta.dirname, "../.github/workflows/readme.yml"), "utf-8");
-const linkCheck = workflow.match(/- name: Check README links\n        run: \|\n((?:          .*\n)+)/)?.[1];
+const linkCheck = workflow.match(/- name: Check README links\n\s+run: \|\n((?: {10}.+\n)+)/)?.[1];
 
-function runLinkCheck(succeedOn: number) {
-  expect(linkCheck).toBeDefined();
-  const script = `
-    count=0
-    npx() {
-      [ "$*" = "markdown-link-check -q README.md" ] || exit 2
-      count=$((count + 1))
-      echo "check $count"
-      [ "$count" -eq "$SUCCESS_ON" ]
-    }
-    sleep() { echo "sleep $1"; }
-    ${linkCheck}
-  `;
-  return spawnSync("bash", ["-e", "-c", script], {
-    encoding: "utf-8",
-    env: { ...process.env, SUCCESS_ON: String(succeedOn) },
-  });
+function runLinkCheck(failures: number) {
+  const dir = mkdtempSync(join(tmpdir(), "readme-link-check-"));
+  try {
+    writeFileSync(join(dir, "npx"), `#!/bin/bash
+echo "$*" >> "$CALLS"
+count=$(wc -l < "$CALLS")
+test "$count" -gt "$FAILURES"
+`, { mode: 0o755 });
+    writeFileSync(join(dir, "sleep"), "#!/bin/bash\nexit 0\n", { mode: 0o755 });
+    const calls = join(dir, "calls");
+    const result = spawnSync("bash", ["-e", "-c", linkCheck!], {
+      env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, CALLS: calls, FAILURES: String(failures) },
+      encoding: "utf-8",
+    });
+    return { status: result.status, calls: readFileSync(calls, "utf-8").trim().split("\n") };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
-describe("README link check retries", () => {
-  it("stops immediately on success", () => {
-    const result = runLinkCheck(1);
-    expect(result.status).toBe(0);
-    expect(result.stdout).toBe("check 1\n");
-  });
-
-  it("retries a transient failure", () => {
-    const result = runLinkCheck(2);
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain("sleep 15\ncheck 2\n");
-    expect(result.stdout).not.toContain("check 3");
-  });
-
-  it("fails after three unsuccessful checks", () => {
-    const result = runLinkCheck(0);
-    expect(result.status).toBe(1);
-    expect(result.stdout.match(/check \d/g)).toEqual(["check 1", "check 2", "check 3"]);
-    expect(result.stdout.match(/sleep 15/g)).toHaveLength(2);
+describe("README link check", () => {
+  it.each([
+    [0, 0, 1],
+    [1, 0, 2],
+    [2, 0, 3],
+    [3, 1, 3],
+  ])("handles %i failed attempts", (failures, status, attempts) => {
+    expect(linkCheck).toBeDefined();
+    const result = runLinkCheck(failures);
+    expect(result.status).toBe(status);
+    expect(result.calls).toEqual(Array(attempts).fill("markdown-link-check -q README.md"));
   });
 });
