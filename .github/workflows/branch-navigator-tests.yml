@@ -1,0 +1,26 @@
+name: Branch navigator tests
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/branch_navigator.py'
+      - 'tests/test_branch_navigator.py'
+      - '.github/workflows/branch-navigator*.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/branch_navigator.py'
+      - 'tests/test_branch_navigator.py'
+      - '.github/workflows/branch-navigator*.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run offline regression tests
+        run: python3 -m unittest discover -s tests -p test_branch_navigator.py -v

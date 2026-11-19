@@ -1,0 +1,47 @@
+name: Branch navigator
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_branch:
+        description: 'Optional comparison base for branches without an open PR'
+        required: false
+        type: string
+  schedule:
+    - cron: '23 6 * * *'
+
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  statuses: read
+  pull-requests: read
+
+concurrency:
+  group: branch-navigator-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  navigate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate advisory branch snapshot
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BASE_BRANCH: ${{ inputs.base_branch }}
+          REQUIRED_WORKFLOWS: |
+            Ethos Aegis CI
+            CodeQL Advanced
+            examples
+            Security Toolkit
+        run: python3 scripts/branch_navigator.py --base "$BASE_BRANCH"
+      - name: Upload read-only snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: branch-navigation-report
+          path: branch-navigation-report/
+          if-no-files-found: warn
+          retention-days: 30
